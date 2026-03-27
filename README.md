@@ -87,25 +87,27 @@ Work through the notebooks in order:
 ### Phase 1: Foundations & History
 - **00_introduction_and_setup.ipynb** - Start here
 - **01_pre_transformer_era.ipynb** - RNNs, LSTMs, and why we needed transformers
+- **01_pre_transformer_era_solutions.ipynb** - Reference solutions and extended experiments for notebook 01
 
 ### Phase 2: The Attention Revolution
 - **02_attention_mechanism.ipynb** - The key innovation
-- **03_transformer_overview.ipynb** - Architecture overview
+- **03_transformer_architecture.ipynb** - Transformer building blocks and positional encoding
 
-### Phase 3: Building Blocks
-- **04_self_attention_from_scratch.ipynb** - Query, Key, Value explained
-- **05_multi_head_attention.ipynb** - Parallel attention mechanisms
-- **06_positional_encoding.ipynb** - Adding sequence order
-- **07_feed_forward_networks.ipynb** - The FFN component
-- **08_layer_norm_and_residuals.ipynb** - Training stability
+### Phase 3: From Transformer To GPT
+- **04_gpt_architecture.ipynb** - Decoder-only transformers and causal attention
+- **05_tokenization.ipynb** - Character-level tokenization and the motivation for BPE
 
-### Phase 4: Complete Transformer
-- **09_complete_transformer.ipynb** - Putting it all together
+### Phase 4: Training And Fine-Tuning
+- **06_training_complete_model.ipynb** - Train a small decoder-only language model on Tiny Shakespeare
+- **07_instruction_finetuning.ipynb** - Fine-tune the base model on Shakespeare Q&A pairs
 
-### Phase 5: From Transformer to GPT
-- **10_gpt_architecture.ipynb** - Decoder-only transformers
-- **11_tokenization.ipynb** - Text to tokens
-- **12_training_a_tiny_gpt.ipynb** - Train your own language model
+## Current Repo State
+
+This repository started as a notebook-first learning project and now also includes shared Python modules for the later pipeline stages.
+
+- The early notebooks remain the main learning path.
+- The later training flow has been partially refactored into reusable code under `src/`.
+- Notebook 06 and notebook 07 now share model, tokenizer, and inference code.
 
 ## Philosophy
 
@@ -118,16 +120,31 @@ Work through the notebooks in order:
 
 ```
 ai-learning/
-├── notebooks/          # Jupyter notebooks (work through in order)
-├── src/               # Shared utility functions
-├── data/              # Sample datasets for experiments
-├── requirements.txt   # Python dependencies
-└── README.md         # This file
+├── notebooks/                 # Main learning notebooks
+├── src/
+│   ├── model.py              # Shared MiniGPT model components
+│   ├── tokenizer.py          # Character and educational BPE tokenizers
+│   ├── inference.py          # Shared generation helpers
+│   └── utils.py              # Plotting and notebook utilities
+├── scripts/
+│   └── clean_qa_dataset.py   # Cleans and splits Shakespeare Q&A data
+├── data/
+│   ├── shakespeare.txt
+│   ├── shakespeare_qa.json
+│   ├── shakespeare_qa_cleaned.json
+│   ├── shakespeare_qa_train.json
+│   ├── shakespeare_qa_val.json
+│   └── shakespeare_qa_cleaning_report.json
+├── models/                   # Saved notebook checkpoints
+├── gpu_check.py              # Small CUDA environment check
+├── test_notebook_07.py       # Smoke test for notebook 07 concepts
+├── requirements.txt
+└── README.md
 ```
 
 ## Notebook 6 MiniGPT Architecture
 
-The `MiniGPT` built in notebook 6 is a small decoder-only transformer with:
+The default `MiniGPT` configuration used in notebook 6 is a small decoder-only transformer with:
 
 - `vocab_size = 69`
 - `d_model = 256`
@@ -179,7 +196,22 @@ Notes:
 
 - Positional encoding is sinusoidal, so it adds no trainable parameters.
 - The notebook does not tie input embedding weights with the output projection.
-- Although notebook 5 discusses BPE, notebook 6's current tokenizer ends up effectively character-level, which is why the vocabulary is only `69`.
+- The repo now includes both a character tokenizer and a lightweight educational BPE tokenizer in `src/tokenizer.py`.
+- The exact vocabulary size and total parameter count change if you switch tokenizer type or model dimensions.
+
+## Notebook 6 And 7 Workflow
+
+The later notebooks now form a connected mini training pipeline:
+
+1. **Notebook 06** trains a base MiniGPT language model on Tiny Shakespeare.
+2. The base checkpoint is saved under `models/`.
+3. **Notebook 07** loads that checkpoint and fine-tunes it on instruction-style Q&A data.
+4. The Q&A dataset can be cleaned and split using `scripts/clean_qa_dataset.py`.
+
+This makes the repo useful in two ways:
+
+- as a notebook-based learning path
+- as a small reusable codebase for experimenting with tokenization, pretraining, and instruction fine-tuning
 
 ## Prerequisites
 
