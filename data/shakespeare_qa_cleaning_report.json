@@ -1,0 +1,25 @@
+{
+  "raw_count": 310,
+  "removed": {
+    "exact_duplicate_pairs": 146,
+    "duplicate_questions": 0,
+    "filtered_rows": {
+      "malformed_entity": 4,
+      "generic_role_answer": 16,
+      "generic_character_answer": 22,
+      "generic_character_blurb": 12,
+      "non_speaker_quote_text": 2,
+      "suspicious_speaker_name": 1
+    },
+    "who_said_trimmed": 53
+  },
+  "clean_count": 54,
+  "train_count": 46,
+  "val_count": 8,
+  "bucket_counts": {
+    "who_said": 40,
+    "explanatory": 11,
+    "other": 1,
+    "factoid": 2
+  }
+}

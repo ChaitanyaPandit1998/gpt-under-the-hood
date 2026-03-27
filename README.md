@@ -33,6 +33,37 @@ jupyter notebook
 
 Then open `notebooks/00_introduction_and_setup.ipynb` to begin!
 
+### Jupyter Kernel And GPU Check
+
+If you are using VS Code or Jupyter and want GPU acceleration:
+
+1. Create the environment and install dependencies.
+2. Select the `Python (.venv gpt-under-the-hood)` kernel in the notebook UI.
+3. Restart the notebook kernel after switching.
+4. Re-run the first setup cell.
+
+To verify CUDA from the command line:
+
+```powershell
+.\.venv\Scripts\python.exe gpu_check.py
+```
+
+To verify CUDA inside a notebook:
+
+```python
+import torch
+
+print(torch.__version__)
+print(torch.version.cuda)
+print(torch.cuda.is_available())
+print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No GPU")
+```
+
+If `torch.cuda.is_available()` is `False`, the most common causes are:
+- The notebook is still using a different kernel/interpreter
+- A CPU-only PyTorch build is installed in the active environment
+- The kernel was not restarted after changing the environment
+
 #### Alternative: Using pip
 
 ```bash
@@ -93,6 +124,62 @@ ai-learning/
 ├── requirements.txt   # Python dependencies
 └── README.md         # This file
 ```
+
+## Notebook 6 MiniGPT Architecture
+
+The `MiniGPT` built in notebook 6 is a small decoder-only transformer with:
+
+- `vocab_size = 69`
+- `d_model = 256`
+- `num_heads = 8`
+- `num_layers = 6`
+- `d_ff = 1024`
+- `max_seq_len = 128`
+- `dropout = 0.1`
+- Total trainable parameters: `4,774,469`
+
+High-level structure:
+
+```text
+Token Embedding
+  -> Sinusoidal Positional Encoding
+  -> Dropout
+  -> 6 x GPTBlock
+      -> Pre-Norm Causal Self-Attention + Residual
+      -> Pre-Norm Feed-Forward Network + Residual
+  -> Final LayerNorm
+  -> Output Projection to Vocabulary Logits
+```
+
+Parameter breakdown:
+
+| Component | Shape / Count | Parameters |
+|-----------|---------------|-----------:|
+| Token embedding | `69 x 256` | 17,664 |
+| 1 GPT block | attention + FFN + 2 layer norms | 789,760 |
+| 6 GPT blocks | `6 x 789,760` | 4,738,560 |
+| Final layer norm | `256` weights + `256` bias | 512 |
+| Output projection | `256 x 69` + bias | 17,733 |
+| Total |  | 4,774,469 |
+
+Per-block detail:
+
+| Subcomponent | Parameters |
+|--------------|-----------:|
+| Q projection `Linear(256, 256)` | 65,792 |
+| K projection `Linear(256, 256)` | 65,792 |
+| V projection `Linear(256, 256)` | 65,792 |
+| Output projection `Linear(256, 256)` | 65,792 |
+| Feed-forward `Linear(256, 1024)` | 263,168 |
+| Feed-forward `Linear(1024, 256)` | 262,400 |
+| LayerNorms (2 total) | 1,024 |
+| Total per GPT block | 789,760 |
+
+Notes:
+
+- Positional encoding is sinusoidal, so it adds no trainable parameters.
+- The notebook does not tie input embedding weights with the output projection.
+- Although notebook 5 discusses BPE, notebook 6's current tokenizer ends up effectively character-level, which is why the vocabulary is only `69`.
 
 ## Prerequisites
 
