@@ -116,6 +116,173 @@ This repository started as a notebook-first learning project and now also includ
 - **Balanced math**: Key equations explained intuitively, not just presented
 - **Hands-on**: Every notebook has code you can run and modify
 
+## Worked Self-Attention Example
+
+Here is a tiny end-to-end example that goes from words to `Q`, `K`, `V`, attention weights, and final outputs.
+
+Sentence:
+
+```text
+The cat sat
+```
+
+### 1. Start with word embeddings
+
+Assume each word has a 2-dimensional embedding:
+
+```text
+The = [1, 0]
+cat = [0, 1]
+sat = [1, 1]
+```
+
+So the input matrix `X` is:
+
+```text
+X = [
+  [1, 0],   # The
+  [0, 1],   # cat
+  [1, 1]    # sat
+]
+```
+
+### 2. Create `Q`, `K`, and `V` with learned projections
+
+In attention, we do:
+
+```python
+Q = X @ W_Q
+K = X @ W_K
+V = X @ W_V
+```
+
+Choose small projection matrices:
+
+```text
+W_Q = [
+  [1, 0],
+  [0, 1]
+]
+
+W_K = [
+  [1, 1],
+  [0, 1]
+]
+
+W_V = [
+  [1, 0],
+  [1, 1]
+]
+```
+
+Now compute the projections:
+
+```text
+Q = [
+  [1, 0],   # The
+  [0, 1],   # cat
+  [1, 1]    # sat
+]
+
+K = [
+  [1, 1],   # The
+  [0, 1],   # cat
+  [1, 2]    # sat
+]
+
+V = [
+  [1, 0],   # The
+  [1, 1],   # cat
+  [2, 1]    # sat
+]
+```
+
+### 3. Compute raw attention scores
+
+The score matrix is:
+
+```text
+scores = Q @ K^T
+```
+
+This gives:
+
+```text
+scores = [
+  [1, 0, 1],
+  [1, 1, 2],
+  [2, 1, 3]
+]
+```
+
+Each row tells us how much one word matches all words in the sentence.
+
+### 4. Scale the scores
+
+Here `d_k = 2`, so we divide by `sqrt(2)`, which is about `1.41`:
+
+```text
+scaled_scores = scores / sqrt(2)
+
+scaled_scores ≈ [
+  [0.71, 0.00, 0.71],
+  [0.71, 0.71, 1.41],
+  [1.41, 0.71, 2.12]
+]
+```
+
+### 5. Apply softmax row by row
+
+Softmax converts each row into attention weights that sum to 1:
+
+```text
+weights ≈ [
+  [0.40, 0.20, 0.40],
+  [0.25, 0.25, 0.50],
+  [0.28, 0.14, 0.58]
+]
+```
+
+Interpretation:
+
+- `The` attends 40% to itself, 20% to `cat`, and 40% to `sat`
+- `cat` attends most strongly to `sat`
+- `sat` attends mostly to itself
+
+### 6. Compute the final attention output
+
+Now combine the value vectors:
+
+```text
+output = weights @ V
+```
+
+This gives:
+
+```text
+output ≈ [
+  [1.40, 0.60],
+  [1.50, 0.75],
+  [1.58, 0.72]
+]
+```
+
+Each word now has a new representation that mixes information from all words, weighted by relevance.
+
+### Intuition
+
+- `Q` decides what a word is looking for
+- `K` decides how a word can be matched
+- `V` decides what information a word contributes
+
+So attention is:
+
+1. Compare each query with every key.
+2. Turn those comparisons into weights.
+3. Use the weights to mix the value vectors.
+
+That is the full path from words to attention outputs.
+
 ## Project Structure
 
 ```
