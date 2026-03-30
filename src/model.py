@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class PositionalEncoding(nn.Module):
+class SinusoidalPositionalEncoding(nn.Module):
     """Sinusoidal positional encoding."""
 
     def __init__(self, d_model: int, max_len: int = 5000) -> None:
@@ -33,18 +33,48 @@ class PositionalEncoding(nn.Module):
         return x + self.pe[:seq_len, :]
 
 
+class LearnedPositionalEmbedding(nn.Module):
+    """Learned positional embeddings, as used in the GPT paper."""
+
+    def __init__(self, d_model: int, max_len: int) -> None:
+        super().__init__()
+        self.position_embedding = nn.Embedding(max_len, d_model)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        batch_size, seq_len, _ = x.size()
+        positions = torch.arange(seq_len, device=x.device).unsqueeze(0).expand(batch_size, -1)
+        return x + self.position_embedding(positions)
+
+
+# Backward-compatible alias used by notebooks/imports written before configurable positions.
+PositionalEncoding = SinusoidalPositionalEncoding
+
+
 class FeedForward(nn.Module):
     """Position-wise feed-forward network."""
 
-    def __init__(self, d_model: int, d_ff: int, dropout: float = 0.1) -> None:
+    def __init__(
+        self,
+        d_model: int,
+        d_ff: int,
+        dropout: float = 0.1,
+        activation: str = "relu",
+    ) -> None:
         super().__init__()
         self.linear1 = nn.Linear(d_model, d_ff)
         self.linear2 = nn.Linear(d_ff, d_model)
         self.dropout = nn.Dropout(dropout)
+        self.activation = activation.lower()
+
+        if self.activation not in {"relu", "gelu"}:
+            raise ValueError(f"Unsupported activation: {activation}")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.linear1(x)
-        x = F.relu(x)
+        if self.activation == "gelu":
+            x = F.gelu(x)
+        else:
+            x = F.relu(x)
         x = self.dropout(x)
         x = self.linear2(x)
         return x
@@ -92,10 +122,17 @@ class CausalMultiHeadAttention(nn.Module):
 class GPTBlock(nn.Module):
     """A single GPT transformer block."""
 
-    def __init__(self, d_model: int, num_heads: int, d_ff: int, dropout: float = 0.1) -> None:
+    def __init__(
+        self,
+        d_model: int,
+        num_heads: int,
+        d_ff: int,
+        dropout: float = 0.1,
+        activation: str = "relu",
+    ) -> None:
         super().__init__()
         self.attention = CausalMultiHeadAttention(d_model, num_heads, dropout)
-        self.feed_forward = FeedForward(d_model, d_ff, dropout)
+        self.feed_forward = FeedForward(d_model, d_ff, dropout, activation=activation)
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
@@ -121,14 +158,22 @@ class MiniGPT(nn.Module):
         d_ff: int,
         max_seq_len: int,
         dropout: float = 0.1,
+        activation: str = "relu",
+        position_encoding_type: str = "sinusoidal",
     ) -> None:
         super().__init__()
 
         self.d_model = d_model
+        self.max_seq_len = max_seq_len
+        self.activation = activation.lower()
+        self.position_encoding_type = position_encoding_type.lower()
         self.token_embedding = nn.Embedding(vocab_size, d_model)
-        self.pos_encoding = PositionalEncoding(d_model, max_seq_len)
+        self.pos_encoding = self._build_position_encoder(d_model, max_seq_len)
         self.blocks = nn.ModuleList(
-            [GPTBlock(d_model, num_heads, d_ff, dropout) for _ in range(num_layers)]
+            [
+                GPTBlock(d_model, num_heads, d_ff, dropout, activation=self.activation)
+                for _ in range(num_layers)
+            ]
         )
         self.ln_final = nn.LayerNorm(d_model)
         self.output_projection = nn.Linear(d_model, vocab_size)
@@ -143,6 +188,15 @@ class MiniGPT(nn.Module):
                 torch.nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
+    def _build_position_encoder(self, d_model: int, max_seq_len: int) -> nn.Module:
+        if self.position_encoding_type == "learned":
+            return LearnedPositionalEmbedding(d_model, max_seq_len)
+        if self.position_encoding_type == "sinusoidal":
+            return SinusoidalPositionalEncoding(d_model, max_seq_len)
+        raise ValueError(
+            f"Unsupported position_encoding_type: {self.position_encoding_type}"
+        )
 
     def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
         x = self.token_embedding(token_ids)
