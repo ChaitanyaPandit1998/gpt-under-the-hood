@@ -1,0 +1,24 @@
+{
+  "title": "Pericles",
+  "tier": "minor",
+  "genre": "comedy",
+  "pairs": [
+    [
+      "Who wrote Pericles?",
+      "Pericles was written by William Shakespeare."
+    ],
+    [
+      "What genre is Pericles?",
+      "Pericles is a comedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is Pericles?",
+      "Pericles is a Shakespeare comedy."
+    ],
+    [
+      "Where is Pericles set?",
+      "Pericles is set in the ancient Mediterranean."
+    ]
+  ],
+  "n_pairs": 4
+}

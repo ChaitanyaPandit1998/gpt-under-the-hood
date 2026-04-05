@@ -1,0 +1,24 @@
+{
+  "title": "The Merry Wives of Windsor",
+  "tier": "minor",
+  "genre": "comedy",
+  "pairs": [
+    [
+      "Who wrote The Merry Wives of Windsor?",
+      "The Merry Wives of Windsor was written by William Shakespeare."
+    ],
+    [
+      "What genre is The Merry Wives of Windsor?",
+      "The Merry Wives of Windsor is a comedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is The Merry Wives of Windsor?",
+      "The Merry Wives of Windsor is a Shakespeare comedy."
+    ],
+    [
+      "Where is The Merry Wives of Windsor set?",
+      "The Merry Wives of Windsor is set in Windsor, England."
+    ]
+  ],
+  "n_pairs": 4
+}

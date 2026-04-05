@@ -1,0 +1,24 @@
+{
+  "title": "All's Well That Ends Well",
+  "tier": "secondary",
+  "genre": "comedy",
+  "pairs": [
+    [
+      "Who wrote All's Well That Ends Well?",
+      "All's Well That Ends Well was written by William Shakespeare."
+    ],
+    [
+      "What genre is All's Well That Ends Well?",
+      "All's Well That Ends Well is a comedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is All's Well That Ends Well?",
+      "All's Well That Ends Well is a Shakespeare comedy."
+    ],
+    [
+      "Where is All's Well That Ends Well set?",
+      "All's Well That Ends Well is set in France and Italy."
+    ]
+  ],
+  "n_pairs": 4
+}

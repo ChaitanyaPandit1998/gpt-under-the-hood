@@ -1,0 +1,220 @@
+{
+  "title": "The Merchant of Venice",
+  "tier": "major",
+  "genre": "comedy",
+  "pairs": [
+    [
+      "What genre is The Merchant of Venice?",
+      "The Merchant of Venice is a comedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is The Merchant of Venice?",
+      "The Merchant of Venice is a comedy."
+    ],
+    [
+      "Did Shakespeare write The Merchant of Venice?",
+      "Yes, The Merchant of Venice was written by William Shakespeare."
+    ],
+    [
+      "Where is The Merchant of Venice set?",
+      "The Merchant of Venice is set in Venice and Belmont."
+    ],
+    [
+      "What is the setting of The Merchant of Venice?",
+      "The setting of The Merchant of Venice is Venice and Belmont."
+    ],
+    [
+      "In what location does The Merchant of Venice take place?",
+      "The Merchant of Venice takes place in Venice and Belmont."
+    ],
+    [
+      "Who is Shylock in The Merchant of Venice?",
+      "Shylock is a Jewish moneylender who demands a pound of flesh as bond."
+    ],
+    [
+      "What is Shylock's role in The Merchant of Venice?",
+      "Shylock is a Jewish moneylender who demands a pound of flesh as bond."
+    ],
+    [
+      "Describe Shylock in The Merchant of Venice.",
+      "Shylock is a Jewish moneylender who demands a pound of flesh as bond."
+    ],
+    [
+      "Who is Portia in The Merchant of Venice?",
+      "Portia is a wealthy heiress who disguises herself as a lawyer."
+    ],
+    [
+      "What is Portia's role in The Merchant of Venice?",
+      "Portia is a wealthy heiress who disguises herself as a lawyer."
+    ],
+    [
+      "Describe Portia in The Merchant of Venice.",
+      "Portia is a wealthy heiress who disguises herself as a lawyer."
+    ],
+    [
+      "Who is Antonio in The Merchant of Venice?",
+      "Antonio is a merchant who borrows money from Shylock for his friend."
+    ],
+    [
+      "What is Antonio's role in The Merchant of Venice?",
+      "Antonio is a merchant who borrows money from Shylock for his friend."
+    ],
+    [
+      "Describe Antonio in The Merchant of Venice.",
+      "Antonio is a merchant who borrows money from Shylock for his friend."
+    ],
+    [
+      "Who is Bassanio in The Merchant of Venice?",
+      "Bassanio is Antonio's friend who wishes to court Portia."
+    ],
+    [
+      "What is Bassanio's role in The Merchant of Venice?",
+      "Bassanio is Antonio's friend who wishes to court Portia."
+    ],
+    [
+      "Describe Bassanio in The Merchant of Venice.",
+      "Bassanio is Antonio's friend who wishes to court Portia."
+    ],
+    [
+      "Who is Jessica in The Merchant of Venice?",
+      "Jessica is Shylock's daughter who elopes with Lorenzo."
+    ],
+    [
+      "What is Jessica's role in The Merchant of Venice?",
+      "Jessica is Shylock's daughter who elopes with Lorenzo."
+    ],
+    [
+      "Describe Jessica in The Merchant of Venice.",
+      "Jessica is Shylock's daughter who elopes with Lorenzo."
+    ],
+    [
+      "Who is Lorenzo in The Merchant of Venice?",
+      "Lorenzo is a Christian gentleman who elopes with Jessica."
+    ],
+    [
+      "What is Lorenzo's role in The Merchant of Venice?",
+      "Lorenzo is a Christian gentleman who elopes with Jessica."
+    ],
+    [
+      "Describe Lorenzo in The Merchant of Venice.",
+      "Lorenzo is a Christian gentleman who elopes with Jessica."
+    ],
+    [
+      "Who is Gratiano in The Merchant of Venice?",
+      "Gratiano is a talkative friend of Bassanio."
+    ],
+    [
+      "What is Gratiano's role in The Merchant of Venice?",
+      "Gratiano is a talkative friend of Bassanio."
+    ],
+    [
+      "Describe Gratiano in The Merchant of Venice.",
+      "Gratiano is a talkative friend of Bassanio."
+    ],
+    [
+      "Who is Nerissa in The Merchant of Venice?",
+      "Nerissa is Portia's waiting-maid."
+    ],
+    [
+      "What is Nerissa's role in The Merchant of Venice?",
+      "Nerissa is Portia's waiting-maid."
+    ],
+    [
+      "Describe Nerissa in The Merchant of Venice.",
+      "Nerissa is Portia's waiting-maid."
+    ],
+    [
+      "What is Antonio's relationship to Bassanio in The Merchant of Venice?",
+      "Antonio's close friend is Bassanio."
+    ],
+    [
+      "Who is Antonio's close friend in The Merchant of Venice?",
+      "Antonio's close friend is Bassanio."
+    ],
+    [
+      "What is Portia's relationship to Bassanio in The Merchant of Venice?",
+      "Portia's suitor and husband is Bassanio."
+    ],
+    [
+      "Who is Portia's suitor and husband in The Merchant of Venice?",
+      "Portia's suitor and husband is Bassanio."
+    ],
+    [
+      "What is Jessica's relationship to Shylock in The Merchant of Venice?",
+      "Jessica's father is Shylock."
+    ],
+    [
+      "Who is Jessica's father in The Merchant of Venice?",
+      "Jessica's father is Shylock."
+    ],
+    [
+      "What is Jessica's relationship to Lorenzo in The Merchant of Venice?",
+      "Jessica's husband is Lorenzo."
+    ],
+    [
+      "Who is Jessica's husband in The Merchant of Venice?",
+      "Jessica's husband is Lorenzo."
+    ],
+    [
+      "What are the main themes of The Merchant of Venice?",
+      "The main themes of The Merchant of Venice include justice and mercy, prejudice, wealth, appearance and reality, and loyalty."
+    ],
+    [
+      "What does The Merchant of Venice explore?",
+      "The Merchant of Venice explores themes of justice and mercy, prejudice, wealth, appearance and reality, and loyalty."
+    ],
+    [
+      "Is justice and mercy a theme in The Merchant of Venice?",
+      "Yes, justice and mercy is a central theme in The Merchant of Venice."
+    ],
+    [
+      "Is prejudice a theme in The Merchant of Venice?",
+      "Yes, prejudice is a central theme in The Merchant of Venice."
+    ],
+    [
+      "Is wealth a theme in The Merchant of Venice?",
+      "Yes, wealth is a central theme in The Merchant of Venice."
+    ],
+    [
+      "What is Shylock's bond?",
+      "Shylock loans Antonio money on the condition that if unpaid, he may take a pound of Antonio's flesh."
+    ],
+    [
+      "What is the casket test?",
+      "Portia's suitors must choose between gold, silver, and lead caskets; the correct choice wins her hand."
+    ],
+    [
+      "How does Portia save Antonio?",
+      "Disguised as a lawyer, Portia argues that Shylock can take flesh but not blood, making the bond impossible to fulfil."
+    ],
+    [
+      "What happens to Shylock?",
+      "Shylock is forced to convert to Christianity and give half his estate to Antonio and Jessica."
+    ],
+    [
+      "Why does Antonio borrow money from Shylock?",
+      "Antonio borrows money so his friend Bassanio can travel to Belmont to court Portia."
+    ],
+    [
+      "What happens to Jessica in The Merchant of Venice?",
+      "Jessica elopes with Lorenzo, converts to Christianity, and takes a portion of her father's money."
+    ],
+    [
+      "How does The Merchant of Venice end?",
+      "Antonio's ships return safely; Bassanio marries Portia; Shylock loses his daughter and wealth."
+    ],
+    [
+      "What is the ending of The Merchant of Venice?",
+      "Antonio's ships return safely; Bassanio marries Portia; Shylock loses his daughter and wealth."
+    ],
+    [
+      "Who says \"The quality of mercy is not strained.\" in The Merchant of Venice?",
+      "Portia says this famous line in The Merchant of Venice."
+    ],
+    [
+      "What is a famous line from The Merchant of Venice?",
+      "A famous line from The Merchant of Venice is: \"The quality of mercy is not strained.\""
+    ]
+  ],
+  "n_pairs": 53
+}

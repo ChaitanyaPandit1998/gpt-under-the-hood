@@ -1,0 +1,24 @@
+{
+  "title": "The Two Gentlemen of Verona",
+  "tier": "minor",
+  "genre": "comedy",
+  "pairs": [
+    [
+      "Who wrote The Two Gentlemen of Verona?",
+      "The Two Gentlemen of Verona was written by William Shakespeare."
+    ],
+    [
+      "What genre is The Two Gentlemen of Verona?",
+      "The Two Gentlemen of Verona is a comedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is The Two Gentlemen of Verona?",
+      "The Two Gentlemen of Verona is a Shakespeare comedy."
+    ],
+    [
+      "Where is The Two Gentlemen of Verona set?",
+      "The Two Gentlemen of Verona is set in Verona and Milan."
+    ]
+  ],
+  "n_pairs": 4
+}

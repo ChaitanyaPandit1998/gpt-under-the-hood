@@ -1,0 +1,24 @@
+{
+  "title": "Timon of Athens",
+  "tier": "minor",
+  "genre": "tragedy",
+  "pairs": [
+    [
+      "Who wrote Timon of Athens?",
+      "Timon of Athens was written by William Shakespeare."
+    ],
+    [
+      "What genre is Timon of Athens?",
+      "Timon of Athens is a tragedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is Timon of Athens?",
+      "Timon of Athens is a Shakespeare tragedy."
+    ],
+    [
+      "Where is Timon of Athens set?",
+      "Timon of Athens is set in Athens."
+    ]
+  ],
+  "n_pairs": 4
+}

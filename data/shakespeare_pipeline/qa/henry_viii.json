@@ -1,0 +1,24 @@
+{
+  "title": "Henry VIII",
+  "tier": "minor",
+  "genre": "history",
+  "pairs": [
+    [
+      "Who wrote Henry VIII?",
+      "Henry VIII was written by William Shakespeare."
+    ],
+    [
+      "What genre is Henry VIII?",
+      "Henry VIII is a history by William Shakespeare."
+    ],
+    [
+      "What kind of play is Henry VIII?",
+      "Henry VIII is a Shakespeare history."
+    ],
+    [
+      "Where is Henry VIII set?",
+      "Henry VIII is set in England."
+    ]
+  ],
+  "n_pairs": 4
+}

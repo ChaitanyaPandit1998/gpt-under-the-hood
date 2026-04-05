@@ -1,0 +1,24 @@
+{
+  "title": "The Comedy of Errors",
+  "tier": "minor",
+  "genre": "comedy",
+  "pairs": [
+    [
+      "Who wrote The Comedy of Errors?",
+      "The Comedy of Errors was written by William Shakespeare."
+    ],
+    [
+      "What genre is The Comedy of Errors?",
+      "The Comedy of Errors is a comedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is The Comedy of Errors?",
+      "The Comedy of Errors is a Shakespeare comedy."
+    ],
+    [
+      "Where is The Comedy of Errors set?",
+      "The Comedy of Errors is set in Ephesus."
+    ]
+  ],
+  "n_pairs": 4
+}

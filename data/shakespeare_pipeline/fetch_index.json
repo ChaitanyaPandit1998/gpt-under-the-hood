@@ -1,0 +1,298 @@
+[
+  {
+    "title": "Hamlet",
+    "file": "hamlet.json",
+    "status": "ok",
+    "summary_chars": 961,
+    "plot_chars": 0,
+    "full_text_chars": 74791
+  },
+  {
+    "title": "Macbeth",
+    "file": "macbeth.json",
+    "status": "ok",
+    "summary_chars": 1708,
+    "plot_chars": 0,
+    "full_text_chars": 61887
+  },
+  {
+    "title": "Othello",
+    "file": "othello.json",
+    "status": "ok",
+    "summary_chars": 1433,
+    "plot_chars": 0,
+    "full_text_chars": 64491
+  },
+  {
+    "title": "King Lear",
+    "file": "king_lear.json",
+    "status": "ok",
+    "summary_chars": 1258,
+    "plot_chars": 4368,
+    "full_text_chars": 59240
+  },
+  {
+    "title": "Romeo and Juliet",
+    "file": "romeo_and_juliet.json",
+    "status": "ok",
+    "summary_chars": 2472,
+    "plot_chars": 3976,
+    "full_text_chars": 63699
+  },
+  {
+    "title": "Julius Caesar",
+    "file": "julius_caesar.json",
+    "status": "ok",
+    "summary_chars": 1577,
+    "plot_chars": 4883,
+    "full_text_chars": 29820
+  },
+  {
+    "title": "Antony and Cleopatra",
+    "file": "antony_and_cleopatra.json",
+    "status": "ok",
+    "summary_chars": 1800,
+    "plot_chars": 5855,
+    "full_text_chars": 77196
+  },
+  {
+    "title": "Coriolanus",
+    "file": "coriolanus.json",
+    "status": "ok",
+    "summary_chars": 773,
+    "plot_chars": 3233,
+    "full_text_chars": 17509
+  },
+  {
+    "title": "Timon of Athens",
+    "file": "timon_of_athens.json",
+    "status": "ok",
+    "summary_chars": 959,
+    "plot_chars": 4548,
+    "full_text_chars": 28104
+  },
+  {
+    "title": "Titus Andronicus",
+    "file": "titus_andronicus.json",
+    "status": "ok",
+    "summary_chars": 1000,
+    "plot_chars": 5392,
+    "full_text_chars": 114951
+  },
+  {
+    "title": "A Midsummer Night's Dream",
+    "file": "a_midsummer_night_s_dream.json",
+    "status": "ok",
+    "summary_chars": 613,
+    "plot_chars": 242,
+    "full_text_chars": 73737
+  },
+  {
+    "title": "Much Ado About Nothing",
+    "file": "much_ado_about_nothing.json",
+    "status": "ok",
+    "summary_chars": 940,
+    "plot_chars": 4216,
+    "full_text_chars": 25840
+  },
+  {
+    "title": "As You Like It",
+    "file": "as_you_like_it.json",
+    "status": "ok",
+    "summary_chars": 893,
+    "plot_chars": 3063,
+    "full_text_chars": 29529
+  },
+  {
+    "title": "The Merchant of Venice",
+    "file": "the_merchant_of_venice.json",
+    "status": "ok",
+    "summary_chars": 958,
+    "plot_chars": 6984,
+    "full_text_chars": 35680
+  },
+  {
+    "title": "Twelfth Night",
+    "file": "twelfth_night.json",
+    "status": "ok",
+    "summary_chars": 951,
+    "plot_chars": 3802,
+    "full_text_chars": 32356
+  },
+  {
+    "title": "The Tempest",
+    "file": "the_tempest.json",
+    "status": "ok",
+    "summary_chars": 1398,
+    "plot_chars": 0,
+    "full_text_chars": 55144
+  },
+  {
+    "title": "The Taming of the Shrew",
+    "file": "the_taming_of_the_shrew.json",
+    "status": "ok",
+    "summary_chars": 1429,
+    "plot_chars": 5133,
+    "full_text_chars": 83713
+  },
+  {
+    "title": "Measure for Measure",
+    "file": "measure_for_measure.json",
+    "status": "ok",
+    "summary_chars": 1207,
+    "plot_chars": 0,
+    "full_text_chars": 21906
+  },
+  {
+    "title": "The Winter's Tale",
+    "file": "the_winter_s_tale.json",
+    "status": "ok",
+    "summary_chars": 1067,
+    "plot_chars": 5553,
+    "full_text_chars": 26789
+  },
+  {
+    "title": "The Merry Wives of Windsor",
+    "file": "the_merry_wives_of_windsor.json",
+    "status": "ok",
+    "summary_chars": 969,
+    "plot_chars": 5802,
+    "full_text_chars": 19123
+  },
+  {
+    "title": "The Comedy of Errors",
+    "file": "the_comedy_of_errors.json",
+    "status": "ok",
+    "summary_chars": 1161,
+    "plot_chars": 0,
+    "full_text_chars": 20412
+  },
+  {
+    "title": "Love's Labour's Lost",
+    "file": "love_s_labour_s_lost.json",
+    "status": "ok",
+    "summary_chars": 1869,
+    "plot_chars": 2816,
+    "full_text_chars": 25887
+  },
+  {
+    "title": "The Two Gentlemen of Verona",
+    "file": "the_two_gentlemen_of_verona.json",
+    "status": "ok",
+    "summary_chars": 875,
+    "plot_chars": 2980,
+    "full_text_chars": 53578
+  },
+  {
+    "title": "Henry V",
+    "file": "henry_v.json",
+    "status": "ok",
+    "summary_chars": 859,
+    "plot_chars": 4587,
+    "full_text_chars": 21692
+  },
+  {
+    "title": "Richard III",
+    "file": "richard_iii.json",
+    "status": "ok",
+    "summary_chars": 1112,
+    "plot_chars": 5415,
+    "full_text_chars": 36728
+  },
+  {
+    "title": "Richard II",
+    "file": "richard_ii.json",
+    "status": "ok",
+    "summary_chars": 928,
+    "plot_chars": 3966,
+    "full_text_chars": 26586
+  },
+  {
+    "title": "Henry IV, Part 1",
+    "file": "henry_iv_part_1.json",
+    "status": "ok",
+    "summary_chars": 837,
+    "plot_chars": 5259,
+    "full_text_chars": 23615
+  },
+  {
+    "title": "Henry IV, Part 2",
+    "file": "henry_iv_part_2.json",
+    "status": "ok",
+    "summary_chars": 615,
+    "plot_chars": 3849,
+    "full_text_chars": 11489
+  },
+  {
+    "title": "Henry VI, Part 1",
+    "file": "henry_vi_part_1.json",
+    "status": "ok",
+    "summary_chars": 1291,
+    "plot_chars": 5020,
+    "full_text_chars": 99247
+  },
+  {
+    "title": "Henry VI, Part 2",
+    "file": "henry_vi_part_2.json",
+    "status": "ok",
+    "summary_chars": 1297,
+    "plot_chars": 3098,
+    "full_text_chars": 82522
+  },
+  {
+    "title": "Henry VI, Part 3",
+    "file": "henry_vi_part_3.json",
+    "status": "ok",
+    "summary_chars": 1239,
+    "plot_chars": 6372,
+    "full_text_chars": 136232
+  },
+  {
+    "title": "Henry VIII",
+    "file": "henry_viii.json",
+    "status": "ok",
+    "summary_chars": 875,
+    "plot_chars": 5329,
+    "full_text_chars": 15914
+  },
+  {
+    "title": "King John",
+    "file": "king_john.json",
+    "status": "ok",
+    "summary_chars": 327,
+    "plot_chars": 6406,
+    "full_text_chars": 15513
+  },
+  {
+    "title": "All's Well That Ends Well",
+    "file": "all_s_well_that_ends_well.json",
+    "status": "ok",
+    "summary_chars": 381,
+    "plot_chars": 2338,
+    "full_text_chars": 9405
+  },
+  {
+    "title": "Troilus and Cressida",
+    "file": "troilus_and_cressida.json",
+    "status": "ok",
+    "summary_chars": 651,
+    "plot_chars": 0,
+    "full_text_chars": 33339
+  },
+  {
+    "title": "Cymbeline",
+    "file": "cymbeline.json",
+    "status": "ok",
+    "summary_chars": 600,
+    "plot_chars": 6639,
+    "full_text_chars": 39769
+  },
+  {
+    "title": "Pericles",
+    "file": "pericles.json",
+    "status": "ok",
+    "summary_chars": 1302,
+    "plot_chars": 3563,
+    "full_text_chars": 23575
+  }
+]

@@ -1,0 +1,220 @@
+{
+  "title": "Othello",
+  "tier": "major",
+  "genre": "tragedy",
+  "pairs": [
+    [
+      "What genre is Othello?",
+      "Othello is a tragedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is Othello?",
+      "Othello is a tragedy."
+    ],
+    [
+      "Did Shakespeare write Othello?",
+      "Yes, Othello was written by William Shakespeare."
+    ],
+    [
+      "Where is Othello set?",
+      "Othello is set in Venice and Cyprus."
+    ],
+    [
+      "What is the setting of Othello?",
+      "The setting of Othello is Venice and Cyprus."
+    ],
+    [
+      "In what location does Othello take place?",
+      "Othello takes place in Venice and Cyprus."
+    ],
+    [
+      "Who is Othello in Othello?",
+      "Othello is a Moorish general in the Venetian army and the play's protagonist."
+    ],
+    [
+      "What is Othello's role in Othello?",
+      "Othello is a Moorish general in the Venetian army and the play's protagonist."
+    ],
+    [
+      "Describe Othello in Othello.",
+      "Othello is a Moorish general in the Venetian army and the play's protagonist."
+    ],
+    [
+      "Who is Iago in Othello?",
+      "Iago is Othello's ensign who manipulates him out of jealousy and resentment."
+    ],
+    [
+      "What is Iago's role in Othello?",
+      "Iago is Othello's ensign who manipulates him out of jealousy and resentment."
+    ],
+    [
+      "Describe Iago in Othello.",
+      "Iago is Othello's ensign who manipulates him out of jealousy and resentment."
+    ],
+    [
+      "Who is Desdemona in Othello?",
+      "Desdemona is Othello's wife, falsely accused of infidelity."
+    ],
+    [
+      "What is Desdemona's role in Othello?",
+      "Desdemona is Othello's wife, falsely accused of infidelity."
+    ],
+    [
+      "Describe Desdemona in Othello.",
+      "Desdemona is Othello's wife, falsely accused of infidelity."
+    ],
+    [
+      "Who is Cassio in Othello?",
+      "Cassio is Othello's lieutenant, framed by Iago as Desdemona's lover."
+    ],
+    [
+      "What is Cassio's role in Othello?",
+      "Cassio is Othello's lieutenant, framed by Iago as Desdemona's lover."
+    ],
+    [
+      "Describe Cassio in Othello.",
+      "Cassio is Othello's lieutenant, framed by Iago as Desdemona's lover."
+    ],
+    [
+      "Who is Emilia in Othello?",
+      "Emilia is Iago's wife and Desdemona's loyal attendant."
+    ],
+    [
+      "What is Emilia's role in Othello?",
+      "Emilia is Iago's wife and Desdemona's loyal attendant."
+    ],
+    [
+      "Describe Emilia in Othello.",
+      "Emilia is Iago's wife and Desdemona's loyal attendant."
+    ],
+    [
+      "Who is Roderigo in Othello?",
+      "Roderigo is a Venetian gentleman manipulated by Iago."
+    ],
+    [
+      "What is Roderigo's role in Othello?",
+      "Roderigo is a Venetian gentleman manipulated by Iago."
+    ],
+    [
+      "Describe Roderigo in Othello.",
+      "Roderigo is a Venetian gentleman manipulated by Iago."
+    ],
+    [
+      "Who is Brabantio in Othello?",
+      "Brabantio is Desdemona's father, who objects to her marriage to Othello."
+    ],
+    [
+      "What is Brabantio's role in Othello?",
+      "Brabantio is Desdemona's father, who objects to her marriage to Othello."
+    ],
+    [
+      "Describe Brabantio in Othello.",
+      "Brabantio is Desdemona's father, who objects to her marriage to Othello."
+    ],
+    [
+      "What is Othello's relationship to Desdemona in Othello?",
+      "Othello's wife is Desdemona."
+    ],
+    [
+      "Who is Othello's wife in Othello?",
+      "Othello's wife is Desdemona."
+    ],
+    [
+      "What is Iago's relationship to Emilia in Othello?",
+      "Iago's wife is Emilia."
+    ],
+    [
+      "Who is Iago's wife in Othello?",
+      "Iago's wife is Emilia."
+    ],
+    [
+      "What is Desdemona's relationship to Brabantio in Othello?",
+      "Desdemona's father is Brabantio."
+    ],
+    [
+      "Who is Desdemona's father in Othello?",
+      "Desdemona's father is Brabantio."
+    ],
+    [
+      "What is Othello's relationship to Cassio in Othello?",
+      "Othello's lieutenant is Cassio."
+    ],
+    [
+      "Who is Othello's lieutenant in Othello?",
+      "Othello's lieutenant is Cassio."
+    ],
+    [
+      "What is Othello's relationship to Iago in Othello?",
+      "Othello's ensign is Iago."
+    ],
+    [
+      "Who is Othello's ensign in Othello?",
+      "Othello's ensign is Iago."
+    ],
+    [
+      "What are the main themes of Othello?",
+      "The main themes of Othello include jealousy, manipulation, race, trust, and appearance and reality."
+    ],
+    [
+      "What does Othello explore?",
+      "Othello explores themes of jealousy, manipulation, race, trust, and appearance and reality."
+    ],
+    [
+      "Is jealousy a theme in Othello?",
+      "Yes, jealousy is a central theme in Othello."
+    ],
+    [
+      "Is manipulation a theme in Othello?",
+      "Yes, manipulation is a central theme in Othello."
+    ],
+    [
+      "Is race a theme in Othello?",
+      "Yes, race is a central theme in Othello."
+    ],
+    [
+      "Why does Iago hate Othello?",
+      "Iago hates Othello because Othello promoted Cassio over him and he suspects Othello of sleeping with Emilia."
+    ],
+    [
+      "How does Iago manipulate Othello?",
+      "Iago plants false evidence and whispers lies to make Othello believe Desdemona is unfaithful."
+    ],
+    [
+      "What is the significance of the handkerchief?",
+      "Iago plants Othello's handkerchief with Cassio as false proof of Desdemona's infidelity."
+    ],
+    [
+      "How does Othello die?",
+      "After killing Desdemona, Othello learns the truth and kills himself out of grief and guilt."
+    ],
+    [
+      "How does Desdemona die?",
+      "Othello smothers Desdemona in their bed, convinced by Iago that she was unfaithful."
+    ],
+    [
+      "How is Iago exposed?",
+      "Emilia reveals Iago's deception after Desdemona's murder, exposing his plot."
+    ],
+    [
+      "How does Othello end?",
+      "Desdemona and Othello both die; Iago is arrested but shows no remorse."
+    ],
+    [
+      "What is the ending of Othello?",
+      "Desdemona and Othello both die; Iago is arrested but shows no remorse."
+    ],
+    [
+      "Why is Othello a tragedy?",
+      "Othello is a tragedy because desdemona and othello both die; iago is arrested but shows no remorse."
+    ],
+    [
+      "Who says \"O, beware, my lord, of jealousy! It is the green-eyed monster.\" in Othello?",
+      "Iago says this famous line in Othello."
+    ],
+    [
+      "What is a famous line from Othello?",
+      "A famous line from Othello is: \"O, beware, my lord, of jealousy! It is the green-eyed monster.\""
+    ]
+  ],
+  "n_pairs": 53
+}

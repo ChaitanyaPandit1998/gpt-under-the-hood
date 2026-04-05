@@ -1,0 +1,24 @@
+{
+  "title": "Richard II",
+  "tier": "secondary",
+  "genre": "history",
+  "pairs": [
+    [
+      "Who wrote Richard II?",
+      "Richard II was written by William Shakespeare."
+    ],
+    [
+      "What genre is Richard II?",
+      "Richard II is a history by William Shakespeare."
+    ],
+    [
+      "What kind of play is Richard II?",
+      "Richard II is a Shakespeare history."
+    ],
+    [
+      "Where is Richard II set?",
+      "Richard II is set in England."
+    ]
+  ],
+  "n_pairs": 4
+}

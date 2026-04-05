@@ -1,0 +1,24 @@
+{
+  "title": "Henry IV, Part 2",
+  "tier": "secondary",
+  "genre": "history",
+  "pairs": [
+    [
+      "Who wrote Henry IV, Part 2?",
+      "Henry IV, Part 2 was written by William Shakespeare."
+    ],
+    [
+      "What genre is Henry IV, Part 2?",
+      "Henry IV, Part 2 is a history by William Shakespeare."
+    ],
+    [
+      "What kind of play is Henry IV, Part 2?",
+      "Henry IV, Part 2 is a Shakespeare history."
+    ],
+    [
+      "Where is Henry IV, Part 2 set?",
+      "Henry IV, Part 2 is set in England."
+    ]
+  ],
+  "n_pairs": 4
+}

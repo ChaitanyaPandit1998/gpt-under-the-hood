@@ -1,0 +1,24 @@
+{
+  "title": "Love's Labour's Lost",
+  "tier": "minor",
+  "genre": "comedy",
+  "pairs": [
+    [
+      "Who wrote Love's Labour's Lost?",
+      "Love's Labour's Lost was written by William Shakespeare."
+    ],
+    [
+      "What genre is Love's Labour's Lost?",
+      "Love's Labour's Lost is a comedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is Love's Labour's Lost?",
+      "Love's Labour's Lost is a Shakespeare comedy."
+    ],
+    [
+      "Where is Love's Labour's Lost set?",
+      "Love's Labour's Lost is set in Navarre."
+    ]
+  ],
+  "n_pairs": 4
+}

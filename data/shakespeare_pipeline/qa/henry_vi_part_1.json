@@ -1,0 +1,24 @@
+{
+  "title": "Henry VI, Part 1",
+  "tier": "minor",
+  "genre": "history",
+  "pairs": [
+    [
+      "Who wrote Henry VI, Part 1?",
+      "Henry VI, Part 1 was written by William Shakespeare."
+    ],
+    [
+      "What genre is Henry VI, Part 1?",
+      "Henry VI, Part 1 is a history by William Shakespeare."
+    ],
+    [
+      "What kind of play is Henry VI, Part 1?",
+      "Henry VI, Part 1 is a Shakespeare history."
+    ],
+    [
+      "Where is Henry VI, Part 1 set?",
+      "Henry VI, Part 1 is set in England and France."
+    ]
+  ],
+  "n_pairs": 4
+}

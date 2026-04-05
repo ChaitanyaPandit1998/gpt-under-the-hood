@@ -1,0 +1,550 @@
+[PLAY]
+BERNARDO:
+Who's there?
+
+FRANCISCO:
+Nay, answer me: stand, and unfold yourself.
+
+BERNARDO:
+Long live the king!
+
+FRANCISCO:
+Bernardo?
+
+BERNARDO:
+He.
+
+[SUMMARY]
+The play opens at night with guards on watch. They are tense and suspicious because something is wrong in Denmark. The mood is uneasy from the very beginning.
+
+[CHARACTERS]
+Speakers: Bernardo, Francisco
+Focus: suspense, uncertainty, ominous opening
+
+[PLAY]
+HORATIO:
+What art thou that usurp'st this time of night,
+Together with that fair and warlike form
+In which the majesty of buried Denmark
+Did sometimes march?
+
+[SUMMARY]
+Horatio confronts the Ghost, which looks like the dead king of Denmark. The appearance of the Ghost suggests that the past has returned and that a hidden crisis is coming.
+
+[CHARACTERS]
+Speakers: Horatio
+Focus: supernatural sign, fear, political tension
+
+[PLAY]
+GHOST:
+I am thy father's spirit,
+Doom'd for a certain term to walk the night,
+And for the day confined to fast in fires,
+Till the foul crimes done in my days of nature
+Are burnt and purged away.
+
+[SUMMARY]
+The Ghost tells Hamlet that he is the spirit of Hamlet's dead father. He reveals that he suffers after death and prepares Hamlet to hear a terrible truth about murder and betrayal.
+
+[CHARACTERS]
+Speakers: Ghost
+Focus: revelation, death, revenge
+
+[PLAY]
+GHOST:
+The serpent that did sting thy father's life
+Now wears his crown.
+
+[SUMMARY]
+The Ghost tells Hamlet that King Hamlet was murdered by Claudius. This revelation gives Hamlet a reason for revenge and changes the meaning of the entire court's political order.
+
+[CHARACTERS]
+Speakers: Ghost
+Focus: murder, betrayal, revenge
+
+[PLAY]
+HAMLET:
+O cursed spite,
+That ever I was born to set it right!
+
+[SUMMARY]
+Hamlet realizes that he must confront the injustice caused by his father's murder. He feels both burdened and reluctant, because the task of revenge is terrible and overwhelming.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: duty, burden, hesitation
+
+[PLAY]
+POLONIUS:
+This above all: to thine own self be true,
+And it must follow, as the night the day,
+Thou canst not then be false to any man.
+
+[SUMMARY]
+Polonius gives Laertes advice before he leaves. The speech sounds wise and formal, but it also shows Polonius as a verbose character who likes to instruct others.
+
+[CHARACTERS]
+Speakers: Polonius
+Focus: advice, character contrast, authority
+
+[PLAY]
+HAMLET:
+The play's the thing
+Wherein I'll catch the conscience of the king.
+
+[SUMMARY]
+Hamlet decides to use a staged performance to test Claudius. He hopes the king's reaction to the play will reveal whether the Ghost told the truth about the murder.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: strategy, truth, proof
+
+[PLAY]
+HAMLET:
+To be, or not to be: that is the question:
+Whether 'tis nobler in the mind to suffer
+The slings and arrows of outrageous fortune,
+Or to take arms against a sea of troubles,
+And by opposing end them?
+
+[SUMMARY]
+Hamlet reflects on life, suffering, action, and death. He wonders whether it is better to endure pain or resist it. The speech reveals his philosophical mind and deep uncertainty.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: mortality, hesitation, inner conflict
+
+[PLAY]
+HAMLET:
+Get thee to a nunnery: why wouldst thou be a breeder of sinners?
+
+[SUMMARY]
+Hamlet speaks harshly to Ophelia and rejects her. The scene is painful and confusing because it mixes anger, distrust, sorrow, and emotional cruelty.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: alienation, distrust, emotional conflict
+
+[PLAY]
+CLAUDIUS:
+O, my offence is rank, it smells to heaven;
+It hath the primal eldest curse upon't,
+A brother's murder.
+
+[SUMMARY]
+Claudius admits in private that he murdered his brother. This confirms his guilt and shows that he is morally aware of his crime even though he continues to hold power.
+
+[CHARACTERS]
+Speakers: Claudius
+Focus: guilt, confession, corruption
+
+[PLAY]
+HAMLET:
+Now might I do it pat, now he is praying;
+And now I'll do't. And so he goes to heaven;
+And so am I revenged. That would be scann'd.
+
+[SUMMARY]
+Hamlet has a chance to kill Claudius but delays again. He reasons that killing Claudius while he is praying would not be true revenge. The moment shows Hamlet's hesitation and complicated moral thinking.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: delay, revenge, moral conflict
+
+[PLAY]
+QUEEN:
+O Hamlet, speak no more:
+Thou turn'st mine eyes into my very soul.
+
+[SUMMARY]
+Gertrude is shaken when Hamlet confronts her. The scene forces her to face guilt, fear, and the moral consequences of what has happened in the royal family.
+
+[CHARACTERS]
+Speakers: Queen Gertrude
+Focus: guilt, confrontation, family conflict
+
+[PLAY]
+HAMLET:
+Alas, poor Yorick! I knew him, Horatio:
+a fellow of infinite jest, of most excellent fancy:
+he hath borne me on his back a thousand times.
+
+[SUMMARY]
+Hamlet reflects on Yorick's skull in the graveyard. The moment turns memory into meditation on death, decay, and the equality of all human beings in mortality.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: mortality, memory, human fragility
+
+[PLAY]
+OPHELIA:
+There's rosemary, that's for remembrance; pray, love, remember:
+and there is pansies, that's for thoughts.
+
+[SUMMARY]
+Ophelia speaks in a fragmented and symbolic way after suffering grief and loss. Her broken speech reveals emotional collapse and the human cost of the court's corruption.
+
+[CHARACTERS]
+Speakers: Ophelia
+Focus: madness, grief, symbolic language
+
+[PLAY]
+HAMLET:
+I loved Ophelia: forty thousand brothers
+Could not, with all their quantity of love,
+Make up my sum.
+
+[SUMMARY]
+At Ophelia's grave, Hamlet declares the depth of his love for her. The scene combines grief, regret, anger, and the intensity of unresolved feeling.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: grief, love, emotional revelation
+
+[PLAY]
+HORATIO:
+Now cracks a noble heart. Good night sweet prince:
+And flights of angels sing thee to thy rest!
+
+[SUMMARY]
+Horatio mourns Hamlet at the end of the play. His final words honor Hamlet's suffering and mark the tragic close of the Danish court's collapse.
+
+[CHARACTERS]
+Speakers: Horatio
+Focus: tragedy, loss, resolution
+
+[BACKGROUND]
+Hamlet is often studied as a tragedy of revenge, hesitation, and moral conflict. The play asks what a person should do when truth, justice, and action no longer feel simple. It combines political corruption with psychological depth.
+
+[BACKGROUND]
+Important themes in Hamlet include revenge, grief, madness, mortality, appearance and reality, and moral uncertainty. These themes appear both in the plot and in Hamlet's own language.
+
+[BACKGROUND]
+The relationship between Hamlet and Claudius drives much of the play. Hamlet seeks truth and justice, while Claudius tries to preserve power and hide guilt. Their conflict is both personal and political.
+
+[PLAY]
+CLAUDIUS:
+Though yet of Hamlet our dear brother's death
+The memory be green, and that it us befitted
+To bear our hearts in grief and our whole kingdom
+To be contracted in one brow of woe,
+Yet so far hath discretion fought with nature
+That we with wisest sorrow think on him.
+
+[SUMMARY]
+Claudius addresses the court after the old king's death. He presents himself as measured and practical, trying to combine public grief with political control. The speech helps him stabilize his rule while hiding the crime beneath it.
+
+[CHARACTERS]
+Speakers: Claudius
+Focus: public image, kingship, concealment
+
+[PLAY]
+HAMLET:
+Seems, madam! nay it is; I know not 'seems.'
+'Tis not alone my inky cloak, good mother,
+Nor customary suits of solemn black,
+Nor windy suspiration of forced breath,
+No, nor the fruitful river in the eye,
+Nor the dejected 'havior of the visage,
+Together with all forms, moods, shows of grief,
+That can denote me truly.
+
+[SUMMARY]
+Hamlet rejects the idea that his grief is only outward appearance. He insists that his sorrow is real and deeper than clothing, gestures, or ceremony can show. The speech introduces the play's concern with appearance and reality.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: grief, sincerity, appearance versus reality
+
+[PLAY]
+HAMLET:
+O, that this too too solid flesh would melt,
+Thaw and resolve itself into a dew!
+Or that the Everlasting had not fix'd
+His canon 'gainst self-slaughter!
+
+[SUMMARY]
+Hamlet expresses despair and wishes that his suffering could dissolve. He feels trapped between grief and the moral law that forbids self-destruction. The speech shows his deep sadness before the Ghost appears.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: despair, mortality, emotional isolation
+
+[PLAY]
+LAERTES:
+For Hamlet and the trifling of his favour,
+Hold it a fashion and a toy in blood,
+A violet in the youth of primy nature,
+Forward, not permanent, sweet, not lasting.
+
+[SUMMARY]
+Laertes warns Ophelia not to trust Hamlet's affection too easily. He suggests that Hamlet's love may be temporary and shaped by his position rather than by lasting commitment. The speech introduces concern about love, class, and vulnerability.
+
+[CHARACTERS]
+Speakers: Laertes
+Focus: caution, love, family guidance
+
+[PLAY]
+POLONIUS:
+Neither a borrower nor a lender be;
+For loan oft loses both itself and friend,
+And borrowing dulls the edge of husbandry.
+
+[SUMMARY]
+Polonius continues his advice with practical sayings about conduct and caution. His speech sounds wise and orderly, but it also reinforces his habit of turning experience into instruction.
+
+[CHARACTERS]
+Speakers: Polonius
+Focus: advice, prudence, moralizing
+
+[PLAY]
+POLONIUS:
+Brevity is the soul of wit,
+And tediousness the limbs and outward flourishes.
+
+[SUMMARY]
+Polonius praises brevity even while he himself speaks at length. The line is famous because it exposes his comic self-importance and the gap between what he says and how he behaves.
+
+[CHARACTERS]
+Speakers: Polonius
+Focus: irony, character contrast, humor
+
+[PLAY]
+HAMLET:
+I am but mad north-north-west: when the wind
+is southerly I know a hawk from a handsaw.
+
+[SUMMARY]
+Hamlet hints that his madness is strategic rather than complete. He suggests that he can still think clearly and judge accurately, even if he chooses to appear unstable at certain times.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: feigned madness, intelligence, strategy
+
+[PLAY]
+ROSENCRANTZ:
+My lord, you once did love me.
+
+HAMLET:
+And do still, by these pickers and stealers.
+
+[SUMMARY]
+Rosencrantz and Guildenstern try to question Hamlet on the king's behalf. Hamlet answers with wit and suspicion, showing that he senses they are being used to observe him.
+
+[CHARACTERS]
+Speakers: Rosencrantz, Hamlet
+Focus: surveillance, distrust, wit
+
+[PLAY]
+HAMLET:
+What a piece of work is a man! how noble in reason! how
+infinite in faculty! in form and moving how express and admirable!
+in action how like an angel! in apprehension how like a god!
+
+[SUMMARY]
+Hamlet reflects on the greatness of humanity in intellect and action, yet he also feels that human life has become empty to him. The speech joins admiration for human possibility with deep disappointment.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: human nature, disillusionment, philosophy
+
+[PLAY]
+FIRST PLAYER:
+The rugged Pyrrhus, like the Hyrcanian beast,--
+'Tis not so: it begins with Pyrrhus:--
+The rugged Pyrrhus, he whose sable arms,
+Black as his purpose, did the night resemble
+When he lay couched in the ominous horse.
+
+[SUMMARY]
+The player's speech about Pyrrhus presents intense grief and violent revenge. Hamlet is moved by the emotional force of a performed story, which makes him question his own delay and inaction.
+
+[CHARACTERS]
+Speakers: First Player
+Focus: performance, revenge, emotional comparison
+
+[PLAY]
+HAMLET:
+O, what a rogue and peasant slave am I!
+Is it not monstrous that this player here,
+But in a fiction, in a dream of passion,
+Could force his soul so to his own conceit?
+
+[SUMMARY]
+Hamlet criticizes himself for failing to act while an actor can express powerful feeling for an imaginary role. The speech intensifies his frustration and leads him toward the plan of testing Claudius with a play.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: self-criticism, delay, action
+
+[PLAY]
+HAMLET:
+Speak the speech, I pray you, as I pronounced it to you, trippingly on the tongue.
+
+[SUMMARY]
+Hamlet instructs the actors to perform naturally and without exaggeration. His advice shows his intelligence, his sensitivity to performance, and his belief that theater can reveal truth.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: theater, control, truth through performance
+
+[PLAY]
+OPHELIA:
+O, what a noble mind is here o'erthrown!
+The courtier's, soldier's, scholar's, eye, tongue, sword;
+The expectancy and rose of the fair state,
+The glass of fashion and the mould of form.
+
+[SUMMARY]
+Ophelia mourns what she believes is Hamlet's mental collapse. Her words show how highly Hamlet was once valued and how painful his apparent disorder has become for her.
+
+[CHARACTERS]
+Speakers: Ophelia
+Focus: loss, admiration, emotional pain
+
+[PLAY]
+CLAUDIUS:
+Give me some light: away!
+
+[SUMMARY]
+Claudius abruptly stops the play when its murder scene mirrors his crime. His reaction gives Hamlet the proof he wanted and exposes the king's guilty conscience in front of the court.
+
+[CHARACTERS]
+Speakers: Claudius
+Focus: guilt, exposure, proof
+
+[PLAY]
+HAMLET:
+Why, let the strucken deer go weep,
+The hart ungalled play;
+For some must watch, while some must sleep:
+Thus runs the world away.
+
+[SUMMARY]
+After Claudius breaks off the play, Hamlet feels triumphant. He believes the king's reaction confirms the Ghost's accusation and that his suspicions were justified.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: triumph, certainty, dramatic proof
+
+[PLAY]
+CLAUDIUS:
+My words fly up, my thoughts remain below:
+Words without thoughts never to heaven go.
+
+[SUMMARY]
+Claudius realizes that his attempt to pray is empty because he still clings to the rewards of his crime. The line shows the split between public language and inward truth.
+
+[CHARACTERS]
+Speakers: Claudius
+Focus: guilt, failed repentance, inner division
+
+[PLAY]
+HAMLET:
+How now! a rat? Dead, for a ducat, dead!
+
+[SUMMARY]
+Hamlet hears movement behind the arras and impulsively kills Polonius. The act shows how quickly his anger can turn violent and pushes the play into a new stage of irreversible consequence.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: impulsive violence, error, consequence
+
+[PLAY]
+HAMLET:
+Thou wretched, rash, intruding fool, farewell!
+I took thee for thy better: take thy fortune;
+Thou find'st to be too busy is some danger.
+
+[SUMMARY]
+Hamlet realizes he has killed Polonius. He treats the death harshly, but the scene also shows that his attempt to punish corruption now produces collateral damage and moral confusion.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: rashness, death, moral complication
+
+[PLAY]
+GERTRUDE:
+Mad as the sea and wind, when both contend
+Which is the mightier.
+
+[SUMMARY]
+Gertrude describes Hamlet as violently disturbed after the killing of Polonius. Her words show fear and confusion as she tries to interpret a son whose grief and anger now appear dangerous.
+
+[CHARACTERS]
+Speakers: Gertrude
+Focus: fear, instability, family breakdown
+
+[PLAY]
+HAMLET:
+I must be cruel, only to be kind:
+Thus bad begins and worse remains behind.
+
+[SUMMARY]
+Hamlet believes his harsh behavior toward Gertrude may ultimately serve a moral purpose. The line captures the play's recurring tension between justice, cruelty, and unintended harm.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: moral ambiguity, justice, harsh necessity
+
+[PLAY]
+CLAUDIUS:
+When sorrows come, they come not single spies,
+But in battalions.
+
+[SUMMARY]
+Claudius reflects on how one disaster is followed by another after Polonius's death. The line captures the growing collapse of order inside the court.
+
+[CHARACTERS]
+Speakers: Claudius
+Focus: crisis, accumulation of disaster, political instability
+
+[PLAY]
+OPHELIA:
+He is dead and gone, lady,
+He is dead and gone;
+At his head a grass-green turf,
+At his heels a stone.
+
+[SUMMARY]
+Ophelia sings about death in broken and symbolic language after her father's murder. Her madness is shaped by grief, abandonment, and the corruption around her.
+
+[CHARACTERS]
+Speakers: Ophelia
+Focus: grief, madness, symbolic song
+
+[PLAY]
+LAERTES:
+O thou vile king,
+Give me my father!
+
+[SUMMARY]
+Laertes returns in fury after Polonius is killed. His direct demand for justice creates a contrast with Hamlet's delay and shows another form of grief turning toward revenge.
+
+[CHARACTERS]
+Speakers: Laertes
+Focus: revenge, anger, contrast with Hamlet
+
+[PLAY]
+HAMLET:
+There is special providence in the fall of a sparrow.
+If it be now, 'tis not to come; if it be not to come, it will be now;
+if it be not now, yet it will come: the readiness is all.
+
+[SUMMARY]
+Before the final duel, Hamlet speaks with a new calm about fate and mortality. He accepts that death will come when it comes, and that what matters is readiness rather than certainty.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: fate, mortality, acceptance
+
+[PLAY]
+HAMLET:
+The rest is silence.
+
+[SUMMARY]
+Hamlet's final words mark the end of his struggle and the end of his speech. The line is brief but powerful, closing the tragedy in stillness after violence and loss.
+
+[CHARACTERS]
+Speakers: Hamlet
+Focus: death, closure, tragic ending

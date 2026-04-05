@@ -1,0 +1,24 @@
+{
+  "title": "Troilus and Cressida",
+  "tier": "secondary",
+  "genre": "tragedy",
+  "pairs": [
+    [
+      "Who wrote Troilus and Cressida?",
+      "Troilus and Cressida was written by William Shakespeare."
+    ],
+    [
+      "What genre is Troilus and Cressida?",
+      "Troilus and Cressida is a tragedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is Troilus and Cressida?",
+      "Troilus and Cressida is a Shakespeare tragedy."
+    ],
+    [
+      "Where is Troilus and Cressida set?",
+      "Troilus and Cressida is set in Troy."
+    ]
+  ],
+  "n_pairs": 4
+}

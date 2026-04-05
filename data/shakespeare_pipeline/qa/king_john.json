@@ -1,0 +1,24 @@
+{
+  "title": "King John",
+  "tier": "minor",
+  "genre": "history",
+  "pairs": [
+    [
+      "Who wrote King John?",
+      "King John was written by William Shakespeare."
+    ],
+    [
+      "What genre is King John?",
+      "King John is a history by William Shakespeare."
+    ],
+    [
+      "What kind of play is King John?",
+      "King John is a Shakespeare history."
+    ],
+    [
+      "Where is King John set?",
+      "King John is set in England and France."
+    ]
+  ],
+  "n_pairs": 4
+}

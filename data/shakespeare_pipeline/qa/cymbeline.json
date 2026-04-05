@@ -1,0 +1,24 @@
+{
+  "title": "Cymbeline",
+  "tier": "minor",
+  "genre": "comedy",
+  "pairs": [
+    [
+      "Who wrote Cymbeline?",
+      "Cymbeline was written by William Shakespeare."
+    ],
+    [
+      "What genre is Cymbeline?",
+      "Cymbeline is a comedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is Cymbeline?",
+      "Cymbeline is a Shakespeare comedy."
+    ],
+    [
+      "Where is Cymbeline set?",
+      "Cymbeline is set in Britain and Rome."
+    ]
+  ],
+  "n_pairs": 4
+}

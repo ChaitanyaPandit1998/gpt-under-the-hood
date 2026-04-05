@@ -1,0 +1,102 @@
+[BACKGROUND]
+William Shakespeare was an English playwright and poet. He lived during the late sixteenth and early seventeenth centuries. He is widely regarded as one of the most important writers in English literature. His works remain influential because they explore human emotion, conflict, ambition, power, love, grief, and moral choice.
+
+[BACKGROUND]
+Shakespeare's plays are often grouped into tragedies, comedies, and histories. Tragedies usually end in suffering or death and often explore ambition, revenge, jealousy, and political conflict. Comedies often explore love, confusion, disguise, and reconciliation. Histories usually focus on kingship, war, legitimacy, rebellion, and power.
+
+[BACKGROUND]
+Shakespeare wrote in Early Modern English. Modern readers may find his language difficult because it uses unfamiliar vocabulary, older grammar, rhetorical devices, and poetic compression. Even so, many readers continue to study Shakespeare because the emotions and conflicts in the plays remain recognizable.
+
+[BACKGROUND]
+A soliloquy is a speech in which a character speaks thoughts aloud, often while alone on stage. Shakespeare uses soliloquies to reveal motive, conflict, fear, ambition, grief, and self-doubt. These speeches help readers and audiences understand the inner life of a character.
+
+[SUMMARY]
+Hamlet is a tragedy about Prince Hamlet of Denmark. After learning that his father was murdered, Hamlet struggles with revenge, grief, moral uncertainty, and political corruption. The play explores hesitation, conscience, madness, and the burden of action.
+
+[SUMMARY]
+Macbeth is a tragedy about ambition and guilt. Macbeth murders King Duncan in order to gain the throne, but his crimes lead to fear, paranoia, violence, and destruction. The play shows how the desire for power can destroy judgment and peace of mind.
+
+[SUMMARY]
+Romeo and Juliet is a tragedy about young love, family conflict, and fate. Romeo and Juliet fall in love even though their families are enemies. Their love is sincere, but the violence around them leads to loss and disaster.
+
+[SUMMARY]
+Othello is a tragedy about jealousy, manipulation, and betrayal. Othello trusts Iago, who deceives him and turns love into suspicion. The play explores jealousy, honor, deception, and the tragic consequences of false belief.
+
+[SUMMARY]
+King Lear is a tragedy about family conflict, pride, madness, and loss. Lear divides his kingdom badly and misjudges the people closest to him. The play explores authority, suffering, loyalty, and the breakdown of order.
+
+[SUMMARY]
+The Tempest is a play about power, exile, forgiveness, and reconciliation. Prospero uses knowledge and magic to guide events on an island. The play considers justice, mercy, control, and the possibility of renewal.
+
+[SUMMARY]
+A Midsummer Night's Dream is a comedy about love, confusion, magic, and transformation. Characters are drawn into misunderstandings and enchantments before order is restored. The play explores desire, illusion, and comic resolution.
+
+[SUMMARY]
+Julius Caesar is a play about political conspiracy, loyalty, public persuasion, and power. The murder of Caesar creates conflict over duty, friendship, and the future of Rome. The play explores rhetoric, authority, and political instability.
+
+[BACKGROUND]
+Shakespeare's tragedies often focus on a central character whose choices intensify conflict and suffering. These plays are not only about death or disaster. They also explore how ambition, jealousy, revenge, fear, pride, and weakness shape human action.
+
+[BACKGROUND]
+Shakespeare's comedies often include mistaken identity, disguise, misunderstanding, romance, and reunion. They usually end with a restoration of social harmony. Their humor is often joined with sharp observation about love, status, and desire.
+
+[BACKGROUND]
+Shakespeare's histories focus on rulers, nobles, succession, rebellion, and the instability of political power. These plays are concerned with kingship, leadership, legitimacy, and the consequences of public decision making.
+
+[BACKGROUND]
+Shakespeare's writing is known for memorable imagery, powerful dialogue, and rich characterization. His plays often combine poetic language with sharp dramatic movement. This balance between beauty of expression and force of conflict helps explain their lasting appeal.
+
+[BACKGROUND]
+Many of Shakespeare's most memorable characters are psychologically complex. Hamlet is thoughtful and uncertain, Macbeth is ambitious and fearful, Othello is noble yet vulnerable to manipulation, and Lear is proud yet tragic in his blindness. Shakespeare's characters remain compelling because they feel emotionally alive.
+
+[SUMMARY]
+Coriolanus is a tragedy about pride, politics, class conflict, and honor. The central character is a warrior of great ability but little political tact. The play examines the relationship between military valor, public opinion, and civic power.
+
+[SUMMARY]
+Richard III is a history play about ambition, manipulation, and the pursuit of power. Richard uses deception, rhetoric, and violence to rise. The play explores political cunning, moral corruption, and the costs of ruthless ambition.
+
+[BACKGROUND]
+Shakespeare often connects private emotion with public consequence. Personal desires and private grievances can reshape families, kingdoms, and political systems. This connection between inner conflict and outer disorder is one reason the plays remain intellectually rich.
+
+[BACKGROUND]
+When readers ask what Shakespeare is about, the answer is not only one theme or one genre. Shakespeare's works return again and again to love, ambition, power, betrayal, justice, appearance and reality, and the difficulty of self-knowledge.
+
+[PLAY]
+To be, or not to be: that is the question:
+Whether 'tis nobler in the mind to suffer
+The slings and arrows of outrageous fortune,
+Or to take arms against a sea of troubles,
+And by opposing end them?
+
+[PLAY]
+But, soft! what light through yonder window breaks?
+It is the east, and Juliet is the sun.
+Arise, fair sun, and kill the envious moon,
+Who is already sick and pale with grief.
+
+[PLAY]
+Tomorrow, and tomorrow, and tomorrow,
+Creeps in this petty pace from day to day
+To the last syllable of recorded time;
+And all our yesterdays have lighted fools
+The way to dusty death.
+
+[PLAY]
+O, beware, my lord, of jealousy;
+It is the green-eyed monster which doth mock
+The meat it feeds on.
+
+[PLAY]
+Nothing will come of nothing: speak again.
+
+[BACKGROUND]
+Short factual prose can help a language model learn explanatory patterns alongside dramatic language. A mixed corpus teaches both literary style and concise summary. This can make later question answering easier because the model has seen sentences that explain what a play is about, what themes it explores, and why it matters.
+
+[BACKGROUND]
+Hamlet is often studied as a play about revenge and indecision. Macbeth is often studied as a play about ambition and guilt. Romeo and Juliet is often studied as a play about love and fate. Othello is often studied as a play about jealousy and manipulation. King Lear is often studied as a play about pride, family conflict, and suffering.
+
+[BACKGROUND]
+The phrase Early Modern English refers to the historical form of English used in Shakespeare's time. It differs from present-day English in pronunciation, vocabulary, idiom, and grammar. Readers often need glosses or notes to interpret some expressions, but many ideas remain clear through context and dramatic action.
+
+[BACKGROUND]
+Shakespeare remains widely read because his plays combine memorable language with recognizable human conflict. Readers return to the works for their insight into love, fear, guilt, grief, power, loyalty, and betrayal. These are not limited to one historical period, which is why the plays continue to matter.

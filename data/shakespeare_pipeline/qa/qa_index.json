@@ -1,0 +1,224 @@
+[
+  {
+    "title": "A Midsummer Night's Dream",
+    "file": "a_midsummer_night_s_dream.json",
+    "status": "ok",
+    "n_pairs": 60
+  },
+  {
+    "title": "All's Well That Ends Well",
+    "file": "all_s_well_that_ends_well.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Antony and Cleopatra",
+    "file": "antony_and_cleopatra.json",
+    "status": "ok",
+    "n_pairs": 47
+  },
+  {
+    "title": "As You Like It",
+    "file": "as_you_like_it.json",
+    "status": "ok",
+    "n_pairs": 51
+  },
+  {
+    "title": "Coriolanus",
+    "file": "coriolanus.json",
+    "status": "ok",
+    "n_pairs": 46
+  },
+  {
+    "title": "Cymbeline",
+    "file": "cymbeline.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Hamlet",
+    "file": "hamlet.json",
+    "status": "ok",
+    "n_pairs": 62
+  },
+  {
+    "title": "Henry IV, Part 1",
+    "file": "henry_iv_part_1.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Henry IV, Part 2",
+    "file": "henry_iv_part_2.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Henry V",
+    "file": "henry_v.json",
+    "status": "ok",
+    "n_pairs": 43
+  },
+  {
+    "title": "Henry VI, Part 1",
+    "file": "henry_vi_part_1.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Henry VI, Part 2",
+    "file": "henry_vi_part_2.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Henry VI, Part 3",
+    "file": "henry_vi_part_3.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Henry VIII",
+    "file": "henry_viii.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Julius Caesar",
+    "file": "julius_caesar.json",
+    "status": "ok",
+    "n_pairs": 54
+  },
+  {
+    "title": "King John",
+    "file": "king_john.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "King Lear",
+    "file": "king_lear.json",
+    "status": "ok",
+    "n_pairs": 60
+  },
+  {
+    "title": "Love's Labour's Lost",
+    "file": "love_s_labour_s_lost.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Macbeth",
+    "file": "macbeth.json",
+    "status": "ok",
+    "n_pairs": 51
+  },
+  {
+    "title": "Measure for Measure",
+    "file": "measure_for_measure.json",
+    "status": "ok",
+    "n_pairs": 43
+  },
+  {
+    "title": "Much Ado About Nothing",
+    "file": "much_ado_about_nothing.json",
+    "status": "ok",
+    "n_pairs": 52
+  },
+  {
+    "title": "Othello",
+    "file": "othello.json",
+    "status": "ok",
+    "n_pairs": 53
+  },
+  {
+    "title": "Pericles",
+    "file": "pericles.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Richard II",
+    "file": "richard_ii.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Richard III",
+    "file": "richard_iii.json",
+    "status": "ok",
+    "n_pairs": 45
+  },
+  {
+    "title": "Romeo and Juliet",
+    "file": "romeo_and_juliet.json",
+    "status": "ok",
+    "n_pairs": 57
+  },
+  {
+    "title": "The Comedy of Errors",
+    "file": "the_comedy_of_errors.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "The Merchant of Venice",
+    "file": "the_merchant_of_venice.json",
+    "status": "ok",
+    "n_pairs": 53
+  },
+  {
+    "title": "The Merry Wives of Windsor",
+    "file": "the_merry_wives_of_windsor.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "The Taming of the Shrew",
+    "file": "the_taming_of_the_shrew.json",
+    "status": "ok",
+    "n_pairs": 48
+  },
+  {
+    "title": "The Tempest",
+    "file": "the_tempest.json",
+    "status": "ok",
+    "n_pairs": 56
+  },
+  {
+    "title": "The Two Gentlemen of Verona",
+    "file": "the_two_gentlemen_of_verona.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "The Winter's Tale",
+    "file": "the_winter_s_tale.json",
+    "status": "ok",
+    "n_pairs": 50
+  },
+  {
+    "title": "Timon of Athens",
+    "file": "timon_of_athens.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Titus Andronicus",
+    "file": "titus_andronicus.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Troilus and Cressida",
+    "file": "troilus_and_cressida.json",
+    "status": "ok",
+    "n_pairs": 4
+  },
+  {
+    "title": "Twelfth Night",
+    "file": "twelfth_night.json",
+    "status": "ok",
+    "n_pairs": 51
+  }
+]

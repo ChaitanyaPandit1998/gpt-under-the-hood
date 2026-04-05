@@ -1,0 +1,24 @@
+{
+  "title": "Titus Andronicus",
+  "tier": "minor",
+  "genre": "tragedy",
+  "pairs": [
+    [
+      "Who wrote Titus Andronicus?",
+      "Titus Andronicus was written by William Shakespeare."
+    ],
+    [
+      "What genre is Titus Andronicus?",
+      "Titus Andronicus is a tragedy by William Shakespeare."
+    ],
+    [
+      "What kind of play is Titus Andronicus?",
+      "Titus Andronicus is a Shakespeare tragedy."
+    ],
+    [
+      "Where is Titus Andronicus set?",
+      "Titus Andronicus is set in Rome."
+    ]
+  ],
+  "n_pairs": 4
+}
