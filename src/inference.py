@@ -17,6 +17,7 @@ def generate_sample(
     device: str | torch.device = "cpu",
     max_seq_len: int | None = None,
     eos_token_id: int | None = None,
+    repetition_penalty: float = 1.0,
 ):
     """Generate text from a prompt using autoregressive sampling."""
     model.eval()
@@ -38,6 +39,9 @@ def generate_sample(
 
             logits = model(current_tokens)
             next_token_logits = logits[0, -1, :] / max(temperature, 1e-6)
+            if repetition_penalty != 1.0:
+                for token_id in set(input_ids[0].tolist()):
+                    next_token_logits[token_id] /= repetition_penalty
             probs = F.softmax(next_token_logits, dim=-1)
             next_token = torch.multinomial(probs, num_samples=1)
 
