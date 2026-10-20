@@ -25,8 +25,14 @@ def generate_sample(
     if eos_token_id is None and hasattr(tokenizer, "get_endoftext_token"):
         eos_token_id = tokenizer.get_endoftext_token()
 
-    if max_seq_len is None and hasattr(model, "pos_encoding") and hasattr(model.pos_encoding, "pe"):
-        max_seq_len = int(model.pos_encoding.pe.size(0))
+    # Resolve max_seq_len from the model if not provided.
+    # Prefer model.max_seq_len (set by MiniGPT and used by RoPE buffer).
+    # Fall back to the old sinusoidal pe buffer for backwards compatibility.
+    if max_seq_len is None:
+        if hasattr(model, "max_seq_len"):
+            max_seq_len = model.max_seq_len
+        elif hasattr(model, "pos_encoding") and hasattr(model.pos_encoding, "pe"):
+            max_seq_len = int(model.pos_encoding.pe.size(0))
 
     tokens = tokenizer.encode(prompt)
     input_ids = torch.tensor([tokens], dtype=torch.long).to(device)
