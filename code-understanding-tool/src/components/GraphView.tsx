@@ -1,19 +1,11 @@
 import { useMemo, useState } from "react";
-import { ReactFlow, Background, Handle, MarkerType, Position, BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type Edge, type EdgeProps, type Node, type NodeProps } from "@xyflow/react";
+import { ReactFlow, Background, Handle, Position, BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps, type NodeProps } from "@xyflow/react";
 import { isValidRange, type SourceRange } from "../domain/source-ranges";
-
-type DiagramVisual = {
-  kind: "control_flow" | "concept_map";
-  nodes: { id: string; label: string; description: string; source_ranges: SourceRange[] }[];
-  edges: { from: string; to: string; label: string }[];
-};
-type FlowNodeData = { label: string; description: string; caption: string; source_ranges: SourceRange[] };
-type FlowNode = Node<FlowNodeData, "explanation">;
-type ReadableEdge = Edge<{ label: string }, "readable">;
+import { createGraphLayout, type DiagramVisual, type FlowEdge, type FlowNode } from "./graph-layout";
 
 export function GraphView({ visual, theme, lineCount, source, onSelectRange }: { visual: DiagramVisual; theme: "light" | "dark"; lineCount: number; source: string; onSelectRange: (range: SourceRange) => void }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const layout = useMemo(() => layoutGraph(visual, theme), [visual, theme]);
+  const layout = useMemo(() => createGraphLayout(visual, theme), [visual, theme]);
   const nodeTypes = useMemo(() => ({ explanation: ExplanationFlowNode }), []);
   const edgeTypes = useMemo(() => ({ readable: ReadableFlowEdge }), []);
   const selectedNode = visual.nodes.find((node) => node.id === selectedNodeId);
@@ -49,8 +41,8 @@ export function GraphView({ visual, theme, lineCount, source, onSelectRange }: {
     {selectedNode ? <div className="selected-node-detail" aria-live="polite">
       <div><span className="node-caption">SELECTED {visual.kind === "control_flow" ? "STEP" : "CONCEPT"}</span><h3>{selectedNode.label}</h3><p>{selectedNode.description}</p></div>
       {selectedNode.source_ranges.some((range) => isValidRange(range, lineCount)) ? <div className="selected-source"><span className="node-caption">RELATED SOURCE</span>{selectedNode.source_ranges.filter((range) => isValidRange(range, lineCount)).map((range, index) => <div className="selected-source-range" key={`${range.start_line}-${range.end_line}-${index}`}><button className="source-range" type="button" onClick={() => onSelectRange(range)} aria-label={`Select source lines ${range.start_line} through ${range.end_line}`}>Lines {range.start_line}{range.end_line !== range.start_line ? `–${range.end_line}` : ""} · Jump to source</button><pre>{sourceLines.slice(range.start_line - 1, range.end_line).map((text, lineIndex) => `${range.start_line + lineIndex}  ${text}`).join("\n")}</pre></div>)}</div> : <p className="empty-graph">No valid source lines are linked to this item.</p>}
-    </div> : <p className="graph-hint">Select a node to inspect its explanation and related source lines. Drag to rearrange; use the controls to zoom or fit the diagram.</p>}
-    {invalidEdgeCount > 0 && <p className="empty-graph">{invalidEdgeCount} connection{invalidEdgeCount === 1 ? " was" : "s were"} omitted because they referenced missing nodes.</p>}
+    </div> : <p className="graph-hint">Select a node to inspect its explanation and related source lines. Drag to rearrange; use the page controls to adjust zoom.</p>}
+    {invalidEdgeCount > 0 && <p className="empty-graph">{invalidEdgeCount} connection{invalidEdgeCount === 1 ? " was" : "s were"} omitted because they were duplicated, cyclic, or referenced missing nodes.</p>}
   </div>;
 }
 
@@ -64,65 +56,11 @@ function ExplanationFlowNode({ data, selected }: NodeProps<FlowNode>) {
   </div>;
 }
 
-function ReadableFlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, data }: EdgeProps<ReadableEdge>) {
+function ReadableFlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, data }: EdgeProps<FlowEdge>) {
   const [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   const label = data?.label;
   return <>
     <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} />
-    {label && <EdgeLabelRenderer><div className="flow-edge-label" style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}>{label}</div></EdgeLabelRenderer>}
+    {label && <EdgeLabelRenderer><div className="flow-edge-label" title={label} style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}>{label}</div></EdgeLabelRenderer>}
   </>;
-}
-
-function layoutGraph(visual: DiagramVisual, theme: "light" | "dark"): { nodes: FlowNode[]; edges: Edge[] } {
-  const validNodes = visual.nodes.filter((node) => node.id.trim().length > 0);
-  const ids = new Set(validNodes.map((node) => node.id));
-  const validEdges = visual.edges.filter((edge) => ids.has(edge.from) && ids.has(edge.to));
-  const outgoing = new Map<string, string[]>();
-  const incomingCounts = new Map(validNodes.map((node) => [node.id, 0]));
-  for (const edge of validEdges) {
-    outgoing.set(edge.from, [...(outgoing.get(edge.from) ?? []), edge.to]);
-    incomingCounts.set(edge.to, (incomingCounts.get(edge.to) ?? 0) + 1);
-  }
-
-  const ranks = new Map<string, number>();
-  const queue = validNodes.filter((node) => (incomingCounts.get(node.id) ?? 0) === 0).map((node) => node.id);
-  queue.forEach((id) => ranks.set(id, 0));
-  for (let cursor = 0; cursor < queue.length; cursor += 1) {
-    const id = queue[cursor];
-    for (const target of outgoing.get(id) ?? []) {
-      if (ranks.has(target)) continue;
-      ranks.set(target, (ranks.get(id) ?? 0) + 1);
-      queue.push(target);
-    }
-  }
-  for (const node of validNodes) if (!ranks.has(node.id)) ranks.set(node.id, 0);
-
-  const rowByRank = new Map<number, number>();
-  const nodes = validNodes.map((node, index): FlowNode => {
-    const rank = ranks.get(node.id) ?? 0;
-    const row = rowByRank.get(rank) ?? 0;
-    rowByRank.set(rank, row + 1);
-    return {
-      id: node.id,
-      type: "explanation",
-      position: { x: rank * 330, y: row * 175 },
-      data: {
-        label: node.label,
-        description: node.description,
-        caption: visual.kind === "control_flow" ? `STEP ${String(index + 1).padStart(2, "0")}` : "CONCEPT",
-        source_ranges: node.source_ranges,
-      },
-    };
-  });
-  const edges: Edge[] = validEdges.map((edge, index) => ({
-    id: `edge-${index}-${edge.from}-${edge.to}`,
-    type: "readable",
-    source: edge.from,
-    target: edge.to,
-    data: { label: edge.label },
-    animated: false,
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#8176df" },
-    style: { stroke: theme === "dark" ? "#a79af7" : "#968ce5", strokeWidth: 1.7 },
-  }));
-  return { nodes, edges };
 }

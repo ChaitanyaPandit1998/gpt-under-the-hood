@@ -27,32 +27,35 @@ Build a small interactive workspace that helps a learner understand a piece of c
 
 ## Milestones
 
+**Status:** Milestones 1–4 are complete. Milestone 5 is in progress.
+
 ### 1. Input and workspace shell
 
-- Create the app shell and a focused learning workspace.
-- Add paste/edit input with a mode for code or documentation.
-- Add screenshot upload and a review/edit step for text read from the image.
-- Let the model infer language or document type; ask the user only when ambiguity materially affects the explanation.
+- [x] Create the app shell and a focused learning workspace.
+- [x] Add paste/edit input with a mode for code or documentation.
+- [x] Add screenshot upload and a review/edit step for text read from the image.
+- [x] Let the model infer language or document type; ask the user only when ambiguity materially affects the explanation.
 
-**Done when:** a user can submit pasted text or a screenshot, review and edit the source text (including text read from an image), then start an explanation with one action.
+**Done:** a user can submit pasted text or a screenshot, review and edit the source text (including text read from an image), then start an explanation with one action.
 
 ### 2. Skill-based explanations
 
-- Implement the first two skills: **Plain-language walkthrough** and **Concept-first explanation**.
-- Define a shared structured output schema and show sections in a readable result view.
-- Include source line references and a visible assumptions/unknowns section.
-- Add loading, retry, and useful error states.
+- [x] Implement the provider-neutral `explain-material` skill, which chooses a suitable teaching approach while honoring the learner's depth and level settings.
+- [x] Define and validate a shared structured output schema; show the explanation in a readable result view.
+- [x] Include source line references and a visible assumptions/unknowns section.
+- [x] Add loading, retry, and useful error states.
 
-**Done when:** both skills produce a coherent explanation for code and documentation, and references point back to the submitted text.
+**Done:** the explanation workflow supports code and documentation, and references point back to the submitted text.
 
 ### 3. Interactive visuals
 
-- Add a control-flow diagram skill for code where control flow is meaningful.
-- Add a concept/component map for material better explained through relationships.
-- Render diagram data in React Flow; selecting a node highlights its related source lines and explanation.
-- Omit the visual when it would add little value, and explain that choice briefly.
+- [x] Generate optional control-flow or concept maps where a visual helps explain the material.
+- [x] Render diagram data in React Flow; selecting a node reveals its explanation and linked source lines.
+- [x] Improve diagram readability with labeled edges, separated labels, and a layered layout that reduces crossings and avoids overlapping cards.
+- [x] Omit the visual when it would add little value.
+- [x] Add layout tests for branching, convergence, uneven paths, crossings, and malformed/cyclic connections.
 
-**Done when:** a generated diagram is navigable, its nodes map to source text, and a diagram is not forced for unsuitable input.
+**Done:** generated diagrams are navigable, their nodes map to source text, and a diagram is not forced for unsuitable input.
 
 ### 4. Understanding checks and follow-up
 
@@ -65,13 +68,15 @@ Build a small interactive workspace that helps a learner understand a piece of c
 
 ### 5. Refinement
 
-- Try the workflows on representative short snippets, longer code, and documentation.
-- Improve screenshot text correction, source mapping, diagram readability, and explanation quality based on observed failures.
-- Decide whether session export, persistence, additional languages, or repository context is valuable for the next release.
+- [x] Refactor the page into focused input, explanation, and display-control components so `App.tsx` coordinates state rather than owning all page markup.
+- [x] Add automated diagram-layout coverage for branching/converging graphs and awkward edge cases.
+- [ ] Exercise the full workflows on representative short snippets, longer code, and documentation; record any explanation or source-mapping failures.
+- [ ] Revisit screenshot correction, diagram rendering in the browser, and explanation quality using learner feedback.
+- [ ] Decide whether session export, persistence, additional languages, or repository context is valuable for the next release.
 
 ## First implementation slice
 
-The current local slice supports pasted code/documentation and screenshots, one explanation action, automatic teaching-mode selection, adjustable explanation depth and learner level, and local Codex CLI endpoints for transcription, explanation, follow-up questions, and an optional three-question understanding check. Each route loads its own provider-neutral skill. Quiz responses are session-only and are not persisted. Screenshot text is editable and must be explicitly approved; uploaded images are removed with their temporary request directory. Interactive React Flow diagrams show labeled edges; selecting a node reveals its explanation and valid source excerpts. Selecting text in the explanation opens an action to ask a question about that passage; follow-up history is held in page state and discarded when the source changes or the page session ends.
+Milestones 1–4 are implemented. The local app supports pasted code/documentation and screenshots, one explanation action, automatic teaching-mode selection, adjustable explanation depth and learner level, and local Codex CLI endpoints for transcription, explanation, follow-up questions, and an optional three-question understanding check. Each route loads its own provider-neutral skill. Quiz responses are session-only and are not persisted. Screenshot text is editable and must be explicitly approved; uploaded images are removed with their temporary request directory. Interactive React Flow diagrams show labeled edges and use a layered layout; selecting a node reveals its explanation and valid source excerpts. Branch, convergence, uneven-path, crossing, and malformed-graph layout cases have automated coverage. Selecting text in the explanation opens an action to ask a question about that passage; follow-up history is held in page state and discarded when the source changes or the page session ends.
 
 ## Product and quality requirements
 
