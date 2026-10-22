@@ -23,7 +23,7 @@ Before generating an explanation, set **Depth** to Quick overview, Balanced, or 
 
 The UI keeps diagram rendering (`src/components/GraphView.tsx`), source citations (`src/components/SourceRanges.tsx`), and the understanding check (`src/components/UnderstandingCheck.tsx`) separate from the workspace orchestration in `src/App.tsx`. The diagram also has a text alternative for readers who do not use the interactive canvas.
 
-Run `npm run check` to run ESLint, the unit tests, and the production build.
+Run `npm run check` to run ESLint, unit and API integration tests, and the production build. Integration tests exercise each local API route using a stubbed Codex runner; they do not require network access or a signed-in Codex CLI.
 
 ## Starting scope
 
