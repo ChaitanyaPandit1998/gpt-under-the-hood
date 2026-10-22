@@ -1,29 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isValidRange, sourceOffsetsForRange, type SourceRange } from "./domain/source-ranges";
+import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "./domain/explanation-types";
+import { useExplanationSession } from "./hooks/useExplanationSession";
 import { UnderstandingCheck } from "./components/UnderstandingCheck";
 import { GraphView } from "./components/GraphView";
 import { SourceRanges } from "./components/SourceRanges";
 
-type Mode = "code" | "docs";
-type ExplanationDepth = "overview" | "balanced" | "detailed";
-type LearnerLevel = "beginner" | "intermediate" | "advanced";
-type Explanation = {
-  title: string;
-  summary: string;
-  concepts: { term: string; explanation: string; source_ranges: SourceRange[] }[];
-  walkthrough: { heading: string; explanation: string; source_ranges: SourceRange[] }[];
-  assumptions: { statement: string; reason: string }[];
-  visual: null | {
-    kind: "control_flow" | "concept_map";
-    nodes: { id: string; label: string; description: string; source_ranges: SourceRange[] }[];
-    edges: { from: string; to: string; label: string }[];
-  };
-};
-type Transcription = { transcription: string; uncertainties: { text: string; reason: string }[] };
-type FollowUpMessage =
-  | { role: "learner"; text: string; selected_text?: string }
-  | { role: "assistant"; text: string; source_ranges: SourceRange[]; assumptions: { statement: string; reason: string }[] };
-type FollowUpAnswer = { answer: string; source_ranges: SourceRange[]; assumptions: { statement: string; reason: string }[] };
 type TextSelection = { text: string; top: number; left: number; wasTruncated: boolean };
 
 const exampleCode = `function retry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
@@ -38,27 +20,18 @@ function App() {
   const [explanationDepth, setExplanationDepth] = useState<ExplanationDepth>("balanced");
   const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>("beginner");
   const [source, setSource] = useState("");
-  const [explanation, setExplanation] = useState<Explanation | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [isAskingFollowUp, setIsAskingFollowUp] = useState(false);
-  const [copyStatus, setCopyStatus] = useState("");
-  const [followUpQuestion, setFollowUpQuestion] = useState("");
-  const [selectedTextForQuestion, setSelectedTextForQuestion] = useState("");
   const [textSelection, setTextSelection] = useState<TextSelection | null>(null);
-  const [followUpMessages, setFollowUpMessages] = useState<FollowUpMessage[]>([]);
-  const [followUpError, setFollowUpError] = useState("");
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [transcription, setTranscription] = useState<Transcription | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
   const [approved, setApproved] = useState(false);
-  const [error, setError] = useState("");
   const screenshotInput = useRef<HTMLInputElement>(null);
   const sourceEditor = useRef<HTMLTextAreaElement>(null);
-  const explanationRequestId = useRef(0);
-  const followUpRequestId = useRef(0);
   const transcriptionRequestId = useRef(0);
+  const session = useExplanationSession({ source, mode, depth: explanationDepth, learnerLevel });
+  const { explanation, isGenerating, isAskingFollowUp, copyStatus, setCopyStatus, followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion, followUpMessages, followUpError, error, setError, resetExplanation, explainSource, askFollowUp } = session;
   const lineCount = useMemo(() => Math.max(source.split("\n").length, 1), [source]);
 
   useEffect(() => () => {
@@ -95,23 +68,6 @@ function App() {
     document.addEventListener("selectionchange", updateTextSelection);
     return () => document.removeEventListener("selectionchange", updateTextSelection);
   }, []);
-
-  function invalidatePendingRequests() {
-    explanationRequestId.current += 1;
-    followUpRequestId.current += 1;
-    setIsGenerating(false);
-    setIsAskingFollowUp(false);
-  }
-
-  function resetExplanation() {
-    invalidatePendingRequests();
-    setExplanation(null);
-    setFollowUpMessages([]);
-    setFollowUpQuestion("");
-    setSelectedTextForQuestion("");
-    setFollowUpError("");
-    setError("");
-  }
 
   function updateMode(nextMode: Mode) {
     if (nextMode === mode) return;
@@ -227,83 +183,6 @@ function App() {
       setError(caught instanceof Error ? caught.message : "Unable to read text from this screenshot.");
     } finally {
       if (requestId === transcriptionRequestId.current) setIsTranscribing(false);
-    }
-  }
-
-  async function explainSource() {
-    const requestId = ++explanationRequestId.current;
-    const requestSource = source;
-    const requestMode = mode;
-    setIsGenerating(true);
-    setError("");
-    setExplanation(null);
-    setFollowUpMessages([]);
-    setFollowUpQuestion("");
-    setSelectedTextForQuestion("");
-    setFollowUpError("");
-    try {
-      const response = await fetch("/api/explain", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_text: requestSource,
-          material_kind: requestMode,
-          teaching_mode: "auto",
-          visual_preference: "auto",
-          explanation_depth: explanationDepth,
-          learner_level: learnerLevel,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Could not generate an explanation.");
-      if (requestId !== explanationRequestId.current) return;
-      setExplanation(payload as Explanation);
-    } catch (caught) {
-      if (requestId !== explanationRequestId.current) return;
-      setError(caught instanceof Error ? caught.message : "Unable to reach the local explanation service.");
-    } finally {
-      if (requestId === explanationRequestId.current) setIsGenerating(false);
-    }
-  }
-
-  async function askFollowUp(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const question = followUpQuestion.trim();
-    if (!question || !explanation || isAskingFollowUp) return;
-    const requestId = ++followUpRequestId.current;
-    const requestSource = source;
-    const requestExplanation = explanation;
-    const requestHistory = followUpMessages;
-    setIsAskingFollowUp(true);
-    setFollowUpError("");
-    try {
-      const response = await fetch("/api/followup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_text: requestSource,
-          explanation: requestExplanation,
-          history: requestHistory,
-          selected_text: selectedTextForQuestion || undefined,
-          question,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Could not answer this follow-up.");
-      if (requestId !== followUpRequestId.current) return;
-      const answer = payload as FollowUpAnswer;
-      setFollowUpMessages((current) => [
-        ...current,
-        { role: "learner", text: question, ...(selectedTextForQuestion ? { selected_text: selectedTextForQuestion } : {}) },
-        { role: "assistant", text: answer.answer, source_ranges: answer.source_ranges, assumptions: answer.assumptions },
-      ]);
-      setFollowUpQuestion("");
-      setSelectedTextForQuestion("");
-    } catch (caught) {
-      if (requestId !== followUpRequestId.current) return;
-      setFollowUpError(caught instanceof Error ? caught.message : "Unable to reach the local explanation service.");
-    } finally {
-      if (requestId === followUpRequestId.current) setIsAskingFollowUp(false);
     }
   }
 

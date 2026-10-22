@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isTrustedLocalApiRequest } from "./local-api-guard.ts";
@@ -210,6 +210,25 @@ function sendJson(response: import("node:http").ServerResponse, status: number, 
 
 export type CodexRunner = (prompt: string, schemaPath: string, outputPath: string, runDirectory: string, imagePath?: string) => Promise<unknown>;
 
+const inheritedCodexVariables = [
+  "PATH", "HOME", "USERPROFILE", "CODEX_HOME", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "LC_CTYPE", "LOGNAME", "USER",
+  "OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "OPENAI_BASE_URL", "OPENAI_ORG_ID", "OPENAI_PROJECT_ID",
+  "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy",
+  "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
+];
+
+export function createCodexEnvironment(source: NodeJS.ProcessEnv = process.env, platform = process.platform): NodeJS.ProcessEnv {
+  const allowed = [...inheritedCodexVariables];
+  if (platform === "win32") allowed.push("SYSTEMROOT", "SystemRoot", "COMSPEC", "ComSpec", "HOMEDRIVE", "HOMEPATH", "APPDATA", "LOCALAPPDATA");
+  const environment: NodeJS.ProcessEnv = {};
+  for (const key of allowed) {
+    const value = source[key];
+    if (value !== undefined) environment[key] = value;
+  }
+  if (!environment.HOME && !environment.USERPROFILE) environment.HOME = homedir();
+  return environment;
+}
+
 async function runCodex(prompt: string, schemaPath: string, outputPath: string, runDirectory: string, imagePath?: string): Promise<unknown> {
   const cli = await findCodexCli();
   const child = spawn(cli, [
@@ -222,32 +241,37 @@ async function runCodex(prompt: string, schemaPath: string, outputPath: string, 
     "--output-schema", schemaPath, "--output-last-message", outputPath, "-",
   ], {
     cwd: runDirectory,
-    env: process.env,
+    env: createCodexEnvironment(),
     stdio: ["pipe", "ignore", "pipe"],
+    shell: false,
+    windowsHide: true,
   });
 
-  let stderr = "";
-  child.stderr.setEncoding("utf8");
-  child.stderr.on("data", (chunk: string) => { stderr += chunk; });
   child.stdin.on("error", () => { /* A failed CLI process will report its exit status below. */ });
   const exitCode = await new Promise<number>((resolveExit, reject) => {
+    let timedOut = false;
+    let forceKill: NodeJS.Timeout | undefined;
     const timeout = setTimeout(() => {
+      timedOut = true;
       child.kill("SIGTERM");
-      reject(new Error("Codex CLI timed out after 120 seconds."));
+      forceKill = setTimeout(() => child.kill("SIGKILL"), 5_000);
+      forceKill.unref();
     }, 120_000);
     child.once("error", (error) => {
       clearTimeout(timeout);
+      if (forceKill) clearTimeout(forceKill);
       reject(error);
     });
     child.once("close", (code) => {
       clearTimeout(timeout);
-      resolveExit(code ?? 1);
+      if (forceKill) clearTimeout(forceKill);
+      if (timedOut) reject(new Error("Codex CLI timed out after 120 seconds."));
+      else resolveExit(code ?? 1);
     });
     child.stdin.end(prompt);
   });
 
   if (exitCode !== 0) {
-    console.error("Codex CLI request failed:", stderr.slice(-3000));
     throw new Error("Codex CLI could not process this request. Check that Codex CLI is installed and signed in, then retry.");
   }
   return JSON.parse(await readFile(outputPath, "utf8"));
