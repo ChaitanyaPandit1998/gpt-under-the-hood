@@ -11,13 +11,15 @@ npm install
 npm run dev
 ```
 
-The app reads `skills/explain-material/SKILL.md` and `skills/knowledge-check/SKILL.md`, and sends requests to Codex CLI through the local Vite development server. The model chooses an explanation style that fits the material; the interface currently has one “Help me understand” action. Codex CLI must be installed and signed in. The server looks for `codex` on its `PATH`, checks the packaged macOS Codex CLI location, and supports `CODEX_CLI_PATH` when it is installed elsewhere. The one-shot request ignores personal Codex configuration and disables shell/code execution and extension tools. Screenshot text is read by the model, shown for editing, and requires explicit approval before explanation; image files are temporary.
+The app loads a task-specific provider-neutral skill for explanation, screenshot transcription, follow-up answers, or knowledge checks, then sends requests to Codex CLI through the local Vite development server. The model chooses an explanation style that fits the material; the interface currently has one “Help me understand” action. Codex CLI must be installed and signed in. The server looks for `codex` on its `PATH`, checks the packaged macOS Codex CLI location, and supports `CODEX_CLI_PATH` when it is installed elsewhere. The one-shot request ignores personal Codex configuration and disables shell/code execution and extension tools. Screenshot text is read by the model, shown for editing, and requires explicit approval before explanation; image files are temporary.
 
 The API only accepts loopback-host requests and rejects cross-origin browser requests. Keep this prototype on your local machine; it is not intended to be exposed as a shared or public server.
 
 Select a passage in the explanation to ask a follow-up focused on that text. The selected passage is sent with the question and checked against the full source.
 
 Use **Start a quick check** below an explanation to generate three multiple-choice questions from the submitted material. Answers and score stay in the current page session and are not saved.
+
+Before generating an explanation, set **Depth** to Quick overview, Balanced, or Detailed walkthrough, and choose the learner level (Beginner, Intermediate, or Advanced). The model adapts detail and terminology while keeping the same structured response format.
 
 The UI keeps diagram rendering (`src/components/GraphView.tsx`), source citations (`src/components/SourceRanges.tsx`), and the understanding check (`src/components/UnderstandingCheck.tsx`) separate from the workspace orchestration in `src/App.tsx`. The diagram also has a text alternative for readers who do not use the interactive canvas.
 

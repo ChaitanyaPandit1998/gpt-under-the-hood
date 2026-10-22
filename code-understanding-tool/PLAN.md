@@ -9,6 +9,7 @@ Build a small interactive workspace that helps a learner understand a piece of c
 - Support pasted code and documentation as the first input path.
 - Support a screenshot input path with editable text read by the model before generation. Never treat uncertain extraction as confirmed source text.
 - Start with one **Help me understand** action; let the model choose the most useful explanation style. Add explicit workflow choices later if learners need them.
+- Let learners set explanation depth (overview, balanced, detailed) and assumed level (beginner, intermediate, advanced) without changing the single explanation action or response schema.
 - Generate structured explanation content and optional diagram data; render diagrams as interactive React Flow elements.
 - Keep generated output tied to source text using line references where possible.
 - Do not require sign-in or save submissions by default in the first version.
@@ -19,7 +20,7 @@ Build a small interactive workspace that helps a learner understand a piece of c
 - **Frontend:** React + TypeScript web application.
 - **Interactive diagrams:** React Flow renders navigable nodes and labeled edges. Selecting a node reveals its explanation and linked source lines; nodes can be rearranged and the view can be zoomed or fitted.
 - **Generation endpoint:** a small local server-side adapter invokes Codex CLI for bounded explanation requests. Keep the CLI integration behind an adapter so it can be replaced or upgraded later. For the first version, use one-shot `codex exec` with structured output; consider Codex app-server only if the product later needs persistent agent conversations or streaming controls.
-- **Explanation skills:** provider-neutral Markdown skill files and output-schema definitions, initially stored with the application (starting with `skills/explain-material/SKILL.md`). The host application passes the selected skill contents to the model; it does not depend on provider-specific skill discovery. A skill defines the teaching approach, not executable code.
+- **Task skills:** provider-neutral Markdown files for explanation, transcription, follow-up answers, and knowledge checks. Each API route loads only its task's skill; output schemas remain enforced separately by the host. Skills define the teaching approach, not executable code.
 - **Output contract:** structured sections for summary, concepts, walkthrough, assumptions, and optional diagram nodes/edges. Validate the response and handle malformed or incomplete output gracefully.
 - **Screenshot understanding:** send the screenshot to Codex as visual input in transcription-only mode. Do not add a separate OCR service for the MVP. Show extracted text and uncertainty cues for user correction and explicit approval before explanation; allow paste/edit as a fallback. Store the image only in a temporary directory and remove it when the request ends.
 - **Execution boundary:** treat submitted code as input to explain, never as code to run. The local Codex CLI invocation ignores personal config and disables shell/code execution, plugins, apps, hooks, and multi-agent features; it also uses the read-only sandbox and an isolated temporary working directory.
@@ -70,7 +71,7 @@ Build a small interactive workspace that helps a learner understand a piece of c
 
 ## First implementation slice
 
-The current local slice supports pasted code/documentation and screenshots, one explanation action, automatic teaching-mode selection, and local Codex CLI endpoints for transcription, explanation, follow-up questions, and an optional three-question understanding check. Quiz responses are session-only and are not persisted. Screenshot text is editable and must be explicitly approved; uploaded images are removed with their temporary request directory. Interactive React Flow diagrams show labeled edges; selecting a node reveals its explanation and valid source excerpts. Selecting text in the explanation opens an action to ask a question about that passage; follow-up history is held in page state and discarded when the source changes or the page session ends.
+The current local slice supports pasted code/documentation and screenshots, one explanation action, automatic teaching-mode selection, adjustable explanation depth and learner level, and local Codex CLI endpoints for transcription, explanation, follow-up questions, and an optional three-question understanding check. Each route loads its own provider-neutral skill. Quiz responses are session-only and are not persisted. Screenshot text is editable and must be explicitly approved; uploaded images are removed with their temporary request directory. Interactive React Flow diagrams show labeled edges; selecting a node reveals its explanation and valid source excerpts. Selecting text in the explanation opens an action to ask a question about that passage; follow-up history is held in page state and discarded when the source changes or the page session ends.
 
 ## Product and quality requirements
 

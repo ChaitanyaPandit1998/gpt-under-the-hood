@@ -132,3 +132,7 @@ button{color:inherit}
 .diagram-text-alternative{padding:9px 12px;border-top:1px solid #eceaf6;color:#6f7083;font-size:10px;line-height:1.6}
 .diagram-text-alternative summary{color:#655bc3;font-weight:600;cursor:pointer}
 .diagram-text-alternative ol,.diagram-text-alternative ul{padding-left:20px}
+.explanation-preferences{display:flex;gap:10px;margin-top:13px}
+.explanation-preferences label{display:grid;gap:5px;color:#89899a;font-size:10px;font-weight:600}
+.explanation-preferences select{min-width:150px;border:1px solid #e5e4ed;border-radius:6px;background:#fff;color:#55566b;padding:7px 28px 7px 9px;font:10px 'DM Sans',sans-serif}
+@media(max-width:430px){.explanation-preferences{display:grid;grid-template-columns:1fr 1fr;gap:8px}.explanation-preferences select{min-width:0;width:100%}}

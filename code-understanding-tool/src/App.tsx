@@ -5,6 +5,8 @@ import { GraphView } from "./components/GraphView";
 import { SourceRanges } from "./components/SourceRanges";
 
 type Mode = "code" | "docs";
+type ExplanationDepth = "overview" | "balanced" | "detailed";
+type LearnerLevel = "beginner" | "intermediate" | "advanced";
 type Explanation = {
   title: string;
   summary: string;
@@ -33,6 +35,8 @@ const exampleCode = `function retry<T>(operation: () => Promise<T>, attempts = 3
 
 function App() {
   const [mode, setMode] = useState<Mode>("code");
+  const [explanationDepth, setExplanationDepth] = useState<ExplanationDepth>("balanced");
+  const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>("beginner");
   const [source, setSource] = useState("");
   const [explanation, setExplanation] = useState<Explanation | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -246,6 +250,8 @@ function App() {
           material_kind: requestMode,
           teaching_mode: "auto",
           visual_preference: "auto",
+          explanation_depth: explanationDepth,
+          learner_level: learnerLevel,
         }),
       });
       const payload = await response.json();
@@ -367,6 +373,23 @@ function App() {
             </div>
             {needsApproval && !isTranscribing && <button className="approve-transcription" onClick={() => setApproved(true)} disabled={approved || !source.trim()}>{approved ? "Text reviewed ✓" : transcription ? "I reviewed this text" : "Use the text I entered"}</button>}
           </div>}
+
+          <div className="explanation-preferences" aria-label="Explanation preferences">
+            <label>Depth
+              <select value={explanationDepth} onChange={(event) => setExplanationDepth(event.target.value as ExplanationDepth)}>
+                <option value="overview">Quick overview</option>
+                <option value="balanced">Balanced</option>
+                <option value="detailed">Detailed walkthrough</option>
+              </select>
+            </label>
+            <label>Explain for
+              <select value={learnerLevel} onChange={(event) => setLearnerLevel(event.target.value as LearnerLevel)}>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </label>
+          </div>
 
           <div className="action-row">
             <span className="privacy-note"><span>◈</span> Nothing is saved automatically</span>
