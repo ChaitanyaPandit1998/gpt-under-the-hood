@@ -16,6 +16,14 @@ const exampleCode = `function retry<T>(operation: () => Promise<T>, attempts = 3
 }`;
 
 function App() {
+  const [pageZoom, setPageZoom] = useState(100);
+  const [pageTheme, setPageTheme] = useState<"light" | "dark">(() => {
+    try {
+      return localStorage.getItem("understand-theme") === "dark" ? "dark" : "light";
+    } catch {
+      return "light";
+    }
+  });
   const [mode, setMode] = useState<Mode>("code");
   const [explanationDepth, setExplanationDepth] = useState<ExplanationDepth>("balanced");
   const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>("beginner");
@@ -33,6 +41,15 @@ function App() {
   const session = useExplanationSession({ source, mode, depth: explanationDepth, learnerLevel });
   const { explanation, isGenerating, isAskingFollowUp, copyStatus, setCopyStatus, followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion, followUpMessages, followUpError, error, setError, resetExplanation, explainSource, askFollowUp } = session;
   const lineCount = useMemo(() => Math.max(source.split("\n").length, 1), [source]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = pageTheme;
+    try {
+      localStorage.setItem("understand-theme", pageTheme);
+    } catch {
+      // The theme still applies for this session when storage is unavailable.
+    }
+  }, [pageTheme]);
 
   useEffect(() => () => {
     if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
@@ -187,7 +204,8 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-theme={pageTheme}>
+      <div className="page-scaled-content" style={{ zoom: pageZoom / 100 }}>
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Understand home">
@@ -284,7 +302,7 @@ function App() {
           <p className="result-summary">{explanation.summary}</p>
           {explanation.concepts.length > 0 && <div className="result-section"><div className="section-caption">KEY IDEAS</div><div className="concept-grid">{explanation.concepts.map((concept, index) => <article className="concept-card" key={`${concept.term}-${index}`}><h3>{concept.term}</h3><p>{concept.explanation}</p><SourceRanges ranges={concept.source_ranges} lineCount={lineCount} onSelectRange={jumpToSource} /></article>)}</div></div>}
           {explanation.walkthrough.length > 0 && <div className="result-section"><div className="section-caption">WALKTHROUGH</div><div className="walkthrough-list">{explanation.walkthrough.map((step, index) => <article className="walkthrough-item" key={`${step.heading}-${index}`}><div className="walkthrough-heading"><span className="number-badge">{index + 1}</span><div><h3>{step.heading}</h3></div></div><p className="result-body">{step.explanation}</p><SourceRanges ranges={step.source_ranges} lineCount={lineCount} onSelectRange={jumpToSource} /></article>)}</div></div>}
-          {explanation.visual && <div className="result-section"><div className="section-caption">{explanation.visual.kind === "control_flow" ? "CONTROL FLOW MAP" : "CONCEPT MAP"}</div><GraphView visual={explanation.visual} lineCount={lineCount} source={source} onSelectRange={jumpToSource} /></div>}
+          {explanation.visual && <div className="result-section"><div className="section-caption">{explanation.visual.kind === "control_flow" ? "CONTROL FLOW MAP" : "CONCEPT MAP"}</div><GraphView visual={explanation.visual} theme={pageTheme} lineCount={lineCount} source={source} onSelectRange={jumpToSource} /></div>}
           {explanation.assumptions.length > 0 && <div className="assumptions"><div className="section-caption">WHAT THE INPUT DOESN’T TELL US</div>{explanation.assumptions.map((assumption, index) => <p key={`${assumption.statement}-${index}`}><strong>{assumption.statement}</strong> {assumption.reason}</p>)}</div>}
           <UnderstandingCheck source={source} explanation={explanation} />
           </div>
@@ -316,6 +334,18 @@ function App() {
 
         <footer className="page-footer"><span>Made for curious minds.</span><span>Understand <i>·</i> local prototype</span></footer>
       </main>
+      </div>
+      <div className="page-display-controls" aria-label="Page display settings">
+        <div className="page-zoom-controls" role="group" aria-label="Page zoom">
+          <button type="button" onClick={() => setPageZoom((zoom) => Math.max(80, zoom - 10))} disabled={pageZoom <= 80} aria-label="Zoom out" title="Zoom out">−</button>
+          <output aria-live="polite" aria-label="Current page zoom">{pageZoom}%</output>
+          <button type="button" onClick={() => setPageZoom((zoom) => Math.min(130, zoom + 10))} disabled={pageZoom >= 130} aria-label="Zoom in" title="Zoom in">+</button>
+          <button type="button" onClick={() => setPageZoom(100)} disabled={pageZoom === 100} aria-label="Reset zoom" title="Reset zoom">↺</button>
+        </div>
+        <button className="page-theme-toggle" type="button" onClick={() => setPageTheme((theme) => theme === "light" ? "dark" : "light")} aria-pressed={pageTheme === "dark"}>
+          <span aria-hidden="true">{pageTheme === "dark" ? "☀" : "◐"}</span>{pageTheme === "dark" ? "Light theme" : "Dark theme"}
+        </button>
+      </div>
     </div>
   );
 }

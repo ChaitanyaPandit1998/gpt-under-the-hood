@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ReactFlow, Background, Controls, Handle, MarkerType, Position, type Edge, type Node, type NodeProps } from "@xyflow/react";
+import { ReactFlow, Background, Handle, MarkerType, Position, BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type Edge, type EdgeProps, type Node, type NodeProps } from "@xyflow/react";
 import { isValidRange, type SourceRange } from "../domain/source-ranges";
 
 type DiagramVisual = {
@@ -9,21 +9,25 @@ type DiagramVisual = {
 };
 type FlowNodeData = { label: string; description: string; caption: string; source_ranges: SourceRange[] };
 type FlowNode = Node<FlowNodeData, "explanation">;
+type ReadableEdge = Edge<{ label: string }, "readable">;
 
-export function GraphView({ visual, lineCount, source, onSelectRange }: { visual: DiagramVisual; lineCount: number; source: string; onSelectRange: (range: SourceRange) => void }) {
+export function GraphView({ visual, theme, lineCount, source, onSelectRange }: { visual: DiagramVisual; theme: "light" | "dark"; lineCount: number; source: string; onSelectRange: (range: SourceRange) => void }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const layout = useMemo(() => layoutGraph(visual), [visual]);
+  const layout = useMemo(() => layoutGraph(visual, theme), [visual, theme]);
   const nodeTypes = useMemo(() => ({ explanation: ExplanationFlowNode }), []);
+  const edgeTypes = useMemo(() => ({ readable: ReadableFlowEdge }), []);
   const selectedNode = visual.nodes.find((node) => node.id === selectedNodeId);
   const sourceLines = useMemo(() => source.split("\n"), [source]);
   const invalidEdgeCount = visual.edges.length - layout.edges.length;
 
   return <div className="graph-panel" aria-label={visual.kind === "control_flow" ? "Interactive control flow diagram" : "Interactive concept map"}>
-    {visual.nodes.length > 0 ? <div className="flow-canvas">
+    {visual.nodes.length > 0 ? <div className={`flow-canvas ${theme === "dark" ? "theme-dark" : ""}`}>
       <ReactFlow
         nodes={layout.nodes}
         edges={layout.edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        colorMode={theme}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.35}
@@ -34,8 +38,7 @@ export function GraphView({ visual, lineCount, source, onSelectRange }: { visual
         onNodeClick={(_, node) => setSelectedNodeId(node.id)}
         aria-label={visual.kind === "control_flow" ? "Control flow diagram" : "Concept map"}
       >
-        <Background color="#e8e6f2" gap={22} size={1} />
-        <Controls showInteractive={false} />
+        <Background color={theme === "dark" ? "#343747" : "#e8e6f2"} gap={22} size={1} />
       </ReactFlow>
     </div> : <p className="empty-graph">No visual relationships were generated.</p>}
     {visual.nodes.length > 0 && <details className="diagram-text-alternative">
@@ -61,7 +64,16 @@ function ExplanationFlowNode({ data, selected }: NodeProps<FlowNode>) {
   </div>;
 }
 
-function layoutGraph(visual: DiagramVisual): { nodes: FlowNode[]; edges: Edge[] } {
+function ReadableFlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, data }: EdgeProps<ReadableEdge>) {
+  const [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+  const label = data?.label;
+  return <>
+    <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} />
+    {label && <EdgeLabelRenderer><div className="flow-edge-label" style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}>{label}</div></EdgeLabelRenderer>}
+  </>;
+}
+
+function layoutGraph(visual: DiagramVisual, theme: "light" | "dark"): { nodes: FlowNode[]; edges: Edge[] } {
   const validNodes = visual.nodes.filter((node) => node.id.trim().length > 0);
   const ids = new Set(validNodes.map((node) => node.id));
   const validEdges = visual.edges.filter((edge) => ids.has(edge.from) && ids.has(edge.to));
@@ -104,15 +116,13 @@ function layoutGraph(visual: DiagramVisual): { nodes: FlowNode[]; edges: Edge[] 
   });
   const edges: Edge[] = validEdges.map((edge, index) => ({
     id: `edge-${index}-${edge.from}-${edge.to}`,
+    type: "readable",
     source: edge.from,
     target: edge.to,
-    label: edge.label || undefined,
-    type: "smoothstep",
+    data: { label: edge.label },
     animated: false,
     markerEnd: { type: MarkerType.ArrowClosed, color: "#8176df" },
-    style: { stroke: "#968ce5", strokeWidth: 1.7 },
-    labelStyle: { fill: "#6259b2", fontSize: 11, fontWeight: 600 },
-    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.95 },
+    style: { stroke: theme === "dark" ? "#a79af7" : "#968ce5", strokeWidth: 1.7 },
   }));
   return { nodes, edges };
 }
