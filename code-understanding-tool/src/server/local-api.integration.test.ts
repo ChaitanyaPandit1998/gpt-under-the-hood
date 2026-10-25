@@ -35,9 +35,9 @@ const responsesBySchemaKey: Record<string, unknown> = {
   ] },
 };
 
-function createApiHarness(runCodex: CodexRunner) {
+function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters<typeof createLocalExplanationApi>[0]>["limits"]) {
   const stack: RegisteredMiddleware[] = [];
-  const plugin = createLocalExplanationApi({ runCodex });
+  const plugin = createLocalExplanationApi({ runCodex, limits });
   const configureServer = plugin.configureServer as (server: ViteDevServer) => void;
   configureServer({
     middlewares: {
@@ -49,9 +49,9 @@ function createApiHarness(runCodex: CodexRunner) {
     },
   } as unknown as ViteDevServer);
 
-  return async function request(path: string, body: unknown, origin = "http://127.0.0.1:5173") {
+  return async function request(path: string, body: unknown, origin = "http://127.0.0.1:5173", method = "POST") {
     const incoming = Readable.from([Buffer.from(JSON.stringify(body))]) as Readable & Partial<IncomingMessage>;
-    incoming.method = "POST";
+    incoming.method = method;
     incoming.url = path;
     incoming.headers = { host: "127.0.0.1:5173", origin, "content-type": "application/json" };
     let responseBody = "";
@@ -213,5 +213,58 @@ describe("local explanation API integration", () => {
     const response = await request("/api/explain", { source_text: "const x = 1;" }, "http://attacker.example");
     expect(response.status).toBe(403);
     expect(runCodex).not.toHaveBeenCalled();
+  });
+
+  it("terminates an explanation when its end-to-end deadline expires", async () => {
+    const runner = vi.fn<CodexRunner>((_prompt, _schemaPath, _outputPath, _runDirectory, _imagePath, signal) => {
+      if (signal?.aborted) return Promise.reject(signal.reason);
+      return new Promise((_resolve, reject) => {
+        signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+      });
+    });
+    const isolatedRequest = createApiHarness(runner, { explanationTimeoutMs: 15 });
+    const response = await isolatedRequest("/api/explain", { source_text: "const answer = 42;" });
+
+    expect(response.status).toBe(500);
+    expect(response.json()).toEqual({ error: "Explanation generation timed out after 5 minutes. Please retry with a smaller request." });
+  });
+
+  it("rejects additional explanations while the concurrency limit is reached", async () => {
+    const pendingDrafts: Array<(value: unknown) => void> = [];
+    const runner: CodexRunner = async (prompt) => {
+      if (String(prompt).includes("You are the second-pass quality reviewer")) return passedReview;
+      if (pendingDrafts.length < 2) {
+        return new Promise((resolve) => pendingDrafts.push(resolve));
+      }
+      return explanation;
+    };
+    const isolatedRequest = createApiHarness(runner, { maxActiveExplanations: 2 });
+    const first = isolatedRequest("/api/explain", { source_text: "const first = true;" });
+    const second = isolatedRequest("/api/explain", { source_text: "const second = true;" });
+
+    await vi.waitFor(() => expect(pendingDrafts).toHaveLength(2));
+    const rejected = await isolatedRequest("/api/explain", { source_text: "const third = true;" });
+    expect(rejected.status).toBe(503);
+    expect(rejected.json()).toEqual({ error: "The explanation service is busy. Wait for the current request to finish, then try again." });
+
+    for (const resolveDraft of pendingDrafts) resolveDraft(explanation);
+    const completed = await Promise.all([first, second]);
+    expect(completed.map((response) => response.status)).toEqual([200, 200]);
+  });
+
+  it("expires terminal progress records after their retention period", async () => {
+    const progressId = "8c0ab8d0-2d67-4aaf-90cd-b1802fc363aa";
+    const isolatedRequest = createApiHarness(runCodex, { terminalProgressTtlMs: 20 });
+    const response = await isolatedRequest("/api/explain", { source_text: "const answer = 42;", progress_id: progressId });
+    expect(response.status).toBe(200);
+
+    const progressPath = `/api/explain-progress?id=${progressId}`;
+    const available = await isolatedRequest(progressPath, {}, undefined, "GET");
+    expect(available.status).toBe(200);
+    expect(available.json()).toEqual({ phase: "complete" });
+
+    await new Promise((resolve) => setTimeout(resolve, 35));
+    const expired = await isolatedRequest(progressPath, {}, undefined, "GET");
+    expect(expired.status).toBe(404);
   });
 });

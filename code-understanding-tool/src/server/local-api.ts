@@ -17,6 +17,22 @@ import { createReviewedExplanation, type CodexRunner } from "./explanation-servi
 export type { CodexRunner } from "./explanation-service.ts";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
+const MAX_EXPLANATION_REQUEST_BYTES = 300_000;
+const MAX_EXPLANATION_SOURCE_CHARACTERS = 200_000;
+type ApiLimits = {
+  maxActiveExplanations: number;
+  maxProgressRecords: number;
+  progressRecordTtlMs: number;
+  terminalProgressTtlMs: number;
+  explanationTimeoutMs: number;
+};
+const defaultApiLimits: ApiLimits = {
+  maxActiveExplanations: 2,
+  maxProgressRecords: 100,
+  progressRecordTtlMs: 10 * 60_000,
+  terminalProgressTtlMs: 60_000,
+  explanationTimeoutMs: 5 * 60_000,
+};
 
 async function findCodexCli(): Promise<string> {
   const candidates = [
@@ -127,7 +143,8 @@ export function describeCodexFailure(stderr: string, exitCode: number): string {
   return `Codex CLI exited with status ${exitCode}. Check the terminal running the local app for details, then retry.`;
 }
 
-async function runCodex(prompt: string, schemaPath: string, outputPath: string, runDirectory: string, imagePath?: string): Promise<unknown> {
+async function runCodex(prompt: string, schemaPath: string, outputPath: string, runDirectory: string, imagePath?: string, signal?: AbortSignal): Promise<unknown> {
+  if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error("Explanation generation was cancelled.");
   const cli = await findCodexCli();
   const child = spawn(cli, [
     "exec", "--ephemeral", "--ignore-user-config", "--sandbox", "read-only",
@@ -155,20 +172,31 @@ async function runCodex(prompt: string, schemaPath: string, outputPath: string, 
   const exitCode = await new Promise<number>((resolveExit, reject) => {
     let timedOut = false;
     let forceKill: NodeJS.Timeout | undefined;
-    const timeout = setTimeout(() => {
-      timedOut = true;
+    const terminate = () => {
       child.kill("SIGTERM");
       forceKill = setTimeout(() => child.kill("SIGKILL"), 5_000);
       forceKill.unref();
+    };
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      terminate();
     }, 120_000);
-    child.once("error", (error) => {
+    signal?.addEventListener("abort", terminate, { once: true });
+    const cleanup = () => {
       clearTimeout(timeout);
       if (forceKill) clearTimeout(forceKill);
+      signal?.removeEventListener("abort", terminate);
+    };
+    child.once("error", (error) => {
+      cleanup();
       reject(error);
     });
     child.once("close", (code) => {
-      clearTimeout(timeout);
-      if (forceKill) clearTimeout(forceKill);
+      cleanup();
+      if (signal?.aborted) {
+        reject(signal.reason instanceof Error ? signal.reason : new Error("Explanation generation was cancelled."));
+        return;
+      }
       if (timedOut) reject(new Error("Codex CLI timed out after 120 seconds."));
       else resolveExit(code ?? 1);
     });
@@ -190,15 +218,43 @@ function imageMatchesMime(image: Buffer, mimeType: string) {
   return false;
 }
 
-export function createLocalExplanationApi(options: { runCodex?: CodexRunner } = {}): Plugin {
+export function createLocalExplanationApi(options: { runCodex?: CodexRunner; limits?: Partial<ApiLimits> } = {}): Plugin {
   const executeCodex = options.runCodex ?? runCodex;
+  const limits = { ...defaultApiLimits, ...options.limits };
   const generationProgress = new Map<string, { phase: GenerationPhase; updatedAt: number }>();
+  const progressTimers = new Map<string, NodeJS.Timeout>();
+  let activeExplanationCount = 0;
+  const deleteProgress = (id: string) => {
+    generationProgress.delete(id);
+    const timer = progressTimers.get(id);
+    if (timer) clearTimeout(timer);
+    progressTimers.delete(id);
+  };
+  const removeExpiredProgress = (now: number) => {
+    for (const [key, state] of generationProgress) {
+      if (now - state.updatedAt > limits.progressRecordTtlMs) deleteProgress(key);
+    }
+  };
   const reportProgress = (id: string, phase: GenerationPhase) => {
     const now = Date.now();
-    for (const [key, state] of generationProgress) {
-      if (now - state.updatedAt > 10 * 60_000) generationProgress.delete(key);
+    removeExpiredProgress(now);
+    if (!generationProgress.has(id) && generationProgress.size >= limits.maxProgressRecords) {
+      const oldestId = [...generationProgress.entries()].reduce<string | undefined>((oldest, [key, value]) => {
+        const oldestTime = oldest ? generationProgress.get(oldest)?.updatedAt ?? Infinity : Infinity;
+        return value.updatedAt < oldestTime ? key : oldest;
+      }, undefined);
+      if (oldestId) deleteProgress(oldestId);
     }
-    generationProgress.set(id, { phase, updatedAt: now });
+    const record = { phase, updatedAt: now };
+    generationProgress.set(id, record);
+    const oldTimer = progressTimers.get(id);
+    if (oldTimer) clearTimeout(oldTimer);
+    const expiry = phase === "complete" || phase === "failed" ? limits.terminalProgressTtlMs : limits.progressRecordTtlMs;
+    const timer = setTimeout(() => {
+      if (generationProgress.get(id) === record) deleteProgress(id);
+    }, expiry);
+    timer.unref();
+    progressTimers.set(id, timer);
   };
   return {
     name: "local-explanation-api",
@@ -429,8 +485,8 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner } = 
           return;
         }
         const progress = generationProgress.get(id);
-        if (!progress || Date.now() - progress.updatedAt > 10 * 60_000) {
-          generationProgress.delete(id);
+        if (!progress || Date.now() - progress.updatedAt > limits.progressRecordTtlMs) {
+          deleteProgress(id);
           sendJson(response, 404, { error: "Progress is no longer available." });
           return;
         }
@@ -447,21 +503,10 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner } = 
         response.setHeader("Content-Type", "application/json; charset=utf-8");
 
         let progressId: string | undefined;
+        let generationTimer: NodeJS.Timeout | undefined;
+        let countedAsActive = false;
         try {
-          const chunks: Buffer[] = [];
-          let byteLength = 0;
-          for await (const chunk of request) {
-            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-            byteLength += buffer.length;
-            if (byteLength > 300_000) {
-              response.statusCode = 413;
-              response.end(JSON.stringify({ error: "Input is too large. Keep this prototype request under 300 KB." }));
-              return;
-            }
-            chunks.push(buffer);
-          }
-
-          const parsed: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          const parsed = await readJsonRequest(request, MAX_EXPLANATION_REQUEST_BYTES);
           if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
             response.statusCode = 400;
             response.end(JSON.stringify({ error: "The request body must be a JSON object." }));
@@ -482,7 +527,7 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner } = 
             response.end(JSON.stringify({ error: "Add some code or documentation first." }));
             return;
           }
-          if (payload.source_text.length > 200_000) {
+          if (payload.source_text.length > MAX_EXPLANATION_SOURCE_CHARACTERS) {
             response.statusCode = 413;
             response.end(JSON.stringify({ error: "Input is too long for this prototype." }));
             return;
@@ -498,6 +543,18 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner } = 
             return;
           }
           progressId = typeof payload.progress_id === "string" ? payload.progress_id : undefined;
+          if (activeExplanationCount >= limits.maxActiveExplanations) {
+            response.statusCode = 503;
+            response.end(JSON.stringify({ error: "The explanation service is busy. Wait for the current request to finish, then try again." }));
+            return;
+          }
+          activeExplanationCount += 1;
+          countedAsActive = true;
+          const generationController = new AbortController();
+          generationTimer = setTimeout(() => {
+            generationController.abort(new Error("Explanation generation timed out after 5 minutes. Please retry with a smaller request."));
+          }, limits.explanationTimeoutMs);
+          generationTimer.unref();
           if (progressId) reportProgress(progressId, "preparing");
 
           const materialKind = payload.material_kind === "docs" ? "documentation" : "code";
@@ -519,21 +576,28 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner } = 
             visualPreference: String(payload.visual_preference ?? "auto"),
             learnerQuestion: typeof payload.learner_question === "string" ? payload.learner_question : undefined,
             onProgress: progressId ? (phase) => reportProgress(progressId!, phase) : undefined,
+            signal: generationController.signal,
           }, executeCodex);
           const output = materialKind === "code" ? annotateControlFlowCoverage(payload.source_text, result) : result;
           if (progressId) reportProgress(progressId, "complete");
           sendJson(response, 200, output);
         } catch (error) {
           if (response.headersSent) return;
-          if (progressId) reportProgress(progressId, "failed");
+          if (progressId && generationProgress.has(progressId)) reportProgress(progressId, "failed");
+          const isTooLarge = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
           const message = error instanceof SyntaxError
             ? "The request or model response was not valid JSON. Please retry."
+            : isTooLarge
+              ? "Input is too large. Keep this prototype request under 300 KB."
             : error instanceof Error
               ? error.message
               : "Unable to generate an explanation.";
-          response.statusCode = 500;
+          response.statusCode = isTooLarge ? 413 : 500;
           response.setHeader("Content-Type", "application/json; charset=utf-8");
           response.end(JSON.stringify({ error: message }));
+        } finally {
+          if (generationTimer) clearTimeout(generationTimer);
+          if (countedAsActive) activeExplanationCount -= 1;
         }
       });
     },

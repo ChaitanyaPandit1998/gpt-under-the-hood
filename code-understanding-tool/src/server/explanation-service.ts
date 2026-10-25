@@ -10,7 +10,7 @@ import { validateExplanation, validateExplanationReview } from "./response-valid
 
 const appRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-export type CodexRunner = (prompt: string, schemaPath: string, outputPath: string, runDirectory: string, imagePath?: string) => Promise<unknown>;
+export type CodexRunner = (prompt: string, schemaPath: string, outputPath: string, runDirectory: string, imagePath?: string, signal?: AbortSignal) => Promise<unknown>;
 
 export type ExplanationRequest = {
   sourceText: string;
@@ -21,6 +21,7 @@ export type ExplanationRequest = {
   visualPreference: string;
   learnerQuestion?: string;
   onProgress?: (phase: GenerationPhase) => void;
+  signal?: AbortSignal;
 };
 
 type ReviewStatus = NonNullable<Explanation["quality_review_status"]>;
@@ -59,7 +60,7 @@ export async function createReviewedExplanation(
     ].join("\n");
 
     const draft = validateExplanation(
-      await executeCodex(draftPrompt, draftSchemaPath, draftOutputPath, runDirectory),
+      await executeCodex(draftPrompt, draftSchemaPath, draftOutputPath, runDirectory, undefined, request.signal),
       request.sourceText,
     );
     let finalExplanation = draft;
@@ -80,7 +81,7 @@ export async function createReviewedExplanation(
         `\nBEGIN_LEARNER_FOCUS_${reviewMarker}\n`, learnerQuestion || "(No additional learner focus supplied)", `\nEND_LEARNER_FOCUS_${reviewMarker}`,
         `\nBEGIN_DRAFT_EXPLANATION_${reviewMarker}\n`, JSON.stringify(draft), `\nEND_DRAFT_EXPLANATION_${reviewMarker}`,
       ].join("\n");
-      const review = validateExplanationReview(await executeCodex(reviewPrompt, reviewSchemaPath, reviewOutputPath, runDirectory));
+      const review = validateExplanationReview(await executeCodex(reviewPrompt, reviewSchemaPath, reviewOutputPath, runDirectory, undefined, request.signal));
       reviewerFinding = review.findings[0]?.slice(0, 240);
 
       if (review.status === "pass") {
@@ -104,6 +105,7 @@ export async function createReviewedExplanation(
           repairSchemaPath,
           repairOutputPath,
           executeCodex,
+          signal: request.signal,
         });
         request.onProgress?.("final_review");
         const finalMarker = randomUUID();
@@ -115,7 +117,7 @@ export async function createReviewedExplanation(
           repaired: finalExplanation,
           originalFindings: review.findings,
         });
-        const finalReview = validateExplanationReview(await executeCodex(finalPrompt, reviewSchemaPath, reviewOutputPath, runDirectory));
+        const finalReview = validateExplanationReview(await executeCodex(finalPrompt, reviewSchemaPath, reviewOutputPath, runDirectory, undefined, request.signal));
         if (finalReview.status === "pass") {
           reviewStatus = "revised";
         reviewNote = reviewerFinding
@@ -126,6 +128,9 @@ export async function createReviewedExplanation(
         }
       }
     } catch {
+      if (request.signal?.aborted) {
+        throw request.signal.reason instanceof Error ? request.signal.reason : new Error("Explanation generation was cancelled.");
+      }
       // Keep the most recent structurally validated explanation and explain which step failed.
       if (finalExplanation !== draft) {
         reviewNote = reviewerFinding
@@ -152,6 +157,7 @@ type RepairExplanationInput = {
   repairSchemaPath: string;
   repairOutputPath: string;
   executeCodex: CodexRunner;
+  signal?: AbortSignal;
 };
 
 async function repairExplanation(input: RepairExplanationInput): Promise<Explanation> {
@@ -169,7 +175,7 @@ async function repairExplanation(input: RepairExplanationInput): Promise<Explana
   ].join("\n");
 
   return validateExplanation(
-    await input.executeCodex(prompt, input.repairSchemaPath, input.repairOutputPath, input.runDirectory),
+    await input.executeCodex(prompt, input.repairSchemaPath, input.repairOutputPath, input.runDirectory, undefined, input.signal),
     input.request.sourceText,
   );
 }
