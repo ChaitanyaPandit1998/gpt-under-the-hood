@@ -13,7 +13,15 @@ const explanation = {
   concepts: [],
   walkthrough: [],
   assumptions: [],
-  visual: null,
+  visual_note: "",
+  visuals: [],
+};
+const passedReview = { status: "pass", findings: [] };
+const reviseReview = { status: "revise", findings: ["The summary omits why the retry stops after the final attempt."] };
+const reviewedExplanation = {
+  ...explanation,
+  quality_review_status: "passed",
+  quality_review_note: "A second model pass checked this explanation against your source and request, including math and visuals where relevant.",
 };
 
 const responsesBySchemaKey: Record<string, unknown> = {
@@ -77,6 +85,7 @@ function createApiHarness(runCodex: CodexRunner) {
 describe("local explanation API integration", () => {
   const runCodex = vi.fn<CodexRunner>(async (rawPrompt) => {
     const prompt = String(rawPrompt);
+    if (prompt.includes("You are the second-pass quality reviewer")) return passedReview;
     if (prompt.includes("# Knowledge Check Skill")) return responsesBySchemaKey.questions;
     if (prompt.includes("# Answer a Follow-up Question")) return responsesBySchemaKey.answer;
     if (prompt.includes("# Transcribe a Screenshot")) return responsesBySchemaKey.transcription;
@@ -97,10 +106,77 @@ describe("local explanation API integration", () => {
       learner_level: "intermediate",
     });
     expect(response.status).toBe(200);
-    expect(response.json()).toEqual(explanation);
-    expect(runCodex).toHaveBeenCalledOnce();
+    expect(response.json()).toEqual(reviewedExplanation);
+    expect(runCodex).toHaveBeenCalledTimes(2);
     expect(runCodex.mock.calls[0]?.[0]).toContain("explanation_depth: overview");
     expect(runCodex.mock.calls[0]?.[0]).toContain("learner_level: intermediate");
+  });
+
+  it("keeps an incomplete control-flow diagram and flags uncertain coverage", async () => {
+    const incompleteExplanation = {
+      ...explanation,
+      visuals: [{
+        title: "Access flow",
+        kind: "control_flow",
+        nodes: [
+          { id: "start", label: "Check access", description: "Check the user.", source_ranges: [] },
+          { id: "denied", label: "Denied", description: "Return early.", source_ranges: [] },
+          { id: "allowed", label: "Continue", description: "Keep going.", source_ranges: [] },
+        ],
+        edges: [
+          { from: "start", to: "denied", label: "missing" },
+          { from: "start", to: "allowed", label: "present" },
+        ],
+      }],
+    };
+    const runner = vi.fn<CodexRunner>(async (prompt) => String(prompt).includes("You are the second-pass quality reviewer") ? passedReview : incompleteExplanation);
+    const isolatedRequest = createApiHarness(runner);
+    const response = await isolatedRequest("/api/explain", {
+      source_text: "if (!user) return false;\nconst allowed = ready ? true : false;",
+      teaching_mode: "control_flow",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.json()).toEqual({
+      ...reviewedExplanation,
+      visuals: incompleteExplanation.visuals,
+      visual_note: "Automated checks could not verify every source decision. The diagram is shown; compare it with the walkthrough and linked source lines.",
+    });
+  });
+
+  it("shows the reviewer finding when an automatic repair fails", async () => {
+    const runner = vi.fn<CodexRunner>(async (prompt) => {
+      if (String(prompt).includes("You are the second-pass quality reviewer")) return reviseReview;
+      if (String(prompt).includes("Revise the draft explanation")) throw new Error("simulated repair failure");
+      return explanation;
+    });
+    const isolatedRequest = createApiHarness(runner);
+    const response = await isolatedRequest("/api/explain", { source_text: "function retry() {}" });
+    const result = response.json() as typeof explanation & { quality_review_status: string; quality_review_note: string };
+
+    expect(response.status).toBe(200);
+    expect(result.quality_review_status).toBe("incomplete");
+    expect(result.quality_review_note).toContain("The summary omits why the retry stops after the final attempt.");
+    expect(result.quality_review_note).toContain("this draft has not been revised");
+  });
+
+  it("says a repaired explanation is unverified if its final review fails", async () => {
+    const runner = vi.fn<CodexRunner>(async (prompt) => {
+      const content = String(prompt);
+      if (content.includes("You are the second-pass quality reviewer")) return reviseReview;
+      if (content.includes("Revise the draft explanation")) return { ...explanation, summary: "The repaired explanation." };
+      if (content.includes("You are performing the final quality check after a repair")) throw new Error("simulated final review failure");
+      return explanation;
+    });
+    const isolatedRequest = createApiHarness(runner);
+    const response = await isolatedRequest("/api/explain", { source_text: "function retry() {}" });
+    const result = response.json() as typeof explanation & { quality_review_status: string; quality_review_note: string };
+
+    expect(response.status).toBe(200);
+    expect(result.summary).toBe("The repaired explanation.");
+    expect(result.quality_review_status).toBe("incomplete");
+    expect(result.quality_review_note).toContain("The summary omits why the retry stops after the final attempt.");
+    expect(result.quality_review_note).toContain("The answer was revised, but the final check could not be completed");
   });
 
   it("transcribes a valid screenshot payload", async () => {

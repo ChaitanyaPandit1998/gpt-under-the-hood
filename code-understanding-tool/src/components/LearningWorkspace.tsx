@@ -1,5 +1,6 @@
 import type { ChangeEvent, RefObject } from "react";
 import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "../domain/explanation-types";
+import { generationPhaseCopy, type GenerationPhase } from "../domain/generation-progress";
 
 type Props = {
   mode: Mode;
@@ -9,6 +10,7 @@ type Props = {
   screenshotInput: RefObject<HTMLInputElement | null>;
   isTranscribing: boolean;
   isGenerating: boolean;
+  generationPhase: GenerationPhase | null;
   screenshotPreview: string | null;
   transcription: Transcription | null;
   needsApproval: boolean;
@@ -29,7 +31,7 @@ type Props = {
 };
 
 export function LearningWorkspace({
-  mode, source, lineCount, sourceEditor, screenshotInput, isTranscribing, isGenerating,
+  mode, source, lineCount, sourceEditor, screenshotInput, isTranscribing, isGenerating, generationPhase,
   screenshotPreview, transcription, needsApproval, approved, explanationDepth, learnerLevel, error,
   onModeChange, onSourceChange, onExample, onClear, onScreenshotSelected, onApproveTranscription,
   onDepthChange, onLearnerLevelChange, onExplain, onRetry,
@@ -59,6 +61,11 @@ export function LearningWorkspace({
             {isTranscribing ? <><div className="empty-icon">◌</div><strong>Reading the screenshot…</strong><span>The model is extracting visible code or documentation.</span></> : <><div className="empty-icon">{mode === "code" ? "{ }" : "Aa"}</div><strong>{mode === "code" ? "Paste a code snippet to get started" : "Paste a passage or document to explore"}</strong><span>{mode === "code" ? "Any language is welcome. A few lines are enough." : "Technical docs, API references, or concepts you want to unpack."}</span></>}
           </div>}
         </div>
+
+        {source.trim() && <section className="print-source-section" aria-label="Submitted source material">
+          <div className="section-caption">{mode === "code" ? "SOURCE CODE" : "SOURCE DOCUMENTATION"}</div>
+          <pre className={`print-source ${mode === "code" ? "print-source-code" : ""}`}>{source}</pre>
+        </section>}
 
         <div className="input-footer">
           <span>{source ? `${source.length.toLocaleString()} characters · ${lineCount} lines` : "Your input stays in this local session"}</span>
@@ -96,8 +103,12 @@ export function LearningWorkspace({
 
       <div className="action-row">
         <span className="privacy-note"><span>◈</span> Nothing is saved automatically</span>
-        <button className="generate-button" disabled={!source.trim() || isGenerating || isTranscribing || (needsApproval && !approved)} onClick={onExplain}>{isTranscribing ? "Reading screenshot…" : isGenerating ? "Working with Codex…" : "Help me understand"} <span>{isGenerating || isTranscribing ? "◌" : "→"}</span></button>
+        <button className="generate-button" disabled={!source.trim() || isGenerating || isTranscribing || (needsApproval && !approved)} onClick={onExplain}>{isTranscribing ? "Reading screenshot…" : isGenerating && generationPhase ? generationPhaseCopy[generationPhase].button : "Help me understand"} <span>{isGenerating || isTranscribing ? "◌" : "→"}</span></button>
       </div>
+      {isGenerating && generationPhase && <div className="generation-progress" role="status" aria-live="polite" aria-atomic="true">
+        <span className="generation-progress-spinner" aria-hidden="true" />
+        <span><strong>{generationPhaseCopy[generationPhase].button}</strong> {generationPhaseCopy[generationPhase].detail}</span>
+      </div>}
       {error && <div className="error-message" role="alert"><span>!</span><p>{error}</p><button onClick={onRetry} disabled={isGenerating || isTranscribing}>Try again</button></div>}
   </section>;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isValidRange, sourceOffsetsForRange, type SourceRange } from "./domain/source-ranges";
 import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "./domain/explanation-types";
+import { isThemeMode, type ThemeMode } from "./domain/theme";
 import { useExplanationSession } from "./hooks/useExplanationSession";
 import { LearningWorkspace } from "./components/LearningWorkspace";
 import { ExplanationResult, type TextSelection } from "./components/ExplanationResult";
@@ -15,9 +16,10 @@ const exampleCode = `function retry<T>(operation: () => Promise<T>, attempts = 3
 
 function App() {
   const [pageZoom, setPageZoom] = useState(100);
-  const [pageTheme, setPageTheme] = useState<"light" | "dark">(() => {
+  const [pageTheme, setPageTheme] = useState<ThemeMode>(() => {
     try {
-      return localStorage.getItem("understand-theme") === "dark" ? "dark" : "light";
+      const savedTheme = localStorage.getItem("understand-theme");
+      return isThemeMode(savedTheme) ? savedTheme : "light";
     } catch {
       return "light";
     }
@@ -37,7 +39,7 @@ function App() {
   const sourceEditor = useRef<HTMLTextAreaElement>(null);
   const transcriptionRequestId = useRef(0);
   const session = useExplanationSession({ source, mode, depth: explanationDepth, learnerLevel });
-  const { explanation, isGenerating, isAskingFollowUp, copyStatus, setCopyStatus, followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion, followUpMessages, followUpError, error, setError, resetExplanation, explainSource, askFollowUp } = session;
+  const { explanation, isGenerating, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus, followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion, followUpMessages, followUpError, error, setError, resetExplanation, explainSource, askFollowUp } = session;
   const lineCount = useMemo(() => Math.max(source.split("\n").length, 1), [source]);
 
   useEffect(() => {
@@ -132,7 +134,7 @@ function App() {
       explanation.summary,
       explanation.concepts.length ? `## Key ideas\n${explanation.concepts.map((concept) => `### ${concept.term}\n${concept.explanation}${formatRanges(concept.source_ranges) ? `\n_Source: ${formatRanges(concept.source_ranges)}_` : ""}`).join("\n\n")}` : "",
       explanation.walkthrough.length ? `## Walkthrough\n${explanation.walkthrough.map((step, index) => `### ${index + 1}. ${step.heading}\n${step.explanation}${formatRanges(step.source_ranges) ? `\n_Source: ${formatRanges(step.source_ranges)}_` : ""}`).join("\n\n")}` : "",
-      explanation.visual ? `## ${explanation.visual.kind === "control_flow" ? "Control flow" : "Concept map"}\n${explanation.visual.nodes.map((node) => `- **${node.label}:** ${node.description}${formatRanges(node.source_ranges) ? ` (${formatRanges(node.source_ranges)})` : ""}`).join("\n")}${explanation.visual.edges.length ? `\n\nConnections:\n${explanation.visual.edges.map((edge) => `- ${edge.from} → ${edge.to}${edge.label ? ` (${edge.label})` : ""}`).join("\n")}` : ""}` : "",
+      ...explanation.visuals.map((visual) => `## ${visual.title}\n${visual.nodes.map((node) => `- **${node.label}:** ${node.description}${formatRanges(node.source_ranges) ? ` (${formatRanges(node.source_ranges)})` : ""}`).join("\n")}${visual.edges.length ? `\n\nConnections:\n${visual.edges.map((edge) => `- ${edge.from} → ${edge.to}${edge.label ? ` (${edge.label})` : ""}`).join("\n")}` : ""}`),
       explanation.assumptions.length ? `## What the input doesn’t tell us\n${explanation.assumptions.map((item) => `- **${item.statement}** ${item.reason}`).join("\n")}` : "",
       followUpMessages.length ? `## Follow-up\n${followUpMessages.map((message) => message.role === "learner" ? `**Question:** ${message.text}${message.selected_text ? `\n> ${message.selected_text.replaceAll("\n", "\n> ")}` : ""}` : `**Answer:** ${message.text}${formatRanges(message.source_ranges) ? `\n_Source: ${formatRanges(message.source_ranges)}_` : ""}`).join("\n\n")}` : "",
     ].filter(Boolean).join("\n\n");
@@ -229,6 +231,7 @@ function App() {
             screenshotInput={screenshotInput}
             isTranscribing={isTranscribing}
             isGenerating={isGenerating}
+            generationPhase={generationPhase}
             screenshotPreview={screenshotPreview}
             transcription={transcription}
             needsApproval={needsApproval}

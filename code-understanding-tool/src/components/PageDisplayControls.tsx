@@ -1,8 +1,10 @@
+import { themeLabels, themeModes, type ThemeMode } from "../domain/theme";
+
 type Props = {
   zoom: number;
-  theme: "light" | "dark";
+  theme: ThemeMode;
   onZoomChange: (update: (zoom: number) => number) => void;
-  onThemeChange: (update: (theme: "light" | "dark") => "light" | "dark") => void;
+  onThemeChange: (theme: ThemeMode) => void;
 };
 
 export function PageDisplayControls({ zoom, theme, onZoomChange, onThemeChange }: Props) {
@@ -13,8 +15,12 @@ export function PageDisplayControls({ zoom, theme, onZoomChange, onThemeChange }
       <button type="button" onClick={() => onZoomChange((value) => Math.min(130, value + 10))} disabled={zoom >= 130} aria-label="Zoom in" title="Zoom in">+</button>
       <button type="button" onClick={() => onZoomChange(() => 100)} disabled={zoom === 100} aria-label="Reset zoom" title="Reset zoom">↺</button>
     </div>
-    <button className="page-theme-toggle" type="button" onClick={() => onThemeChange((value) => value === "light" ? "dark" : "light")} aria-pressed={theme === "dark"}>
-      <span aria-hidden="true">{theme === "dark" ? "☀" : "◐"}</span>{theme === "dark" ? "Light theme" : "Dark theme"}
-    </button>
+    <label className="page-theme-select">
+      <span className={`theme-swatch theme-swatch-${theme}`} aria-hidden="true" />
+      <span className="visually-hidden">Color theme</span>
+      <select value={theme} onChange={(event) => onThemeChange(event.target.value as ThemeMode)} aria-label="Color theme">
+        {themeModes.map((mode) => <option key={mode} value={mode}>{themeLabels[mode]} theme</option>)}
+      </select>
+    </label>
   </div>;
 }

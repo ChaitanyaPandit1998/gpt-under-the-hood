@@ -1,11 +1,21 @@
 import { useRef, useState, type FormEvent } from "react";
-import type { Explanation, ExplanationDepth, FollowUpAnswer, FollowUpMessage, LearnerLevel, Mode } from "../domain/explanation-types";
+import { MAX_FOLLOW_UP_HISTORY_MESSAGES, type Explanation, type ExplanationDepth, type FollowUpAnswer, type FollowUpMessage, type LearnerLevel, type Mode } from "../domain/explanation-types";
+import { isGenerationPhase, type GenerationPhase } from "../domain/generation-progress";
 
 type SessionInput = { source: string; mode: Mode; depth: ExplanationDepth; learnerLevel: LearnerLevel };
+
+function createProgressId(): string {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
+}
 
 export function useExplanationSession({ source, mode, depth, learnerLevel }: SessionInput) {
   const [explanation, setExplanation] = useState<Explanation | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationPhase, setGenerationPhase] = useState<GenerationPhase | null>(null);
   const [isAskingFollowUp, setIsAskingFollowUp] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
   const [followUpQuestion, setFollowUpQuestion] = useState("");
@@ -15,12 +25,16 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
   const [error, setError] = useState("");
   const explanationRequestId = useRef(0);
   const followUpRequestId = useRef(0);
+  const progressPollingController = useRef<AbortController | null>(null);
 
   function invalidatePendingRequests() {
     explanationRequestId.current += 1;
     followUpRequestId.current += 1;
     setIsGenerating(false);
+    setGenerationPhase(null);
     setIsAskingFollowUp(false);
+    progressPollingController.current?.abort();
+    progressPollingController.current = null;
   }
 
   function resetExplanation() {
@@ -35,18 +49,42 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
 
   async function explainSource() {
     const requestId = ++explanationRequestId.current;
+    const progressId = createProgressId();
+    const progressController = new AbortController();
+    progressPollingController.current?.abort();
+    progressPollingController.current = progressController;
     setIsGenerating(true);
+    setGenerationPhase("preparing");
     setError("");
     setExplanation(null);
     setFollowUpMessages([]);
     setFollowUpQuestion("");
     setSelectedTextForQuestion("");
     setFollowUpError("");
+    let polling = true;
+    const pollProgress = async () => {
+      while (polling && requestId === explanationRequestId.current) {
+        try {
+          const progressResponse = await fetch(`/api/explain-progress?id=${encodeURIComponent(progressId)}`, { signal: progressController.signal });
+          if (progressResponse.ok) {
+            const progressPayload = await progressResponse.json() as { phase?: unknown };
+            if (isGenerationPhase(progressPayload.phase) && requestId === explanationRequestId.current) {
+              setGenerationPhase(progressPayload.phase);
+            }
+          }
+        } catch {
+          if (progressController.signal.aborted) return;
+          // Progress is best-effort; the explanation request still reports success or failure.
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+      }
+    };
+    const progressPolling = pollProgress();
     try {
       const response = await fetch("/api/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_text: source, material_kind: mode, teaching_mode: "auto", visual_preference: "auto", explanation_depth: depth, learner_level: learnerLevel }),
+        body: JSON.stringify({ source_text: source, material_kind: mode, teaching_mode: "auto", visual_preference: "auto", explanation_depth: depth, learner_level: learnerLevel, progress_id: progressId }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not generate an explanation.");
@@ -56,7 +94,14 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
       if (requestId !== explanationRequestId.current) return;
       setError(caught instanceof Error ? caught.message : "Unable to reach the local explanation service.");
     } finally {
-      if (requestId === explanationRequestId.current) setIsGenerating(false);
+      polling = false;
+      progressController.abort();
+      if (progressPollingController.current === progressController) progressPollingController.current = null;
+      if (requestId === explanationRequestId.current) {
+        setIsGenerating(false);
+        setGenerationPhase(null);
+      }
+      await progressPolling;
     }
   }
 
@@ -73,7 +118,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
       const response = await fetch("/api/followup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_text: source, explanation, history: requestHistory, selected_text: selectedText || undefined, question }),
+        body: JSON.stringify({ source_text: source, explanation, history: requestHistory.slice(-MAX_FOLLOW_UP_HISTORY_MESSAGES), selected_text: selectedText || undefined, question }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not answer this follow-up.");
@@ -95,7 +140,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
   }
 
   return {
-    explanation, isGenerating, isAskingFollowUp, copyStatus, setCopyStatus,
+    explanation, isGenerating, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus,
     followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion,
     followUpMessages, followUpError, error, setError,
     invalidatePendingRequests, resetExplanation, explainSource, askFollowUp,

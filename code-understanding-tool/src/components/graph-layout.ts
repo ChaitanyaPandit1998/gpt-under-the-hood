@@ -1,5 +1,6 @@
 import { MarkerType, type Edge, type Node } from "@xyflow/react";
 import type { SourceRange } from "../domain/source-ranges";
+import { themeAccents, type ThemeMode } from "../domain/theme";
 
 export type DiagramVisual = {
   kind: "control_flow" | "concept_map";
@@ -7,7 +8,7 @@ export type DiagramVisual = {
   edges: { from: string; to: string; label: string }[];
 };
 
-type FlowNodeData = { label: string; description: string; caption: string; source_ranges: SourceRange[] };
+type FlowNodeData = { label: string; description: string; caption: string; source_ranges: SourceRange[]; orientation: "horizontal" | "vertical" };
 export type FlowNode = Node<FlowNodeData, "explanation">;
 export type FlowEdge = Edge<{ label: string }, "readable">;
 export type GraphLayout = { nodes: FlowNode[]; edges: FlowEdge[] };
@@ -17,7 +18,7 @@ const verticalGap = 190;
 const estimatedCardWidth = 250;
 const estimatedCardHeight = 130;
 
-export function createGraphLayout(visual: DiagramVisual, theme: "light" | "dark"): GraphLayout {
+export function createGraphLayout(visual: DiagramVisual, theme: ThemeMode, compact = false): GraphLayout {
   const seenNodeIds = new Set<string>();
   const validNodes = visual.nodes.filter(({ id }) => {
     if (!id.trim() || seenNodeIds.has(id)) return false;
@@ -42,8 +43,8 @@ export function createGraphLayout(visual: DiagramVisual, theme: "light" | "dark"
       target: edge.to,
       data: { label: edge.label },
       animated: false,
-      markerEnd: { type: MarkerType.ArrowClosed, color: theme === "dark" ? "#a79af7" : "#8176df" },
-      style: { stroke: theme === "dark" ? "#a79af7" : "#968ce5", strokeWidth: 1.7 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: themeAccents[theme].marker },
+      style: { stroke: themeAccents[theme].edge, strokeWidth: 1.7 },
     });
   }
 
@@ -54,7 +55,9 @@ export function createGraphLayout(visual: DiagramVisual, theme: "light" | "dark"
   const sequence = new Map(flowOrder.map((node, index) => [node.id, index + 1]));
   const positionById = new Map<string, { x: number; y: number }>();
   layers.forEach((layer, rank) => layer.forEach((node, row) => {
-    positionById.set(node.id, { x: rank * horizontalGap, y: row * verticalGap });
+    positionById.set(node.id, compact
+      ? { x: row * 300, y: rank * verticalGap }
+      : { x: rank * horizontalGap, y: row * verticalGap });
   }));
 
   const nodes = flowOrder.map((node): FlowNode => ({
@@ -66,6 +69,7 @@ export function createGraphLayout(visual: DiagramVisual, theme: "light" | "dark"
       description: node.description,
       caption: visual.kind === "control_flow" ? `STEP ${String(sequence.get(node.id) ?? 1).padStart(2, "0")}` : "CONCEPT",
       source_ranges: node.source_ranges,
+      orientation: compact ? "vertical" : "horizontal",
     },
   }));
 

@@ -13,6 +13,8 @@ npm run dev
 
 The app loads a task-specific provider-neutral skill for explanation, screenshot transcription, follow-up answers, or knowledge checks, then sends requests to Codex CLI through the local Vite development server. The model chooses an explanation style that fits the material; the interface currently has one “Help me understand” action. Codex CLI must be installed and signed in. The server looks for `codex` on its `PATH`, checks the packaged macOS Codex CLI location, and supports `CODEX_CLI_PATH` when it is installed elsewhere. The one-shot request ignores personal Codex configuration and disables shell/code execution and extension tools. Screenshot text is read by the model, shown for editing, and requires explicit approval before explanation; image files are temporary.
 
+If a request reports that Codex CLI cannot reach its service, check network access for the terminal running `npm run dev`. Restricted or offline development environments may block the CLI connection even when Codex is signed in; start the local server from a terminal with network access and retry.
+
 The API only accepts loopback-host requests and rejects cross-origin browser requests. Keep this prototype on your local machine; it is not intended to be exposed as a shared or public server.
 
 Select a passage in the explanation to ask a follow-up focused on that text. The selected passage is sent with the question and checked against the full source.

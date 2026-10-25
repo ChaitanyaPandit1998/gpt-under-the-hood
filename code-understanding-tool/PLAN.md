@@ -70,9 +70,35 @@ Build a small interactive workspace that helps a learner understand a piece of c
 
 - [x] Refactor the page into focused input, explanation, and display-control components so `App.tsx` coordinates state rather than owning all page markup.
 - [x] Add automated diagram-layout coverage for branching/converging graphs and awkward edge cases.
-- [ ] Exercise the full workflows on representative short snippets, longer code, and documentation; record any explanation or source-mapping failures.
+- [x] Add a branch-heavy pricing-flow regression case that retains the address, threshold, expedited-shipping, and membership outcomes through layout.
+- [x] Add explicit skill guidance and a concrete branch-heavy example requiring distinct outcomes and visible convergence for every condition, including ternary expressions.
+- [x] Add conservative source-range and outcome checks for supported control-flow syntax; keep diagrams visible and label incomplete or unverifiable coverage so learners can compare them with the walkthrough.
+- [x] Move generated-response schemas into a dedicated module and enforce bounded response sizes, valid source ranges, and valid diagram edge endpoints before returning model output to the UI.
+- [x] Strengthen documentation source-attribution guidance so each source-specific concept and walkthrough step points to its supporting text range.
+- [x] Add a bounded second-pass explanation review that checks coverage, math, grounding, and diagram consistency; allow one repair attempt and disclose when review is incomplete.
+- [x] Exercise the full workflows on representative short snippets, longer code, and documentation; record any explanation or source-mapping failures.
 - [ ] Revisit screenshot correction, diagram rendering in the browser, and explanation quality using learner feedback.
 - [ ] Decide whether session export, persistence, additional languages, or repository context is valuable for the next release.
+
+#### Manual workflow check
+
+- Short code (`Array.reduce`): the explanation and walkthrough correctly describe the accumulation, both link to source line 1, and the app correctly skips an unnecessary diagram.
+- Branching code (12-line order flow): the output includes empty-order, inventory, payment-failure, confirmation, and sequential shipping outcomes, with overview and focused diagram views. The app warns that automated checks could not verify every source decision; address that coverage limitation in the next diagram/source-mapping pass.
+- Documentation (rate limits): the summary, key ideas, walkthrough, quiz, feedback, and a source-grounded follow-up all worked. Two of three key ideas and both walkthrough steps lacked source-line links, while one key idea linked only to line 3. Improve range attribution for prose/documentation.
+- The documentation example did not generate a diagram; a linear explanation did not need one.
+
+### Diagram fit and print behavior
+
+The React Flow canvas uses automatic fitting, resize observation, a lower zoom floor, a narrow-layout fit control, and print-specific styles. A remaining risk is visual behavior across real browser sizes and print engines:
+
+- [x] Refit the graph when it mounts and whenever its container size changes, including transitions into print layout.
+- [x] Revisit the zoom floor: allow enough zoom-out to fit, but avoid making labels unreadable. If the fit would fall below a readable scale, use the narrow-layout fallback instead.
+- [x] Add a narrow-layout fallback: keep the graph pannable and provide a clearly visible **Fit diagram** control on narrow canvases or when the fitted zoom is small.
+- [x] Add print-specific styles that replace the interactive canvas with a complete, readable text version of the diagram, avoiding clipped graphs and awkward page breaks.
+- [x] Verify representative linear and branching graphs in a browser at wide and narrow sizes; confirm nodes and labels remain within the canvas or readable through the narrow-layout fit and scroll path.
+- [x] Inspect actual Chrome print preview for a representative branching graph; confirm the complete text alternative and its connections appear on the printed page without clipping.
+
+**Done:** visual verification confirmed representative linear and branching diagrams fit at wide and narrow widths, offer a usable fit/pan path on narrow screens, and print a complete text alternative without clipping. The branching example produced a two-page Chrome print preview; no PDF was saved.
 
 ## First implementation slice
 
