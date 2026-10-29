@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Question = { prompt: string; options: string[]; correct_index: number; explanation: string };
 type Quiz = { questions: Question[] };
@@ -8,8 +8,19 @@ export function UnderstandingCheck({ source, explanation }: { source: string; ex
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const requestController = useRef<AbortController | null>(null);
+  const requestId = useRef(0);
+
+  useEffect(() => () => {
+    requestId.current += 1;
+    requestController.current?.abort();
+  }, []);
 
   async function createQuiz() {
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
+    const currentRequest = ++requestId.current;
     setLoading(true);
     setError("");
     setQuiz(null);
@@ -19,14 +30,18 @@ export function UnderstandingCheck({ source, explanation }: { source: string; ex
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source_text: source, explanation }),
+        signal: controller.signal,
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not create a check right now.");
+      if (requestId.current !== currentRequest) return;
       setQuiz(payload as Quiz);
     } catch (caught) {
+      if (requestId.current !== currentRequest) return;
       setError(caught instanceof Error ? caught.message : "Unable to create a check right now.");
     } finally {
-      setLoading(false);
+      if (requestController.current === controller) requestController.current = null;
+      if (requestId.current === currentRequest) setLoading(false);
     }
   }
 

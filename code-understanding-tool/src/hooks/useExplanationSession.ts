@@ -26,11 +26,14 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
   const explanationRequestId = useRef(0);
   const followUpRequestId = useRef(0);
   const explanationRequestController = useRef<AbortController | null>(null);
+  const followUpRequestController = useRef<AbortController | null>(null);
   const progressPollingController = useRef<AbortController | null>(null);
 
   useEffect(() => () => {
     explanationRequestId.current += 1;
+    followUpRequestId.current += 1;
     explanationRequestController.current?.abort();
+    followUpRequestController.current?.abort();
     progressPollingController.current?.abort();
   }, []);
 
@@ -42,6 +45,8 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
     setIsAskingFollowUp(false);
     explanationRequestController.current?.abort();
     explanationRequestController.current = null;
+    followUpRequestController.current?.abort();
+    followUpRequestController.current = null;
     progressPollingController.current?.abort();
     progressPollingController.current = null;
   }
@@ -124,6 +129,9 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
     const question = followUpQuestion.trim();
     if (!question || !explanation || isAskingFollowUp) return;
     const requestId = ++followUpRequestId.current;
+    const requestController = new AbortController();
+    followUpRequestController.current?.abort();
+    followUpRequestController.current = requestController;
     const requestHistory = followUpMessages;
     const selectedText = selectedTextForQuestion;
     setIsAskingFollowUp(true);
@@ -133,6 +141,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source_text: source, explanation, history: requestHistory.slice(-MAX_FOLLOW_UP_HISTORY_MESSAGES), selected_text: selectedText || undefined, question }),
+        signal: requestController.signal,
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not answer this follow-up.");
@@ -149,6 +158,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
       if (requestId !== followUpRequestId.current) return;
       setFollowUpError(caught instanceof Error ? caught.message : "Unable to reach the local explanation service.");
     } finally {
+      if (followUpRequestController.current === requestController) followUpRequestController.current = null;
       if (requestId === followUpRequestId.current) setIsAskingFollowUp(false);
     }
   }

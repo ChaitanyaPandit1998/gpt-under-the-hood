@@ -15,7 +15,13 @@ The app loads a task-specific provider-neutral skill for explanation, screenshot
 
 If a request reports that Codex CLI cannot reach its service, check network access for the terminal running `npm run dev`. Restricted or offline development environments may block the CLI connection even when Codex is signed in; start the local server from a terminal with network access and retry.
 
-The API only accepts loopback-host requests and rejects cross-origin browser requests. Keep this prototype on your local machine; it is not intended to be exposed as a shared or public server.
+## Security and privacy boundary
+
+This is a local-only prototype. Both Vite development and preview servers bind to `127.0.0.1`; the API accepts loopback-host requests and rejects cross-origin browser requests. Do not expose it with `--host`, a reverse proxy, a tunnel, or a public deployment. The host/origin check is a browser-request guard, not user authentication or protection for a shared server.
+
+The app passes submitted source text, follow-up questions, quiz context, and screenshot images to the Codex CLI signed in on the same machine. The CLI may send that content to its configured service. The app does not save learning sessions, but temporary request files are created while processing and removed afterward. Operational diagnostics include random request IDs, endpoint names, phase durations, outcomes, and broad failure categories; they must not include source text, prompts, screenshots, or raw provider errors.
+
+Before hosting this for multiple users, replace the Vite middleware with a production API and establish a real security boundary: authenticate users, protect state-changing requests against CSRF, isolate provider credentials per server-side identity, enforce per-user and global rate/concurrency/request-size limits, keep uploaded files in isolated temporary storage, define retention and deletion policies, and add redacted structured observability and abuse monitoring. Also review provider data handling, network egress, secret storage, dependency/build hardening, and deployment access controls. The current prototype is not production-ready for shared or public use.
 
 Select a passage in the explanation to ask a follow-up focused on that text. The selected passage is sent with the question and checked against the full source.
 

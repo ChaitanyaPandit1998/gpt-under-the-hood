@@ -20,14 +20,16 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const MAX_EXPLANATION_REQUEST_BYTES = 300_000;
 const MAX_EXPLANATION_SOURCE_CHARACTERS = 200_000;
 type ApiLimits = {
-  maxActiveExplanations: number;
+  maxConcurrentModelRequests: number;
+  modelRequestTimeoutMs: number;
   maxProgressRecords: number;
   progressRecordTtlMs: number;
   terminalProgressTtlMs: number;
   explanationTimeoutMs: number;
 };
 const defaultApiLimits: ApiLimits = {
-  maxActiveExplanations: 2,
+  maxConcurrentModelRequests: 2,
+  modelRequestTimeoutMs: 120_000,
   maxProgressRecords: 100,
   progressRecordTtlMs: 10 * 60_000,
   terminalProgressTtlMs: 60_000,
@@ -53,6 +55,15 @@ async function findCodexCli(): Promise<string> {
   throw new Error("Could not find Codex CLI. Install it, add it to PATH, or set CODEX_CLI_PATH to its executable.");
 }
 
+export async function findCodexCliForRequest(
+  signal: AbortSignal | undefined,
+  findCli: () => Promise<string> = findCodexCli,
+): Promise<string> {
+  const cli = await findCli();
+  if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error("Explanation generation was cancelled.");
+  return cli;
+}
+
 async function readJsonRequest(request: AsyncIterable<unknown>, limit: number): Promise<unknown> {
   const chunks: Buffer[] = [];
   let byteLength = 0;
@@ -69,6 +80,26 @@ function sendJson(response: import("node:http").ServerResponse, status: number, 
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.end(JSON.stringify(payload));
+}
+
+function classifyModelFailure(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (/timed out|timeout/i.test(message)) return "timeout";
+  if (/cancelled|canceled|aborted/i.test(message)) return "cancelled";
+  if (message === "REQUEST_TOO_LARGE") return "request_size_limit";
+  if (error instanceof SyntaxError) return "invalid_json";
+  if (/rate.limit|429/i.test(message)) return "provider_rate_limit";
+  if (/schema/i.test(message)) return "response_schema";
+  return "provider_or_validation_error";
+}
+
+function formatDuration(milliseconds: number): string {
+  const seconds = Math.max(1, Math.ceil(milliseconds / 1_000));
+  if (seconds % 60 === 0) {
+    const minutes = seconds / 60;
+    return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  }
+  return `${seconds} second${seconds === 1 ? "" : "s"}`;
 }
 
 const inheritedCodexVariables = [
@@ -145,7 +176,9 @@ export function describeCodexFailure(stderr: string, exitCode: number): string {
 
 async function runCodex(prompt: string, schemaPath: string, outputPath: string, runDirectory: string, imagePath?: string, signal?: AbortSignal): Promise<unknown> {
   if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error("Explanation generation was cancelled.");
-  const cli = await findCodexCli();
+  const cli = await findCodexCliForRequest(signal);
+  // The signal can also abort after the lookup helper resolves but before this continuation runs.
+  if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error("Explanation generation was cancelled.");
   const child = spawn(cli, [
     "exec", "--ephemeral", "--ignore-user-config", "--sandbox", "read-only",
     "--disable", "shell_tool", "--disable", "unified_exec", "--disable", "code_mode",
@@ -221,9 +254,11 @@ function imageMatchesMime(image: Buffer, mimeType: string) {
 export function createLocalExplanationApi(options: { runCodex?: CodexRunner; limits?: Partial<ApiLimits> } = {}): Plugin {
   const executeCodex = options.runCodex ?? runCodex;
   const limits = { ...defaultApiLimits, ...options.limits };
+  const requestIds = new WeakMap<import("node:http").IncomingMessage, string>();
+  const loggedModelErrors = new WeakSet<Error>();
   const generationProgress = new Map<string, { phase: GenerationPhase; updatedAt: number }>();
   const progressTimers = new Map<string, NodeJS.Timeout>();
-  let activeExplanationCount = 0;
+  let activeModelRequestCount = 0;
   const deleteProgress = (id: string) => {
     generationProgress.delete(id);
     const timer = progressTimers.get(id);
@@ -256,6 +291,91 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
     timer.unref();
     progressTimers.set(id, timer);
   };
+  type ModelRequestResult<T> = { status: "completed"; value: T } | { status: "busy" } | { status: "cancelled" };
+  const runModelRequest = async <T>(
+    request: import("node:http").IncomingMessage,
+    response: import("node:http").ServerResponse,
+    endpoint: string,
+    run: (signal: AbortSignal, markPhase: (phase: string) => void) => Promise<T>,
+    timeoutMs = limits.modelRequestTimeoutMs,
+  ): Promise<ModelRequestResult<T>> => {
+    const requestId = requestIds.get(request) ?? randomUUID();
+    if (response.destroyed || request.aborted) return { status: "cancelled" };
+    if (activeModelRequestCount >= limits.maxConcurrentModelRequests) {
+      console.info(JSON.stringify({ event: "model_request_rejected", request_id: requestId, endpoint, failure_category: "concurrency_limit" }));
+      sendJson(response, 503, { error: "The local model service is busy. Wait for a request to finish, then try again." });
+      return { status: "busy" };
+    }
+
+    activeModelRequestCount += 1;
+    const startedAt = Date.now();
+    let phaseStartedAt = startedAt;
+    let currentPhase: string | undefined;
+    const markPhase = (phase: string) => {
+      const now = Date.now();
+      if (currentPhase) {
+        console.info(JSON.stringify({ event: "model_request_phase_finished", request_id: requestId, endpoint, phase: currentPhase, duration_ms: now - phaseStartedAt }));
+      }
+      console.info(JSON.stringify({ event: "model_request_phase_started", request_id: requestId, endpoint, phase }));
+      currentPhase = phase;
+      phaseStartedAt = now;
+    };
+    let clientDisconnected = false;
+    const controller = new AbortController();
+    const abortForDisconnect = () => {
+      if (response.writableEnded) return;
+      clientDisconnected = true;
+      controller.abort(new Error("The model request was cancelled by the client."));
+    };
+    response.once("close", abortForDisconnect);
+    request.once("aborted", abortForDisconnect);
+    const timeout = setTimeout(() => {
+      controller.abort(new Error(`Model request timed out after ${formatDuration(timeoutMs)}. Please try again.`));
+    }, timeoutMs);
+    timeout.unref();
+    console.info(JSON.stringify({ event: "model_request_started", request_id: requestId, endpoint }));
+    try {
+      const value = await run(controller.signal, markPhase);
+      if (clientDisconnected || response.destroyed) {
+        console.info(JSON.stringify({ event: "model_request_finished", request_id: requestId, endpoint, outcome: "cancelled", duration_ms: Date.now() - startedAt }));
+        return { status: "cancelled" };
+      }
+      console.info(JSON.stringify({ event: "model_request_finished", request_id: requestId, endpoint, outcome: "success", duration_ms: Date.now() - startedAt }));
+      return { status: "completed", value };
+    } catch (error) {
+      if (clientDisconnected || response.destroyed) {
+        console.info(JSON.stringify({ event: "model_request_finished", request_id: requestId, endpoint, outcome: "cancelled", duration_ms: Date.now() - startedAt }));
+        return { status: "cancelled" };
+      }
+      if (error instanceof Error) loggedModelErrors.add(error);
+      console.info(JSON.stringify({
+        event: "model_request_finished",
+        request_id: requestId,
+        endpoint,
+        outcome: "failure",
+        failure_category: classifyModelFailure(error),
+        duration_ms: Date.now() - startedAt,
+      }));
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+      if (currentPhase) {
+        console.info(JSON.stringify({ event: "model_request_phase_finished", request_id: requestId, endpoint, phase: currentPhase, duration_ms: Date.now() - phaseStartedAt }));
+      }
+      response.removeListener("close", abortForDisconnect);
+      request.removeListener("aborted", abortForDisconnect);
+      activeModelRequestCount -= 1;
+    }
+  };
+  const logApiFailure = (request: import("node:http").IncomingMessage, endpoint: string, error: unknown) => {
+    if (error instanceof Error && loggedModelErrors.has(error)) return;
+    console.info(JSON.stringify({
+      event: "api_request_failed",
+      request_id: requestIds.get(request) ?? "unknown",
+      endpoint,
+      failure_category: classifyModelFailure(error),
+    }));
+  };
   return {
     name: "local-explanation-api",
     configureServer(server) {
@@ -264,6 +384,9 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
           next();
           return;
         }
+        const requestId = randomUUID();
+        requestIds.set(request, requestId);
+        response.setHeader("X-Request-Id", requestId);
         if (!isTrustedLocalApiRequest(request.headers.host, request.headers.origin)) {
           sendJson(response, 403, { error: "This API is available only to this local workspace." });
           return;
@@ -320,13 +443,18 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
               "Return only the JSON object required by the transcription schema.",
               "\n<application_skill>", skill, "</application_skill>",
             ].join("\n");
-            const result = await executeCodex(prompt, schemaPath, outputPath, runDirectory, imagePath);
-            sendJson(response, 200, validateTranscription(result));
+            const modelRequest = await runModelRequest(request, response, "transcribe", (signal, markPhase) => {
+              markPhase("transcribing_screenshot");
+              return executeCodex(prompt, schemaPath, outputPath, runDirectory, imagePath, signal);
+            });
+            if (modelRequest.status !== "completed") return;
+            sendJson(response, 200, validateTranscription(modelRequest.value));
           } finally {
             await rm(runDirectory, { recursive: true, force: true });
           }
         } catch (error) {
-          if (response.headersSent) return;
+          if (response.headersSent || response.destroyed) return;
+          logApiFailure(request, "transcribe", error);
           const isTooLarge = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
           const message = isTooLarge
             ? "Screenshot request is too large. Choose an image smaller than 8 MB."
@@ -404,13 +532,18 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
               `\nBEGIN_SELECTED_TEXT_${contextMarker}\n`, typeof payload.selected_text === "string" ? payload.selected_text : "(No passage selected)", `\nEND_SELECTED_TEXT_${contextMarker}`,
               `\nBEGIN_QUESTION_${contextMarker}\n`, payload.question, `\nEND_QUESTION_${contextMarker}`,
             ].join("\n");
-            const result = await executeCodex(prompt, schemaPath, outputPath, runDirectory);
-            sendJson(response, 200, validateFollowUp(result, payload.source_text));
+            const modelRequest = await runModelRequest(request, response, "followup", (signal, markPhase) => {
+              markPhase("answering_followup");
+              return executeCodex(prompt, schemaPath, outputPath, runDirectory, undefined, signal);
+            });
+            if (modelRequest.status !== "completed") return;
+            sendJson(response, 200, validateFollowUp(modelRequest.value, payload.source_text));
           } finally {
             await rm(runDirectory, { recursive: true, force: true });
           }
         } catch (error) {
-          if (response.headersSent) return;
+          if (response.headersSent || response.destroyed) return;
+          logApiFailure(request, "followup", error);
           const isTooLarge = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
           const message = isTooLarge
             ? "Follow-up request is too large. Shorten the question or start a new explanation."
@@ -462,11 +595,18 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
               `\nBEGIN_SOURCE_${marker}\n`, payload.source_text, `\nEND_SOURCE_${marker}`,
               `\nBEGIN_EXPLANATION_${marker}\n`, JSON.stringify(payload.explanation), `\nEND_EXPLANATION_${marker}`,
             ].join("\n");
-            sendJson(response, 200, validateQuiz(await executeCodex(prompt, schemaPath, outputPath, runDirectory)));
+            const modelRequest = await runModelRequest(request, response, "quiz", (signal, markPhase) => {
+              markPhase("creating_quiz");
+              return executeCodex(prompt, schemaPath, outputPath, runDirectory, undefined, signal);
+            });
+            if (modelRequest.status !== "completed") return;
+            sendJson(response, 200, validateQuiz(modelRequest.value));
           } finally {
             await rm(runDirectory, { recursive: true, force: true });
           }
         } catch (error) {
+          if (response.headersSent || response.destroyed) return;
+          logApiFailure(request, "quiz", error);
           const tooLarge = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
           const message = tooLarge ? "Quiz request is too large." : error instanceof SyntaxError ? "The quiz request was not valid JSON." : error instanceof Error ? error.message : "Unable to create a knowledge check.";
           sendJson(response, tooLarge ? 413 : 500, { error: message });
@@ -502,18 +642,7 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
         }
         response.setHeader("Content-Type", "application/json; charset=utf-8");
 
-        const generationController = new AbortController();
-        let clientDisconnected = false;
-        const abortForDisconnect = () => {
-          if (response.writableEnded) return;
-          clientDisconnected = true;
-          generationController.abort(new Error("The explanation request was cancelled by the client."));
-        };
-        response.once("close", abortForDisconnect);
-        request.once("aborted", abortForDisconnect);
         let progressId: string | undefined;
-        let generationTimer: NodeJS.Timeout | undefined;
-        let countedAsActive = false;
         try {
           const parsed = await readJsonRequest(request, MAX_EXPLANATION_REQUEST_BYTES);
           if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -552,18 +681,6 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
             return;
           }
           progressId = typeof payload.progress_id === "string" ? payload.progress_id : undefined;
-          if (activeExplanationCount >= limits.maxActiveExplanations) {
-            response.statusCode = 503;
-            response.end(JSON.stringify({ error: "The explanation service is busy. Wait for the current request to finish, then try again." }));
-            return;
-          }
-          activeExplanationCount += 1;
-          countedAsActive = true;
-          generationTimer = setTimeout(() => {
-            generationController.abort(new Error("Explanation generation timed out after 5 minutes. Please retry with a smaller request."));
-          }, limits.explanationTimeoutMs);
-          generationTimer.unref();
-          if (progressId) reportProgress(progressId, "preparing");
 
           const materialKind = payload.material_kind === "docs" ? "documentation" : "code";
           const teachingMode = ["auto", "walkthrough", "concepts", "control_flow"].includes(String(payload.teaching_mode))
@@ -575,26 +692,36 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
           const learnerLevel = ["beginner", "intermediate", "advanced"].includes(String(payload.learner_level))
             ? String(payload.learner_level)
             : "beginner";
-          const result = await createReviewedExplanation({
-            sourceText: payload.source_text,
-            materialKind,
-            teachingMode,
-            explanationDepth,
-            learnerLevel,
-            visualPreference: String(payload.visual_preference ?? "auto"),
-            learnerQuestion: typeof payload.learner_question === "string" ? payload.learner_question : undefined,
-            onProgress: progressId ? (phase) => reportProgress(progressId!, phase) : undefined,
-            signal: generationController.signal,
-          }, executeCodex);
-          const output = materialKind === "code" ? annotateControlFlowCoverage(payload.source_text, result) : result;
-          if (progressId) reportProgress(progressId, "complete");
-          sendJson(response, 200, output);
-        } catch (error) {
-          if (clientDisconnected || response.destroyed) {
+          const modelRequest = await runModelRequest(request, response, "explain", async (signal, markPhase) => {
+            if (progressId) reportProgress(progressId, "preparing");
+            markPhase("preparing");
+            const result = await createReviewedExplanation({
+              sourceText: payload.source_text as string,
+              materialKind,
+              teachingMode,
+              explanationDepth,
+              learnerLevel,
+              visualPreference: String(payload.visual_preference ?? "auto"),
+              learnerQuestion: typeof payload.learner_question === "string" ? payload.learner_question : undefined,
+              onProgress: (phase) => {
+                if (progressId) reportProgress(progressId, phase);
+                markPhase(phase);
+              },
+              signal,
+            }, executeCodex);
+            const output = materialKind === "code" ? annotateControlFlowCoverage(payload.source_text as string, result) : result;
+            if (progressId) reportProgress(progressId, "complete");
+            return output;
+          }, limits.explanationTimeoutMs);
+          if (modelRequest.status === "cancelled") {
             if (progressId) deleteProgress(progressId);
             return;
           }
-          if (response.headersSent) return;
+          if (modelRequest.status === "busy") return;
+          sendJson(response, 200, modelRequest.value);
+        } catch (error) {
+          if (response.headersSent || response.destroyed) return;
+          logApiFailure(request, "explain", error);
           if (progressId && generationProgress.has(progressId)) reportProgress(progressId, "failed");
           const isTooLarge = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
           const message = error instanceof SyntaxError
@@ -607,11 +734,6 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
           response.statusCode = isTooLarge ? 413 : 500;
           response.setHeader("Content-Type", "application/json; charset=utf-8");
           response.end(JSON.stringify({ error: message }));
-        } finally {
-          response.removeListener("close", abortForDisconnect);
-          request.removeListener("aborted", abortForDisconnect);
-          if (generationTimer) clearTimeout(generationTimer);
-          if (countedAsActive) activeExplanationCount -= 1;
         }
       });
     },

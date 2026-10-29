@@ -38,6 +38,7 @@ function App() {
   const screenshotInput = useRef<HTMLInputElement>(null);
   const sourceEditor = useRef<HTMLTextAreaElement>(null);
   const transcriptionRequestId = useRef(0);
+  const transcriptionRequestController = useRef<AbortController | null>(null);
   const session = useExplanationSession({ source, mode, depth: explanationDepth, learnerLevel });
   const { explanation, isGenerating, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus, followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion, followUpMessages, followUpError, error, setError, resetExplanation, explainSource, askFollowUp } = session;
   const lineCount = useMemo(() => Math.max(source.split("\n").length, 1), [source]);
@@ -54,6 +55,11 @@ function App() {
   useEffect(() => () => {
     if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
   }, [screenshotPreview]);
+
+  useEffect(() => () => {
+    transcriptionRequestId.current += 1;
+    transcriptionRequestController.current?.abort();
+  }, []);
 
   useEffect(() => {
     function updateTextSelection() {
@@ -111,6 +117,8 @@ function App() {
 
   function updateSource(value: string) {
     transcriptionRequestId.current += 1;
+    transcriptionRequestController.current?.abort();
+    transcriptionRequestController.current = null;
     setIsTranscribing(false);
     resetExplanation();
     setSource(value);
@@ -165,17 +173,23 @@ function App() {
   }
 
   async function transcribeScreenshot(file: File) {
+    transcriptionRequestController.current?.abort();
+    transcriptionRequestController.current = null;
+    const requestId = ++transcriptionRequestId.current;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setIsTranscribing(false);
       setError("Choose a PNG, JPEG, or WebP screenshot.");
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
+      setIsTranscribing(false);
       setError("Screenshots must be smaller than 8 MB.");
       return;
     }
 
     resetExplanation();
-    const requestId = ++transcriptionRequestId.current;
+    const requestController = new AbortController();
+    transcriptionRequestController.current = requestController;
     setSource("");
     setScreenshotFile(file);
     setScreenshotPreview(URL.createObjectURL(file));
@@ -188,6 +202,7 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_data: await fileToBase64(file), mime_type: file.type }),
+        signal: requestController.signal,
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not read text from this screenshot.");
@@ -199,6 +214,7 @@ function App() {
       if (requestId !== transcriptionRequestId.current) return;
       setError(caught instanceof Error ? caught.message : "Unable to read text from this screenshot.");
     } finally {
+      if (transcriptionRequestController.current === requestController) transcriptionRequestController.current = null;
       if (requestId === transcriptionRequestId.current) setIsTranscribing(false);
     }
   }

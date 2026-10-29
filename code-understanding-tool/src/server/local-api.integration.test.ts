@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ViteDevServer } from "vite";
-import { createLocalExplanationApi, type CodexRunner } from "./local-api";
+import { createLocalExplanationApi, findCodexCliForRequest, type CodexRunner } from "./local-api";
 
 type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => unknown;
 type RegisteredMiddleware = { path: string; handler: Middleware };
@@ -94,6 +94,7 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
     }
     return {
       status: responseState.statusCode,
+      headers: responseState.headers,
       json: () => JSON.parse(responseBody) as unknown,
     };
   };
@@ -111,6 +112,17 @@ describe("local explanation API integration", () => {
   const request = createApiHarness(runCodex);
 
   beforeEach(() => runCodex.mockClear());
+
+  it("does not start CLI work when cancellation happens during CLI lookup", async () => {
+    const controller = new AbortController();
+    let resolveCli: ((path: string) => void) | undefined;
+    const cliLookup = findCodexCliForRequest(controller.signal, () => new Promise((resolve) => { resolveCli = resolve; }));
+
+    controller.abort(new Error("The model request was cancelled by the client."));
+    resolveCli?.("/fake/codex");
+
+    await expect(cliLookup).rejects.toThrow("The model request was cancelled by the client.");
+  });
 
   it("validates explain requests and returns a structured explanation", async () => {
     const invalid = await request("/api/explain", { source_text: "  " });
@@ -243,7 +255,7 @@ describe("local explanation API integration", () => {
     const response = await isolatedRequest("/api/explain", { source_text: "const answer = 42;" });
 
     expect(response.status).toBe(500);
-    expect(response.json()).toEqual({ error: "Explanation generation timed out after 5 minutes. Please retry with a smaller request." });
+    expect(response.json()).toEqual({ error: "Model request timed out after 1 second. Please try again." });
   });
 
   it("cancels active generation and frees its concurrency slot when the client disconnects", async () => {
@@ -266,7 +278,7 @@ describe("local explanation API integration", () => {
       }
       return Promise.resolve(String(prompt).includes("You are the second-pass quality reviewer") ? passedReview : explanation);
     });
-    const isolatedRequest = createApiHarness(runner, { maxActiveExplanations: 1 });
+    const isolatedRequest = createApiHarness(runner, { maxConcurrentModelRequests: 1 });
     const progressId = "0a7f9cb3-ef92-4a20-bd9a-f379241f03f1";
     let disconnect = () => {};
     const cancelled = isolatedRequest(
@@ -288,6 +300,96 @@ describe("local explanation API integration", () => {
     expect(next.status).toBe(200);
   });
 
+  it.each([
+    ["/api/transcribe", { image_data: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).toString("base64"), mime_type: "image/png" }],
+    ["/api/followup", { source_text: "const x = 1;", explanation, question: "What is x?" }],
+    ["/api/quiz", { source_text: "const x = 1;", explanation }],
+  ])("cancels %s work when its client disconnects", async (path, body) => {
+    let observedAbort = false;
+    const runner = vi.fn<CodexRunner>((_prompt, _schemaPath, _outputPath, _runDirectory, _imagePath, signal) => new Promise((_resolve, reject) => {
+      if (signal?.aborted) {
+        observedAbort = true;
+        reject(signal.reason);
+        return;
+      }
+      signal?.addEventListener("abort", () => {
+        observedAbort = true;
+        reject(signal.reason);
+      }, { once: true });
+    }));
+    const isolatedRequest = createApiHarness(runner);
+    let disconnect = () => {};
+    const pending = isolatedRequest(path, body, undefined, "POST", (close) => { disconnect = close; });
+
+    await vi.waitFor(() => expect(runner).toHaveBeenCalledTimes(1));
+    disconnect();
+    await pending;
+    expect(observedAbort).toBe(true);
+  });
+
+  it.each([
+    ["/api/transcribe", { image_data: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).toString("base64"), mime_type: "image/png" }],
+    ["/api/followup", { source_text: "const x = 1;", explanation, question: "What is x?" }],
+    ["/api/quiz", { source_text: "const x = 1;", explanation }],
+  ])("times out %s model work and aborts its runner", async (path, body) => {
+    let observedAbort = false;
+    const runner = vi.fn<CodexRunner>((_prompt, _schemaPath, _outputPath, _runDirectory, _imagePath, signal) => new Promise((_resolve, reject) => {
+      signal?.addEventListener("abort", () => {
+        observedAbort = true;
+        reject(signal.reason);
+      }, { once: true });
+    }));
+    const isolatedRequest = createApiHarness(runner, { modelRequestTimeoutMs: 15 });
+    const response = await isolatedRequest(path, body);
+
+    expect(response.status).toBe(500);
+    expect(response.json()).toEqual({ error: "Model request timed out after 1 second. Please try again." });
+    expect(observedAbort).toBe(true);
+  });
+
+  it("applies one concurrency limit across different model endpoints", async () => {
+    let finishFollowup: ((value: unknown) => void) | undefined;
+    const runner: CodexRunner = async (prompt) => {
+      if (String(prompt).includes("# Answer a Follow-up Question")) {
+        return new Promise((resolve) => { finishFollowup = resolve; });
+      }
+      return responsesBySchemaKey.questions;
+    };
+    const isolatedRequest = createApiHarness(runner, { maxConcurrentModelRequests: 1 });
+    const followup = isolatedRequest("/api/followup", { source_text: "const x = 1;\nreturn x;", explanation, question: "What is x?" });
+
+    await vi.waitFor(() => expect(finishFollowup).toBeTypeOf("function"));
+    const rejectedQuiz = await isolatedRequest("/api/quiz", { source_text: "const x = 1;", explanation });
+    expect(rejectedQuiz.status).toBe(503);
+    finishFollowup?.(responsesBySchemaKey.answer);
+    expect((await followup).status).toBe(200);
+  });
+
+  it("returns a request ID and logs only bounded metadata", async () => {
+    const log = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      const privateSource = "PRIVATE_SOURCE_DO_NOT_LOG_91a2";
+      const privateQuestion = "PRIVATE_QUESTION_DO_NOT_LOG_b37c";
+      const isolatedRequest = createApiHarness(async () => { throw new Error("simulated provider failure"); });
+      const response = await isolatedRequest("/api/followup", {
+        source_text: privateSource,
+        explanation,
+        question: privateQuestion,
+      });
+      expect(response.headers["x-request-id"]).toMatch(/^[0-9a-f-]{36}$/i);
+      expect(response.status).toBe(500);
+      const diagnosticOutput = log.mock.calls.map(([entry]) => String(entry)).join("\n");
+      expect(diagnosticOutput).toContain(response.headers["x-request-id"]);
+      expect(diagnosticOutput).toContain('"duration_ms"');
+      expect(diagnosticOutput).toContain('"failure_category"');
+      expect(diagnosticOutput).toContain('"phase"');
+      expect(diagnosticOutput).not.toContain(privateSource);
+      expect(diagnosticOutput).not.toContain(privateQuestion);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it("rejects additional explanations while the concurrency limit is reached", async () => {
     const pendingDrafts: Array<(value: unknown) => void> = [];
     const runner: CodexRunner = async (prompt) => {
@@ -297,14 +399,14 @@ describe("local explanation API integration", () => {
       }
       return explanation;
     };
-    const isolatedRequest = createApiHarness(runner, { maxActiveExplanations: 2 });
+    const isolatedRequest = createApiHarness(runner, { maxConcurrentModelRequests: 2 });
     const first = isolatedRequest("/api/explain", { source_text: "const first = true;" });
     const second = isolatedRequest("/api/explain", { source_text: "const second = true;" });
 
     await vi.waitFor(() => expect(pendingDrafts).toHaveLength(2));
     const rejected = await isolatedRequest("/api/explain", { source_text: "const third = true;" });
     expect(rejected.status).toBe(503);
-    expect(rejected.json()).toEqual({ error: "The explanation service is busy. Wait for the current request to finish, then try again." });
+    expect(rejected.json()).toEqual({ error: "The local model service is busy. Wait for a request to finish, then try again." });
 
     for (const resolveDraft of pendingDrafts) resolveDraft(explanation);
     const completed = await Promise.all([first, second]);
