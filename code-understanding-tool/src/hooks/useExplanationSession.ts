@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { MAX_FOLLOW_UP_HISTORY_MESSAGES, type Explanation, type ExplanationDepth, type FollowUpAnswer, type FollowUpMessage, type LearnerLevel, type Mode } from "../domain/explanation-types";
 import { isGenerationPhase, type GenerationPhase } from "../domain/generation-progress";
 
@@ -25,7 +25,14 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
   const [error, setError] = useState("");
   const explanationRequestId = useRef(0);
   const followUpRequestId = useRef(0);
+  const explanationRequestController = useRef<AbortController | null>(null);
   const progressPollingController = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    explanationRequestId.current += 1;
+    explanationRequestController.current?.abort();
+    progressPollingController.current?.abort();
+  }, []);
 
   function invalidatePendingRequests() {
     explanationRequestId.current += 1;
@@ -33,6 +40,8 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
     setIsGenerating(false);
     setGenerationPhase(null);
     setIsAskingFollowUp(false);
+    explanationRequestController.current?.abort();
+    explanationRequestController.current = null;
     progressPollingController.current?.abort();
     progressPollingController.current = null;
   }
@@ -50,7 +59,10 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
   async function explainSource() {
     const requestId = ++explanationRequestId.current;
     const progressId = createProgressId();
+    const requestController = new AbortController();
     const progressController = new AbortController();
+    explanationRequestController.current?.abort();
+    explanationRequestController.current = requestController;
     progressPollingController.current?.abort();
     progressPollingController.current = progressController;
     setIsGenerating(true);
@@ -85,6 +97,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source_text: source, material_kind: mode, teaching_mode: "auto", visual_preference: "auto", explanation_depth: depth, learner_level: learnerLevel, progress_id: progressId }),
+        signal: requestController.signal,
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not generate an explanation.");
@@ -95,6 +108,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
       setError(caught instanceof Error ? caught.message : "Unable to reach the local explanation service.");
     } finally {
       polling = false;
+      if (explanationRequestController.current === requestController) explanationRequestController.current = null;
       progressController.abort();
       if (progressPollingController.current === progressController) progressPollingController.current = null;
       if (requestId === explanationRequestId.current) {

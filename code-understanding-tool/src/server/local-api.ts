@@ -502,6 +502,15 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
         }
         response.setHeader("Content-Type", "application/json; charset=utf-8");
 
+        const generationController = new AbortController();
+        let clientDisconnected = false;
+        const abortForDisconnect = () => {
+          if (response.writableEnded) return;
+          clientDisconnected = true;
+          generationController.abort(new Error("The explanation request was cancelled by the client."));
+        };
+        response.once("close", abortForDisconnect);
+        request.once("aborted", abortForDisconnect);
         let progressId: string | undefined;
         let generationTimer: NodeJS.Timeout | undefined;
         let countedAsActive = false;
@@ -550,7 +559,6 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
           }
           activeExplanationCount += 1;
           countedAsActive = true;
-          const generationController = new AbortController();
           generationTimer = setTimeout(() => {
             generationController.abort(new Error("Explanation generation timed out after 5 minutes. Please retry with a smaller request."));
           }, limits.explanationTimeoutMs);
@@ -582,6 +590,10 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
           if (progressId) reportProgress(progressId, "complete");
           sendJson(response, 200, output);
         } catch (error) {
+          if (clientDisconnected || response.destroyed) {
+            if (progressId) deleteProgress(progressId);
+            return;
+          }
           if (response.headersSent) return;
           if (progressId && generationProgress.has(progressId)) reportProgress(progressId, "failed");
           const isTooLarge = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
@@ -596,6 +608,8 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
           response.setHeader("Content-Type", "application/json; charset=utf-8");
           response.end(JSON.stringify({ error: message }));
         } finally {
+          response.removeListener("close", abortForDisconnect);
+          request.removeListener("aborted", abortForDisconnect);
           if (generationTimer) clearTimeout(generationTimer);
           if (countedAsActive) activeExplanationCount -= 1;
         }

@@ -1,4 +1,5 @@
 import { Readable } from "node:stream";
+import { EventEmitter } from "node:events";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ViteDevServer } from "vite";
@@ -49,7 +50,13 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
     },
   } as unknown as ViteDevServer);
 
-  return async function request(path: string, body: unknown, origin = "http://127.0.0.1:5173", method = "POST") {
+  return async function request(
+    path: string,
+    body: unknown,
+    origin = "http://127.0.0.1:5173",
+    method = "POST",
+    onResponseReady?: (disconnect: () => void) => void,
+  ) {
     const incoming = Readable.from([Buffer.from(JSON.stringify(body))]) as Readable & Partial<IncomingMessage>;
     incoming.method = method;
     incoming.url = path;
@@ -58,11 +65,21 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
     const responseState = {
       statusCode: 200,
       headersSent: false,
+      writableEnded: false,
+      destroyed: false,
       headers: {} as Record<string, string>,
       setHeader(name: string, value: string) { responseState.headers[name.toLowerCase()] = value; },
-      end(value?: string) { responseBody = value ?? ""; responseState.headersSent = true; },
+      end(value?: string) { responseBody = value ?? ""; responseState.headersSent = true; responseState.writableEnded = true; },
     };
-    const response = responseState as unknown as ServerResponse;
+    const responseEvents = new EventEmitter();
+    const response = Object.assign(responseState, {
+      once: responseEvents.once.bind(responseEvents),
+      removeListener: responseEvents.removeListener.bind(responseEvents),
+    }) as unknown as ServerResponse;
+    onResponseReady?.(() => {
+      responseState.destroyed = true;
+      responseEvents.emit("close");
+    });
 
     let cursor = 0;
     while (cursor < stack.length && !response.headersSent) {
@@ -227,6 +244,48 @@ describe("local explanation API integration", () => {
 
     expect(response.status).toBe(500);
     expect(response.json()).toEqual({ error: "Explanation generation timed out after 5 minutes. Please retry with a smaller request." });
+  });
+
+  it("cancels active generation and frees its concurrency slot when the client disconnects", async () => {
+    let holdFirstCall = true;
+    let observedAbort = false;
+    const runner = vi.fn<CodexRunner>((prompt, _schemaPath, _outputPath, _runDirectory, _imagePath, signal) => {
+      if (holdFirstCall) {
+        holdFirstCall = false;
+        return new Promise((_resolve, reject) => {
+          if (signal?.aborted) {
+            observedAbort = true;
+            reject(signal.reason);
+            return;
+          }
+          signal?.addEventListener("abort", () => {
+            observedAbort = true;
+            reject(signal.reason);
+          }, { once: true });
+        });
+      }
+      return Promise.resolve(String(prompt).includes("You are the second-pass quality reviewer") ? passedReview : explanation);
+    });
+    const isolatedRequest = createApiHarness(runner, { maxActiveExplanations: 1 });
+    const progressId = "0a7f9cb3-ef92-4a20-bd9a-f379241f03f1";
+    let disconnect = () => {};
+    const cancelled = isolatedRequest(
+      "/api/explain",
+      { source_text: "const abandoned = true;", progress_id: progressId },
+      undefined,
+      "POST",
+      (close) => { disconnect = close; },
+    );
+
+    await vi.waitFor(() => expect(runner).toHaveBeenCalledTimes(1));
+    disconnect();
+    await cancelled;
+    expect(observedAbort).toBe(true);
+    const progress = await isolatedRequest(`/api/explain-progress?id=${progressId}`, {}, undefined, "GET");
+    expect(progress.status).toBe(404);
+
+    const next = await isolatedRequest("/api/explain", { source_text: "const next = true;" });
+    expect(next.status).toBe(200);
   });
 
   it("rejects additional explanations while the concurrency limit is reached", async () => {
