@@ -173,6 +173,31 @@ describe("local explanation API integration", () => {
     });
   });
 
+  it("reports TODO comments and empty conditional branches in code results", async () => {
+    const source = [
+      "async function fetchUserProfile(userId) {",
+      "  if (!userId) return { error: 'Missing user ID' };",
+      "  const response = await fetch(`/api/users/${userId}`);",
+      "  if (!response.ok) {",
+      "    // TODO: handle the error",
+      "  }",
+      "  const profile = await response.json();",
+      "  // TODO: check whether the user is allowed to view this profile",
+      "  return { name: profile.name, email: profile.email };",
+      "}",
+    ].join("\n");
+    const response = await request("/api/explain", { source_text: source });
+    const result = response.json() as typeof explanation & { incomplete_items: { title: string; explanation: string; source_ranges: { start_line: number; end_line: number }[] }[] };
+
+    expect(response.status).toBe(200);
+    expect(result.incomplete_items).toHaveLength(2);
+    expect(result.incomplete_items[0]?.title).toBe("Unfinished branch");
+    expect(result.incomplete_items[0]?.explanation).toContain("Execution falls through to the next statement");
+    expect(result.incomplete_items[0]?.source_ranges).toEqual([{ start_line: 5, end_line: 6 }]);
+    expect(result.incomplete_items[1]?.title).toBe("Unfinished-work marker");
+    expect(result.incomplete_items[1]?.source_ranges).toEqual([{ start_line: 8, end_line: 8 }]);
+  });
+
   it("shows the reviewer finding when an automatic repair fails", async () => {
     const runner = vi.fn<CodexRunner>(async (prompt) => {
       if (String(prompt).includes("You are the second-pass quality reviewer")) return reviseReview;

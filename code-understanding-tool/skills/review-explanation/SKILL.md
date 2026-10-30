@@ -13,6 +13,7 @@ Perform a focused second-pass review of a draft explanation using the supplied s
 ## Review checklist
 
 - Check whether every distinct part of the learner's question is directly answered. If no additional question was supplied, assess whether the explanation covers the central meaning of the source at the requested depth.
+- Check explicit `TODO`, `FIXME`, or `XXX` markers and empty conditional branches. Confirm the explanation and diagrams distinguish implemented behavior from unfinished work, describe actual fall-through where present, and do not guess the missing policy or result.
 - Check calculations, algebraic transformations, mathematical notation, symbol definitions, domain restrictions, assumptions, and conclusions. Verify each step rather than trusting the draft's result.
 - Check that source ranges are valid for the supplied text and support the claims they accompany. Treat illustrative examples as examples; do not imply they were present in the source.
 - Check that diagrams use valid relationships, preserve meaningful conditions and outcomes, and agree with the prose. Flag missing variables, branches, or terminal outcomes when their omission changes the learner's mental model.

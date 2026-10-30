@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReactFlow, Background, Handle, Position, BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps, type NodeProps, type ReactFlowInstance } from "@xyflow/react";
 import { isValidRange, type SourceRange } from "../domain/source-ranges";
+import type { IncompleteCodeItem } from "../domain/incomplete-code.ts";
 import { themeAccents, type ThemeMode } from "../domain/theme";
 import { createGraphLayout, type DiagramVisual, type FlowEdge, type FlowNode } from "./graph-layout";
 
-export function GraphView({ visual, theme, lineCount, source, onSelectRange }: { visual: DiagramVisual & { title: string }; theme: ThemeMode; lineCount: number; source: string; onSelectRange: (range: SourceRange) => void }) {
+export function GraphView({ visual, theme, lineCount, source, onSelectRange, incompleteItems = [] }: { visual: DiagramVisual & { title: string }; theme: ThemeMode; lineCount: number; source: string; onSelectRange: (range: SourceRange) => void; incompleteItems?: IncompleteCodeItem[] }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showFitControl, setShowFitControl] = useState(false);
   const [compactLayout, setCompactLayout] = useState(false);
   const flowCanvas = useRef<HTMLDivElement>(null);
   const flowInstance = useRef<ReactFlowInstance<FlowNode, FlowEdge> | null>(null);
   const fitFrame = useRef<number | null>(null);
-  const layout = useMemo(() => createGraphLayout(visual, theme, compactLayout), [visual, theme, compactLayout]);
+  const layout = useMemo(() => createGraphLayout(visual, theme, compactLayout, incompleteItems), [visual, theme, compactLayout, incompleteItems]);
   const compactCanvasHeight = compactLayout
     ? Math.max(410, ...layout.nodes.map((node) => node.position.y + 170))
     : undefined;
@@ -84,7 +85,10 @@ export function GraphView({ visual, theme, lineCount, source, onSelectRange }: {
     </div> : <p className="empty-graph">No visual relationships were generated.</p>}
     {visual.nodes.length > 0 && <details className="diagram-text-alternative">
       <summary>Read {visual.title} diagram as text</summary>
-      <ol>{visual.nodes.map((node) => <li key={node.id}><strong>{node.label}.</strong> {node.description}</li>)}</ol>
+      <ol>{visual.nodes.map((node) => {
+        const incomplete = incompleteItems.some((item) => item.source_ranges.some((range) => node.source_ranges.some((nodeRange) => nodeRange.start_line <= range.end_line && nodeRange.end_line >= range.start_line)));
+        return <li key={node.id}>{incomplete && <strong>Incomplete implementation. </strong>}<strong>{node.label}.</strong> {node.description}</li>;
+      })}</ol>
       {visual.edges.length > 0 && <ul aria-label="Diagram connections">{visual.edges.map((edge, index) => <li key={`${edge.from}-${edge.to}-${index}`}>{visual.nodes.find((node) => node.id === edge.from)?.label ?? edge.from} {edge.label ? `(${edge.label})` : "connects to"} {visual.nodes.find((node) => node.id === edge.to)?.label ?? edge.to}.</li>)}</ul>}
     </details>}
     {selectedNode ? <div className="selected-node-detail" role="status" aria-live="polite" aria-atomic="true" aria-label="Selected diagram item details">
@@ -97,9 +101,10 @@ export function GraphView({ visual, theme, lineCount, source, onSelectRange }: {
 
 function ExplanationFlowNode({ data, selected }: NodeProps<FlowNode>) {
   const isVertical = data.orientation === "vertical";
-  return <div className={`flow-card-node ${selected ? "selected" : ""}`}>
+  return <div className={`flow-card-node ${selected ? "selected" : ""} ${data.incomplete ? "incomplete" : ""}`}>
     <Handle type="target" position={isVertical ? Position.Top : Position.Left} />
     <span className="node-caption">{data.caption}</span>
+    {data.incomplete && <span className="incomplete-node-badge">INCOMPLETE</span>}
     <strong>{data.label}</strong>
     <p>{data.description}</p>
     <Handle type="source" position={isVertical ? Position.Bottom : Position.Right} />

@@ -22,7 +22,14 @@ export function SpeechReader({ explanation }: { explanation: Explanation }) {
       .join("\n\n");
     const diagram = explanation.visuals.map((visual) => {
       const itemLabel = visual.kind === "control_flow" ? "Steps" : "Concepts";
-      const nodes = visual.nodes.map((node) => `${node.label}. ${node.description}`).join(". ");
+      const nodes = visual.nodes.map((node) => {
+        const incomplete = explanation.incomplete_items?.some((item) =>
+          item.source_ranges.some((range) => node.source_ranges.some((nodeRange) =>
+            range.start_line <= nodeRange.end_line && nodeRange.start_line <= range.end_line,
+          )),
+        );
+        return `${incomplete ? "Incomplete implementation. " : ""}${node.label}. ${node.description}`;
+      }).join(". ");
       const connections = visual.edges.map((edge) => {
         const from = visual.nodes.find((node) => node.id === edge.from)?.label ?? edge.from;
         const to = visual.nodes.find((node) => node.id === edge.to)?.label ?? edge.to;
@@ -37,6 +44,9 @@ export function SpeechReader({ explanation }: { explanation: Explanation }) {
         : "",
       walkthrough ? `Walkthrough. ${walkthrough}` : "",
       explanation.visual_note ? `Diagram coverage note. ${explanation.visual_note}` : "",
+      explanation.incomplete_items?.length
+        ? `Incomplete code detected. ${explanation.incomplete_items.map((item) => `${item.title}. ${item.explanation}`).join(" ")}`
+        : "",
       explanation.assumptions.length > 0
         ? `What the input does not tell us. ${explanation.assumptions.map((item) => `${item.statement}. ${item.reason}`).join(". ")}`
         : "",

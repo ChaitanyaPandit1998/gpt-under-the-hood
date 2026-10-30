@@ -1,4 +1,5 @@
 import type { SourceRange } from "./source-ranges";
+import type { IncompleteCodeItem } from "./incomplete-code.ts";
 
 export const MAX_FOLLOW_UP_HISTORY_MESSAGES = 20;
 
@@ -13,6 +14,7 @@ export type Explanation = {
   walkthrough: { heading: string; explanation: string; source_ranges: SourceRange[] }[];
   assumptions: { statement: string; reason: string }[];
   visual_note: string;
+  incomplete_items?: IncompleteCodeItem[];
   quality_review_status?: "passed" | "revised" | "incomplete";
   quality_review_note?: string;
   visuals: {

@@ -55,6 +55,14 @@ export function ExplanationResult({
       <div className="explanation-content">
         <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
         <p className="result-summary">{explanation.summary}</p>
+        {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
+          <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
+          <p>The source contains unfinished work. Its intended behavior is not specified, so the explanation does not infer it.</p>
+          <ul>{explanation.incomplete_items.map((item, index) => <li key={`${item.kind}-${item.source_ranges[0]?.start_line}-${index}`}>
+            <strong>{item.title}.</strong> {item.explanation}
+            <SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} />
+          </li>)}</ul>
+        </aside>}
         {explanation.quality_review_note && <aside className={`quality-review-note ${explanation.quality_review_status ?? "incomplete"}`} role="status" aria-live="polite">
           <strong>Second-pass review · {explanation.quality_review_status === "passed" ? "passed" : explanation.quality_review_status === "revised" ? "revised · final check passed" : "not fully verified"}</strong>
           <span>{explanation.quality_review_note}</span>
@@ -65,11 +73,14 @@ export function ExplanationResult({
         {activeVisual && <div className="result-section">
           <div className="section-caption diagram-section-caption">{activeVisual.kind === "control_flow" ? "CONTROL FLOW MAP" : "CONCEPT MAP"}</div>
           {explanation.visuals.length > 1 && <div className="diagram-view-tabs" role="tablist" aria-label="Diagram views">{explanation.visuals.map((visual, index) => <button key={`${visual.title}-${index}`} type="button" role="tab" id={`diagram-tab-${index}`} aria-selected={index === activeVisualIndex} aria-controls="active-diagram-panel" tabIndex={index === activeVisualIndex ? 0 : -1} onKeyDown={(event) => selectVisualFromKeyboard(event, index)} onClick={() => setActiveVisualIndex(index)}>{visual.title}</button>)}</div>}
-          <div id="active-diagram-panel" role={explanation.visuals.length > 1 ? "tabpanel" : undefined} aria-labelledby={explanation.visuals.length > 1 ? `diagram-tab-${activeVisualIndex}` : undefined} tabIndex={explanation.visuals.length > 1 ? 0 : undefined}><GraphView visual={activeVisual} theme={theme} lineCount={lineCount} source={source} onSelectRange={onSelectRange} /></div>
+          <div id="active-diagram-panel" role={explanation.visuals.length > 1 ? "tabpanel" : undefined} aria-labelledby={explanation.visuals.length > 1 ? `diagram-tab-${activeVisualIndex}` : undefined} tabIndex={explanation.visuals.length > 1 ? 0 : undefined}><GraphView visual={activeVisual} theme={theme} lineCount={lineCount} source={source} onSelectRange={onSelectRange} incompleteItems={explanation.incomplete_items} /></div>
         </div>}
         {explanation.visuals.length > 0 && <div className="diagram-gallery-print" aria-hidden="true">{explanation.visual_note && <p className="diagram-print-note"><strong>Coverage note:</strong> {explanation.visual_note}</p>}{explanation.visuals.map((visual, index) => <section className="diagram-print-alternative" key={`${visual.title}-${index}`}>
           <div className="diagram-print-heading">{index === 0 && <div className="section-caption">{visual.kind === "control_flow" ? "CONTROL FLOW MAP" : "CONCEPT MAP"}</div>}<h3>{visual.title}</h3></div>
-          <ol>{visual.nodes.map((node) => <li key={node.id}><strong>{node.label}.</strong> {node.description}</li>)}</ol>
+          <ol>{visual.nodes.map((node) => {
+            const incomplete = explanation.incomplete_items?.some((item) => item.source_ranges.some((range) => node.source_ranges.some((nodeRange) => nodeRange.start_line <= range.end_line && nodeRange.end_line >= range.start_line)));
+            return <li key={node.id}>{incomplete && <strong>Incomplete implementation. </strong>}<strong>{node.label}.</strong> {node.description}</li>;
+          })}</ol>
           {visual.edges.length > 0 && <ul>{visual.edges.map((edge, edgeIndex) => <li key={`${edge.from}-${edge.to}-${edgeIndex}`}>{visual.nodes.find((node) => node.id === edge.from)?.label ?? edge.from} {edge.label ? `(${edge.label})` : "connects to"} {visual.nodes.find((node) => node.id === edge.to)?.label ?? edge.to}.</li>)}</ul>}
         </section>)}</div>}
         {explanation.visual_note && <p className={`visual-omitted-note ${explanation.visuals.length > 0 ? "coverage-screen-note" : ""}`}><strong>{explanation.visuals.length === 0 ? "Diagram note." : "Coverage note."}</strong> {explanation.visual_note}</p>}

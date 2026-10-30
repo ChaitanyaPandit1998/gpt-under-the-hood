@@ -8,6 +8,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isTrustedLocalApiRequest } from "./local-api-guard.ts";
 import { annotateControlFlowCoverage } from "../domain/control-flow-coverage.ts";
+import { annotateIncompleteCode } from "../domain/incomplete-code.ts";
 import { MAX_FOLLOW_UP_HISTORY_MESSAGES } from "../domain/explanation-types.ts";
 import type { GenerationPhase } from "../domain/generation-progress.ts";
 import { followUpSchema, quizSchema, transcriptionSchema } from "./response-schemas.ts";
@@ -709,7 +710,9 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
               },
               signal,
             }, executeCodex);
-            const output = materialKind === "code" ? annotateControlFlowCoverage(payload.source_text as string, result) : result;
+            const output = materialKind === "code"
+              ? annotateIncompleteCode(payload.source_text as string, annotateControlFlowCoverage(payload.source_text as string, result))
+              : result;
             if (progressId) reportProgress(progressId, "complete");
             return output;
           }, limits.explanationTimeoutMs);

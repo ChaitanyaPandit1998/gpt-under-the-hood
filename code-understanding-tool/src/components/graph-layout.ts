@@ -1,5 +1,6 @@
 import { MarkerType, type Edge, type Node } from "@xyflow/react";
 import type { SourceRange } from "../domain/source-ranges";
+import type { IncompleteCodeItem } from "../domain/incomplete-code.ts";
 import { themeAccents, type ThemeMode } from "../domain/theme";
 
 export type DiagramVisual = {
@@ -8,7 +9,7 @@ export type DiagramVisual = {
   edges: { from: string; to: string; label: string }[];
 };
 
-type FlowNodeData = { label: string; description: string; caption: string; source_ranges: SourceRange[]; orientation: "horizontal" | "vertical" };
+type FlowNodeData = { label: string; description: string; caption: string; source_ranges: SourceRange[]; orientation: "horizontal" | "vertical"; incomplete: boolean };
 export type FlowNode = Node<FlowNodeData, "explanation">;
 export type FlowEdge = Edge<{ label: string }, "readable">;
 export type GraphLayout = { nodes: FlowNode[]; edges: FlowEdge[] };
@@ -18,7 +19,7 @@ const verticalGap = 190;
 const estimatedCardWidth = 250;
 const estimatedCardHeight = 130;
 
-export function createGraphLayout(visual: DiagramVisual, theme: ThemeMode, compact = false): GraphLayout {
+export function createGraphLayout(visual: DiagramVisual, theme: ThemeMode, compact = false, incompleteItems: IncompleteCodeItem[] = []): GraphLayout {
   const seenNodeIds = new Set<string>();
   const validNodes = visual.nodes.filter(({ id }) => {
     if (!id.trim() || seenNodeIds.has(id)) return false;
@@ -70,6 +71,7 @@ export function createGraphLayout(visual: DiagramVisual, theme: ThemeMode, compa
       caption: visual.kind === "control_flow" ? `STEP ${String(sequence.get(node.id) ?? 1).padStart(2, "0")}` : "CONCEPT",
       source_ranges: node.source_ranges,
       orientation: compact ? "vertical" : "horizontal",
+      incomplete: incompleteItems.some((item) => item.source_ranges.some((range) => node.source_ranges.some((nodeRange) => nodeRange.start_line <= range.end_line && nodeRange.end_line >= range.start_line))),
     },
   }));
 
