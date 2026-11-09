@@ -1,0 +1,945 @@
+{
+  "evaluation_version": 1,
+  "generated_at": "2026-11-09T09:08:45.697Z",
+  "git_revision": "47343a7",
+  "source_corpus": "evals/cases.json",
+  "note": "Automated checks are recorded per case. Human rubric scores remain null until reviewed against the written expectations.",
+  "results": [
+    {
+      "id": "retry-recursion-control-flow",
+      "status": 200,
+      "duration_ms": 40190,
+      "checks": {
+        "api_success": true,
+        "visual_present": true,
+        "visual_requirement_met": true,
+        "incomplete_detection_matches": true,
+        "source_ranges_well_formed": true,
+        "review_status": "passed"
+      },
+      "expectations": [
+        "A successful operation result is returned immediately.",
+        "A rejected operation enters the catch path.",
+        "When attempts is at most one, the current error is rethrown and retry stops.",
+        "Otherwise retry calls itself with attempts decremented by one.",
+        "The default of three permits at most three operation calls total."
+      ],
+      "manual_scores": {
+        "expectation_points": [
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "factual_points": 10,
+        "factual_max": 10,
+        "factual_percent": 100,
+        "grounding": 2,
+        "diagram_fidelity": 1,
+        "incomplete_code_handling": null,
+        "notes": "Explanation correctly covers success, rejection, the retry limit, decrementing attempts, and the three-call maximum. The diagram omits the recursive return path from the retry node to the operation."
+      },
+      "explanation": {
+        "title": "How the retry function works",
+        "summary": "The function calls an asynchronous operation and returns its result if it succeeds. If it fails, the function either rethrows the error when no retry remains or calls itself with one fewer attempt.",
+        "visual_note": "The function has one decision point, so a single control-flow view shows both outcomes and how retries repeat.",
+        "concepts": [
+          {
+            "term": "Asynchronous operation",
+            "explanation": "`await operation()` waits for the operation to settle. If it succeeds, its result is returned; if it rejects, execution moves to the `catch` block.",
+            "source_ranges": [
+              {
+                "start_line": 1,
+                "end_line": 4
+              }
+            ]
+          },
+          {
+            "term": "Recursive retry",
+            "explanation": "On failure with attempts remaining, the function calls itself with `attempts - 1`. This repeats the operation with a smaller attempt count; the default count is 3 when no value is supplied.",
+            "source_ranges": [
+              {
+                "start_line": 1,
+                "end_line": 1
+              },
+              {
+                "start_line": 5,
+                "end_line": 6
+              }
+            ]
+          }
+        ],
+        "walkthrough": [
+          {
+            "heading": "Try the operation",
+            "explanation": "The function awaits the operation. A successful result is returned immediately, so no retry check occurs on that path.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 3
+              }
+            ]
+          },
+          {
+            "heading": "Handle a failure",
+            "explanation": "If the operation throws or rejects, the catch block checks whether `attempts` is 1 or less. If so, it rethrows the caught error. Otherwise, it calls `retry` again with the same operation and one fewer attempt. For the default of 3, failures lead to calls with counts 2, then 1; a failure at 1 is rethrown.",
+            "source_ranges": [
+              {
+                "start_line": 4,
+                "end_line": 6
+              }
+            ]
+          }
+        ],
+        "assumptions": [],
+        "visuals": [
+          {
+            "title": "Retry control flow",
+            "kind": "control_flow",
+            "nodes": [
+              {
+                "id": "start",
+                "label": "Call retry",
+                "description": "The default attempt count is 3 if none is provided.",
+                "source_ranges": [
+                  {
+                    "start_line": 1,
+                    "end_line": 1
+                  }
+                ]
+              },
+              {
+                "id": "try-operation",
+                "label": "Await operation",
+                "description": "The operation runs once for this call.",
+                "source_ranges": [
+                  {
+                    "start_line": 2,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "return-success",
+                "label": "Return result",
+                "description": "A successful operation result ends this call successfully.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "catch-error",
+                "label": "Catch error",
+                "description": "A thrown or rejected operation enters the catch block.",
+                "source_ranges": [
+                  {
+                    "start_line": 4,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "check-attempts",
+                "label": "Check attempts ≤ 1?",
+                "description": "Decide whether another attempt is available.",
+                "source_ranges": [
+                  {
+                    "start_line": 5,
+                    "end_line": 5
+                  }
+                ]
+              },
+              {
+                "id": "throw-error",
+                "label": "Rethrow error",
+                "description": "The caught error is thrown when attempts is 1 or less.",
+                "source_ranges": [
+                  {
+                    "start_line": 5,
+                    "end_line": 5
+                  }
+                ]
+              },
+              {
+                "id": "retry-call",
+                "label": "Retry with attempts − 1",
+                "description": "Call retry again with the same operation and a smaller count; this repeats the operation.",
+                "source_ranges": [
+                  {
+                    "start_line": 6,
+                    "end_line": 6
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "start",
+                "to": "try-operation",
+                "label": "begins"
+              },
+              {
+                "from": "try-operation",
+                "to": "return-success",
+                "label": "operation succeeds"
+              },
+              {
+                "from": "try-operation",
+                "to": "catch-error",
+                "label": "operation fails"
+              },
+              {
+                "from": "catch-error",
+                "to": "check-attempts",
+                "label": "checks remaining count"
+              },
+              {
+                "from": "check-attempts",
+                "to": "throw-error",
+                "label": "attempts ≤ 1"
+              },
+              {
+                "from": "check-attempts",
+                "to": "retry-call",
+                "label": "attempts > 1"
+              }
+            ]
+          }
+        ],
+        "quality_review_status": "passed",
+        "quality_review_note": "A second model pass checked this explanation against your source and request, including math and visuals where relevant."
+      }
+    },
+    {
+      "id": "incomplete-access-control",
+      "status": 200,
+      "duration_ms": 94771,
+      "checks": {
+        "api_success": true,
+        "visual_present": true,
+        "visual_requirement_met": true,
+        "incomplete_detection_matches": true,
+        "source_ranges_well_formed": true,
+        "review_status": "revised"
+      },
+      "expectations": [
+        "A missing user returns anonymous.",
+        "An inactive user returns disabled before the ownership check.",
+        "An owner returns owner.",
+        "Other users currently return denied.",
+        "The TODO does not implement shared-access authorization and its intended behavior is unspecified."
+      ],
+      "manual_scores": {
+        "expectation_points": [
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "factual_points": 10,
+        "factual_max": 10,
+        "factual_percent": 100,
+        "grounding": 2,
+        "diagram_fidelity": 2,
+        "incomplete_code_handling": 2,
+        "notes": "Explanation and final diagrams accurately preserve all guard outcomes, the denied fall-through, and the unspecified TODO behavior. The incomplete marker is correctly identified."
+      },
+      "explanation": {
+        "title": "How `getAccess` chooses an access result",
+        "summary": "The function checks conditions in order. A missing user returns `anonymous`, an inactive user returns `disabled`, and a resource owner returns `owner`. If none matches, execution reaches the TODO and returns `denied`; shared access is not checked by the code shown.",
+        "visual_note": "The Overview shows the ordered checks and all four terminal results. The focused view expands the branch conditions and shows how the non-owner path falls through the shared-access TODO to `denied`. Automated checks found source decisions without distinct diagram paths. The diagram is shown; compare it with the walkthrough and linked source lines.",
+        "concepts": [
+          {
+            "term": "Early return",
+            "explanation": "Each matching `if` returns immediately, so later checks run only when earlier conditions are false.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 4
+              }
+            ]
+          },
+          {
+            "term": "Unimplemented shared-access check",
+            "explanation": "The TODO mentions shared access, but it is only a comment. The current non-owner path falls through to `denied`; the intended shared-access behavior is unspecified.",
+            "source_ranges": [
+              {
+                "start_line": 5,
+                "end_line": 6
+              }
+            ]
+          }
+        ],
+        "walkthrough": [
+          {
+            "heading": "Check for a missing user",
+            "explanation": "If `user` is falsy, the function returns `anonymous` and stops. Otherwise it continues to the activity check.",
+            "source_ranges": [
+              {
+                "start_line": 1,
+                "end_line": 3
+              }
+            ]
+          },
+          {
+            "heading": "Check activity and ownership",
+            "explanation": "A falsy `user.isActive` returns `disabled`. If the user is active, the function compares `resource.ownerId` with `user.id`; a match returns `owner`.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 4
+              }
+            ]
+          },
+          {
+            "heading": "Fall through to denied",
+            "explanation": "When the active user is not the owner, execution passes the TODO comment and returns `denied`. No shared-access check is implemented in this snippet.",
+            "source_ranges": [
+              {
+                "start_line": 5,
+                "end_line": 7
+              }
+            ]
+          }
+        ],
+        "assumptions": [],
+        "visuals": [
+          {
+            "title": "Overview",
+            "kind": "control_flow",
+            "nodes": [
+              {
+                "id": "start",
+                "label": "Start",
+                "description": "Call `getAccess` with a user and resource.",
+                "source_ranges": [
+                  {
+                    "start_line": 1,
+                    "end_line": 1
+                  }
+                ]
+              },
+              {
+                "id": "user_check",
+                "label": "Check user",
+                "description": "Test whether `user` is truthy.",
+                "source_ranges": [
+                  {
+                    "start_line": 2,
+                    "end_line": 2
+                  }
+                ]
+              },
+              {
+                "id": "active_check",
+                "label": "Check activity",
+                "description": "Reached only when `user` is truthy.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "owner_check",
+                "label": "Check ownership",
+                "description": "Reached only when the user is active.",
+                "source_ranges": [
+                  {
+                    "start_line": 4,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "shared_gap",
+                "label": "Shared-access TODO",
+                "description": "No check is implemented; the non-owner path proceeds to the final return.",
+                "source_ranges": [
+                  {
+                    "start_line": 5,
+                    "end_line": 6
+                  }
+                ]
+              },
+              {
+                "id": "anonymous",
+                "label": "Return anonymous",
+                "description": "Terminal result when `user` is falsy.",
+                "source_ranges": [
+                  {
+                    "start_line": 2,
+                    "end_line": 2
+                  }
+                ]
+              },
+              {
+                "id": "disabled",
+                "label": "Return disabled",
+                "description": "Terminal result when `user.isActive` is falsy.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "owner",
+                "label": "Return owner",
+                "description": "Terminal result when the owner IDs match.",
+                "source_ranges": [
+                  {
+                    "start_line": 4,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "denied",
+                "label": "Return denied",
+                "description": "Terminal result on the fall-through path.",
+                "source_ranges": [
+                  {
+                    "start_line": 6,
+                    "end_line": 6
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "start",
+                "to": "user_check",
+                "label": "begins"
+              },
+              {
+                "from": "user_check",
+                "to": "anonymous",
+                "label": "user is falsy"
+              },
+              {
+                "from": "user_check",
+                "to": "active_check",
+                "label": "user is truthy"
+              },
+              {
+                "from": "active_check",
+                "to": "disabled",
+                "label": "isActive is falsy"
+              },
+              {
+                "from": "active_check",
+                "to": "owner_check",
+                "label": "isActive is truthy"
+              },
+              {
+                "from": "owner_check",
+                "to": "owner",
+                "label": "owner IDs match"
+              },
+              {
+                "from": "owner_check",
+                "to": "shared_gap",
+                "label": "owner IDs differ"
+              },
+              {
+                "from": "shared_gap",
+                "to": "denied",
+                "label": "falls through"
+              }
+            ]
+          },
+          {
+            "title": "Guard outcomes and return paths",
+            "kind": "control_flow",
+            "nodes": [
+              {
+                "id": "entry",
+                "label": "Start",
+                "description": "Begin evaluating the guards in source order.",
+                "source_ranges": [
+                  {
+                    "start_line": 1,
+                    "end_line": 1
+                  }
+                ]
+              },
+              {
+                "id": "user",
+                "label": "User falsy?",
+                "description": "First decision: test `!user`.",
+                "source_ranges": [
+                  {
+                    "start_line": 2,
+                    "end_line": 2
+                  }
+                ]
+              },
+              {
+                "id": "anonymous",
+                "label": "Return anonymous",
+                "description": "Stops when `!user` is true.",
+                "source_ranges": [
+                  {
+                    "start_line": 2,
+                    "end_line": 2
+                  }
+                ]
+              },
+              {
+                "id": "active",
+                "label": "User inactive?",
+                "description": "Second decision, reached when `user` is truthy; test `!user.isActive`.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "disabled",
+                "label": "Return disabled",
+                "description": "Stops when `!user.isActive` is true.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "owner",
+                "label": "Owner IDs match?",
+                "description": "Third decision, reached when the user is active.",
+                "source_ranges": [
+                  {
+                    "start_line": 4,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "owner_result",
+                "label": "Return owner",
+                "description": "Stops when the IDs match.",
+                "source_ranges": [
+                  {
+                    "start_line": 4,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "todo",
+                "label": "Shared-access TODO",
+                "description": "The comment does not perform a shared-access check.",
+                "source_ranges": [
+                  {
+                    "start_line": 5,
+                    "end_line": 5
+                  }
+                ]
+              },
+              {
+                "id": "denied",
+                "label": "Return denied",
+                "description": "Current result after the non-owner path falls through.",
+                "source_ranges": [
+                  {
+                    "start_line": 6,
+                    "end_line": 6
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "entry",
+                "to": "user",
+                "label": "begins"
+              },
+              {
+                "from": "user",
+                "to": "anonymous",
+                "label": "!user is true"
+              },
+              {
+                "from": "user",
+                "to": "active",
+                "label": "!user is false"
+              },
+              {
+                "from": "active",
+                "to": "disabled",
+                "label": "!user.isActive is true"
+              },
+              {
+                "from": "active",
+                "to": "owner",
+                "label": "!user.isActive is false"
+              },
+              {
+                "from": "owner",
+                "to": "owner_result",
+                "label": "owner IDs match"
+              },
+              {
+                "from": "owner",
+                "to": "todo",
+                "label": "owner IDs differ"
+              },
+              {
+                "from": "todo",
+                "to": "denied",
+                "label": "falls through"
+              }
+            ]
+          }
+        ],
+        "quality_review_status": "revised",
+        "quality_review_note": "The review flagged: The Overview diagram omits the `anonymous`, `disabled`, and `owner` return paths: its guard nodes only lead forward to the final denied result. Add distinct terminal outcomes for those returns, or revise the Overview so it clearly preserves The answer was revised and passed a final review.",
+        "incomplete_items": [
+          {
+            "kind": "unfinished_marker",
+            "title": "Unfinished-work marker",
+            "explanation": "The source marks work as unfinished. It does not specify the intended behavior.",
+            "source_ranges": [
+              {
+                "start_line": 5,
+                "end_line": 5
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "quadratic-formula-math",
+      "status": 200,
+      "duration_ms": 26957,
+      "checks": {
+        "api_success": true,
+        "visual_present": false,
+        "visual_requirement_met": true,
+        "incomplete_detection_matches": true,
+        "source_ranges_well_formed": true,
+        "review_status": "passed"
+      },
+      "expectations": [
+        "The plus-minus symbol represents two candidate calculations, one with plus and one with minus.",
+        "The discriminant is b² - 4ac.",
+        "A positive discriminant gives two distinct real roots, zero gives one repeated real root, and a negative discriminant gives no real roots.",
+        "The formula requires a to be nonzero."
+      ],
+      "manual_scores": {
+        "expectation_points": [
+          2,
+          2,
+          1,
+          2
+        ],
+        "factual_points": 7,
+        "factual_max": 8,
+        "factual_percent": 87.5,
+        "grounding": 2,
+        "diagram_fidelity": null,
+        "incomplete_code_handling": null,
+        "notes": "Correctly explains ±, the discriminant, and a ≠ 0. It names the three discriminant outcome categories but does not map positive, zero, and negative values to each result."
+      },
+      "explanation": {
+        "title": "Quadratic Formula",
+        "summary": "For a quadratic equation ax² + bx + c = 0 with a ≠ 0, the formula gives its solution or solutions for x. The ± means evaluate once with + and once with −; the expression under the square root affects what kind of solutions result.",
+        "visual_note": "A diagram is unnecessary for this compact formula; the ± is clearest explained in words.",
+        "concepts": [
+          {
+            "term": "Quadratic equation",
+            "explanation": "An equation of the form ax² + bx + c = 0. The condition a ≠ 0 ensures the x² term is present, so the equation is quadratic.",
+            "source_ranges": [
+              {
+                "start_line": 1,
+                "end_line": 1
+              }
+            ]
+          },
+          {
+            "term": "Discriminant",
+            "explanation": "The quantity b² − 4ac under the square root. Its value determines whether the formula yields two distinct real solutions, one repeated real solution, or two complex solutions.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 2
+              }
+            ]
+          },
+          {
+            "term": "Plus-or-minus (±)",
+            "explanation": "This symbol represents two calculations: one using + before the square root and one using −. When the results differ, they give two solutions.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 2
+              }
+            ]
+          }
+        ],
+        "walkthrough": [
+          {
+            "heading": "Substitute the coefficients",
+            "explanation": "Identify a, b, and c from ax² + bx + c = 0, then put those values into the formula. The denominator is 2a, which is nonzero because a ≠ 0.",
+            "source_ranges": [
+              {
+                "start_line": 1,
+                "end_line": 2
+              }
+            ]
+          },
+          {
+            "heading": "Calculate both values",
+            "explanation": "Evaluate b² − 4ac, take its square root, and form a numerator with −b plus that root and another with −b minus it. Divide each numerator by 2a to obtain the formula's solution value or values.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 2
+              }
+            ]
+          }
+        ],
+        "assumptions": [],
+        "visuals": [],
+        "quality_review_status": "passed",
+        "quality_review_note": "A second model pass checked this explanation against your source and request, including math and visuals where relevant."
+      }
+    },
+    {
+      "id": "documented-upload-retry-policy",
+      "status": 200,
+      "duration_ms": 150374,
+      "checks": {
+        "api_success": true,
+        "visual_present": true,
+        "visual_requirement_met": true,
+        "incomplete_detection_matches": true,
+        "source_ranges_well_formed": true,
+        "review_status": "incomplete"
+      },
+      "expectations": [
+        "Three attempts total includes the initial attempt.",
+        "Only 429 and 5xx responses are retried.",
+        "The scheduled waits are 250 ms and then 500 ms.",
+        "Retry-After replaces the scheduled delay.",
+        "Other 4xx responses are returned without retry."
+      ],
+      "manual_scores": {
+        "expectation_points": [
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "factual_points": 10,
+        "factual_max": 10,
+        "factual_percent": 100,
+        "grounding": 2,
+        "diagram_fidelity": null,
+        "incomplete_code_handling": null,
+        "notes": "The prose accurately covers every stated retry rule and acknowledges the unspecified terminal outcome. A diagram was generated despite not being required; its retry cycle caused the second-pass review to remain incomplete."
+      },
+      "explanation": {
+        "title": "Upload retry policy",
+        "summary": "The client makes up to three upload attempts. It retries only after HTTP 429 or 5xx responses, waiting 250 ms before attempt two and 500 ms before attempt three unless a Retry-After header provides a replacement delay. Other 4xx responses are returned without retrying.",
+        "visual_note": "The visual shows the response check after each attempt; the policy does not specify what happens after a third retryable response or how non-4xx, non-retryable responses are handled.",
+        "concepts": [
+          {
+            "term": "Retryable responses",
+            "explanation": "HTTP 429 and 5xx responses trigger another attempt when attempts remain. Other 4xx responses are returned without retrying.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          },
+          {
+            "term": "Scheduled and replacement delays",
+            "explanation": "The scheduled waits are 250 ms before the second attempt and 500 ms before the third. If a response includes a Retry-After header, its delay replaces the scheduled wait.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          }
+        ],
+        "walkthrough": [
+          {
+            "heading": "Make an attempt and inspect its response",
+            "explanation": "The client can make at most three attempts in total. After a response, it retries only for HTTP 429 or 5xx; other 4xx responses are returned without another attempt.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          },
+          {
+            "heading": "Choose the wait before retrying",
+            "explanation": "Before attempt two, the scheduled delay is 250 ms; before attempt three, it is 500 ms. A Retry-After header replaces whichever scheduled delay applies. The policy does not say what happens if the third attempt also receives a retryable response.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          }
+        ],
+        "assumptions": [],
+        "visuals": [
+          {
+            "title": "Retry decision and attempt limits",
+            "kind": "control_flow",
+            "nodes": [
+              {
+                "id": "attempt",
+                "label": "Make attempt",
+                "description": "Start with an upload attempt; no more than three attempts are allowed in total.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "response",
+                "label": "Check response",
+                "description": "Classify the HTTP response after the attempt.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "retryable",
+                "label": "429 or 5xx",
+                "description": "If another attempt is available, retry after choosing a delay.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "delay",
+                "label": "Choose retry delay",
+                "description": "Use 250 ms before attempt two or 500 ms before attempt three; Retry-After replaces the scheduled delay.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "next",
+                "label": "Make next attempt",
+                "description": "Continue with the next attempt, up to the three-attempt maximum.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "fourxx",
+                "label": "Other 4xx",
+                "description": "Return this response without retrying.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "unclear",
+                "label": "Other response or limit reached",
+                "description": "The policy does not specify the outcome for other response classes or after a retryable response on attempt three.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "attempt",
+                "to": "response",
+                "label": "receives response"
+              },
+              {
+                "from": "response",
+                "to": "retryable",
+                "label": "HTTP 429 or 5xx"
+              },
+              {
+                "from": "response",
+                "to": "fourxx",
+                "label": "other 4xx"
+              },
+              {
+                "from": "retryable",
+                "to": "delay",
+                "label": "attempts remain"
+              },
+              {
+                "from": "retryable",
+                "to": "unclear",
+                "label": "third attempt"
+              },
+              {
+                "from": "delay",
+                "to": "next",
+                "label": "wait, then retry"
+              },
+              {
+                "from": "next",
+                "to": "attempt",
+                "label": "repeats"
+              }
+            ]
+          }
+        ],
+        "quality_review_status": "incomplete",
+        "quality_review_note": "The review flagged: The control-flow diagram contains a retry cycle (`next` → `attempt`), contrary to the explanation skill’s forward-only diagram rule. Show one representative retry pass and describe the repetition in a node instead. The automatic repair could not complete, so this draft has not been revised."
+      }
+    }
+  ],
+  "summary": {
+    "api_successes": 4,
+    "total_cases": 4,
+    "api_success_rate_percent": 100,
+    "completed_reviews": 3,
+    "boolean_automated_checks_passed": 16,
+    "boolean_automated_checks_total": 16,
+    "manual_factual_score": 96.9,
+    "manual_grounding_percent": 100,
+    "manual_diagram_fidelity_percent": 75,
+    "manual_incomplete_code_handling_percent": 100
+  },
+  "working_tree_dirty": true
+}

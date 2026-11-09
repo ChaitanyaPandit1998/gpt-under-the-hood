@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "description": "Small, source-grounded regression set for explanation quality. Synthetic examples only.",
+  "cases": [
+    {
+      "id": "retry-recursion-control-flow",
+      "material_kind": "code",
+      "teaching_mode": "control_flow",
+      "source_text": "async function retry(operation, attempts = 3) {\n  try {\n    return await operation();\n  } catch (error) {\n    if (attempts <= 1) throw error;\n    return retry(operation, attempts - 1);\n  }\n}",
+      "expectations": [
+        "A successful operation result is returned immediately.",
+        "A rejected operation enters the catch path.",
+        "When attempts is at most one, the current error is rethrown and retry stops.",
+        "Otherwise retry calls itself with attempts decremented by one.",
+        "The default of three permits at most three operation calls total."
+      ],
+      "visual_expected": true,
+      "incomplete_expected": false
+    },
+    {
+      "id": "incomplete-access-control",
+      "material_kind": "code",
+      "teaching_mode": "control_flow",
+      "source_text": "function getAccess(user, resource) {\n  if (!user) return \"anonymous\";\n  if (!user.isActive) return \"disabled\";\n  if (resource.ownerId === user.id) return \"owner\";\n  // TODO: check whether this user has shared access\n  return \"denied\";\n}",
+      "expectations": [
+        "A missing user returns anonymous.",
+        "An inactive user returns disabled before the ownership check.",
+        "An owner returns owner.",
+        "Other users currently return denied.",
+        "The TODO does not implement shared-access authorization and its intended behavior is unspecified."
+      ],
+      "visual_expected": true,
+      "incomplete_expected": true,
+      "incomplete_kinds": ["unfinished_marker"]
+    },
+    {
+      "id": "quadratic-formula-math",
+      "material_kind": "docs",
+      "teaching_mode": "auto",
+      "source_text": "Quadratic formula for ax² + bx + c = 0, where a ≠ 0:\nx = (-b ± √(b² - 4ac)) / (2a)",
+      "expectations": [
+        "The plus-minus symbol represents two candidate calculations, one with plus and one with minus.",
+        "The discriminant is b² - 4ac.",
+        "A positive discriminant gives two distinct real roots, zero gives one repeated real root, and a negative discriminant gives no real roots.",
+        "The formula requires a to be nonzero."
+      ],
+      "visual_expected": false,
+      "incomplete_expected": false
+    },
+    {
+      "id": "documented-upload-retry-policy",
+      "material_kind": "docs",
+      "teaching_mode": "walkthrough",
+      "source_text": "Upload retry policy\n\nThe client makes at most three attempts in total. It retries HTTP 429 and 5xx responses only. It waits 250 ms before the second attempt and 500 ms before the third. A Retry-After response header replaces the scheduled delay. Other 4xx responses are returned without retrying.",
+      "expectations": [
+        "Three attempts total includes the initial attempt.",
+        "Only 429 and 5xx responses are retried.",
+        "The scheduled waits are 250 ms and then 500 ms.",
+        "Retry-After replaces the scheduled delay.",
+        "Other 4xx responses are returned without retry."
+      ],
+      "visual_expected": false,
+      "incomplete_expected": false
+    }
+  ]
+}

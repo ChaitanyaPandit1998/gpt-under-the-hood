@@ -23,6 +23,16 @@ function isSourceRanges(value: unknown, lineCount: number): boolean {
     && Number(range.end_line) <= lineCount);
 }
 
+function sourceRangeFailure(value: unknown, lineCount: number): string | undefined {
+  if (!Array.isArray(value) || value.length > 10) return "source_ranges_shape";
+  for (const range of value) {
+    if (!isRecord(range) || !Number.isInteger(range.start_line) || !Number.isInteger(range.end_line)
+      || Number(range.start_line) < 1 || Number(range.end_line) < Number(range.start_line)) return "source_range_invalid";
+    if (Number(range.end_line) > lineCount) return "source_range_out_of_bounds";
+  }
+  return undefined;
+}
+
 function isAssumptions(value: unknown): boolean {
   return isArray(value, 20, (item) => isRecord(item)
     && isText(item.statement, 2_000) && isText(item.reason, 2_000));
@@ -58,9 +68,58 @@ function isExplanation(value: unknown, lineCount: number): value is Explanation 
 export function validateExplanation(value: unknown, sourceText: string): Explanation {
   const lineCount = sourceText.split(/\r\n|\r|\n/).length;
   if (!isExplanation(value, lineCount)) {
-    throw new Error("The generated explanation was incomplete or invalid. Please retry the request.");
+    throw new ExplanationValidationError(explanationValidationCategory(value, lineCount));
   }
   return value;
+}
+
+/** Safe failure labels for logs: never include model text, prompts, or source content. */
+export class ExplanationValidationError extends Error {
+  readonly failureCategory: string;
+
+  constructor(failureCategory: string) {
+    super("The generated explanation was incomplete or invalid. Please retry the request.");
+    this.name = "ExplanationValidationError";
+    this.failureCategory = failureCategory;
+  }
+}
+
+function explanationValidationCategory(value: unknown, lineCount: number): string {
+  if (!isRecord(value)) return "explanation_root_invalid";
+  if (!isText(value.title, 300, false) || !isText(value.summary, 8_000)
+    || !isText(value.visual_note, 2_000) || !isAssumptions(value.assumptions)) return "explanation_top_level_fields_invalid";
+  if (!Array.isArray(value.concepts) || value.concepts.length > 20) return "explanation_concepts_invalid";
+  for (const concept of value.concepts) {
+    if (!isRecord(concept) || !isText(concept.term, 300, false) || !isText(concept.explanation, 8_000)) return "explanation_concept_invalid";
+    const rangesFailure = sourceRangeFailure(concept.source_ranges, lineCount);
+    if (rangesFailure) return `explanation_concept_${rangesFailure}`;
+  }
+  if (!Array.isArray(value.walkthrough) || value.walkthrough.length > 40) return "explanation_walkthrough_invalid";
+  for (const step of value.walkthrough) {
+    if (!isRecord(step) || !isText(step.heading, 300, false) || !isText(step.explanation, 8_000)) return "explanation_walkthrough_step_invalid";
+    const rangesFailure = sourceRangeFailure(step.source_ranges, lineCount);
+    if (rangesFailure) return `explanation_walkthrough_${rangesFailure}`;
+  }
+  if (!Array.isArray(value.visuals) || value.visuals.length > 5) return "explanation_visuals_invalid";
+  for (const visual of value.visuals) {
+    if (!isRecord(visual) || !isText(visual.title, 300, false)
+      || !["control_flow", "concept_map"].includes(String(visual.kind))) return "explanation_visual_invalid";
+    if (!Array.isArray(visual.nodes) || visual.nodes.length > 30) return "explanation_visual_nodes_invalid";
+    for (const node of visual.nodes) {
+      if (!isRecord(node) || !isText(node.id, 120, false) || !isText(node.label, 300, false)
+        || !isText(node.description, 2_000)) return "explanation_visual_node_invalid";
+      const rangesFailure = sourceRangeFailure(node.source_ranges, lineCount);
+      if (rangesFailure) return `explanation_visual_node_${rangesFailure}`;
+    }
+    if (!Array.isArray(visual.edges) || visual.edges.length > 60) return "explanation_visual_edges_invalid";
+    const nodeIds = new Set(visual.nodes.map((node) => (node as RecordValue).id));
+    if (nodeIds.size !== visual.nodes.length) return "explanation_visual_node_ids_duplicate";
+    for (const edge of visual.edges) {
+      if (!isRecord(edge) || !isText(edge.from, 120, false) || !isText(edge.to, 120, false) || !isText(edge.label, 300)) return "explanation_visual_edge_invalid";
+      if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) return "explanation_visual_edge_reference_invalid";
+    }
+  }
+  return "explanation_schema_invalid";
 }
 
 export function validateExplanationReview(value: unknown): ExplanationReview {

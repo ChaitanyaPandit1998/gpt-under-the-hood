@@ -1,0 +1,368 @@
+{
+  "evaluation_version": 1,
+  "generated_at": "2026-10-30T08:56:01.701Z",
+  "git_revision": "47343a7",
+  "source_corpus": "evals/cases.json",
+  "note": "Targeted post-fix verification of the documentation case. Before the prompt change, validation failed with explanation_concept_source_range_out_of_bounds. Explicit source line numbering allowed a valid response; the reviewer requested a diagram repair, and the revised answer passed final review.",
+  "results": [
+    {
+      "id": "documented-upload-retry-policy",
+      "status": 200,
+      "duration_ms": 49515,
+      "checks": {
+        "api_success": true,
+        "visual_present": true,
+        "visual_requirement_met": true,
+        "incomplete_detection_matches": true,
+        "source_ranges_well_formed": true,
+        "review_status": "revised"
+      },
+      "expectations": [
+        "Three attempts total includes the initial attempt.",
+        "Only 429 and 5xx responses are retried.",
+        "The scheduled waits are 250 ms and then 500 ms.",
+        "Retry-After replaces the scheduled delay.",
+        "Other 4xx responses are returned without retry."
+      ],
+      "manual_scores": {
+        "expectation_points": [
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "factual_points": 10,
+        "factual_max": 10,
+        "factual_percent": 100,
+        "grounding": 2,
+        "diagram_fidelity": null,
+        "incomplete_code_handling": null,
+        "notes": "All five documented retry-policy facts are explained correctly. This was a targeted post-fix rerun, not a full-corpus comparison."
+      },
+      "explanation": {
+        "title": "Upload retry policy",
+        "summary": "The client makes at most three attempts total. It retries HTTP 429 and 5xx responses, waiting 250 ms before attempt two and 500 ms before attempt three unless a Retry-After header replaces the scheduled delay. Other 4xx responses are returned without retrying.",
+        "visual_note": "The overview shows one representative attempt and points forward to a focused retry view; repetition is explained without a backward edge.",
+        "concepts": [
+          {
+            "term": "Retry eligibility",
+            "explanation": "Only HTTP 429 and 5xx responses trigger another attempt. Other 4xx responses are returned without retrying.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          },
+          {
+            "term": "Three-attempt limit",
+            "explanation": "The limit counts all attempts, including the first, so no more than two retries can follow. What happens to a retryable response after attempt three is not specified.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          },
+          {
+            "term": "Retry delay",
+            "explanation": "The scheduled delay depends on the next attempt: 250 ms before attempt two and 500 ms before attempt three. A Retry-After header replaces that scheduled delay.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          }
+        ],
+        "walkthrough": [
+          {
+            "heading": "Make an attempt and inspect its response",
+            "explanation": "The first upload attempt starts the total count. If its response is HTTP 429 or 5xx, it qualifies for retry; other 4xx responses are returned without retrying. The source does not specify handling for other response categories.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          },
+          {
+            "heading": "Retry only while under the limit",
+            "explanation": "A qualifying response can lead to another attempt only while fewer than three attempts have been made. The applicable scheduled wait is 250 ms before the second attempt or 500 ms before the third. If Retry-After is present, its value replaces that scheduled wait. This can repeat for the next attempt; handling a retryable response after the third attempt is unspecified.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          }
+        ],
+        "assumptions": [
+          {
+            "statement": "Handling for responses other than 429, 5xx, or other 4xx cannot be determined.",
+            "reason": "The policy names 429 and 5xx as retryable and says other 4xx responses are returned, but does not describe remaining response categories."
+          },
+          {
+            "statement": "The final outcome after a retryable response on attempt three is unspecified.",
+            "reason": "The policy sets a three-attempt maximum but does not state what is done with the response after the last attempt."
+          }
+        ],
+        "visuals": [
+          {
+            "title": "Overview",
+            "kind": "control_flow",
+            "nodes": [
+              {
+                "id": "attempt1",
+                "label": "Make an attempt",
+                "description": "The first attempt begins the count toward three total attempts.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "classify",
+                "label": "Classify response",
+                "description": "Check whether the response is 429, 5xx, or another category.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "retryable",
+                "label": "429 or 5xx",
+                "description": "Eligible for another attempt if fewer than three attempts have been made; see the retry detail view.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "other4xx",
+                "label": "Other 4xx",
+                "description": "Returned without retrying.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "other",
+                "label": "Other response",
+                "description": "Handling is not specified for other response categories.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "attempt1",
+                "to": "classify",
+                "label": "response arrives"
+              },
+              {
+                "from": "classify",
+                "to": "retryable",
+                "label": "429 or 5xx"
+              },
+              {
+                "from": "classify",
+                "to": "other4xx",
+                "label": "other 4xx"
+              },
+              {
+                "from": "classify",
+                "to": "other",
+                "label": "other category"
+              }
+            ]
+          },
+          {
+            "title": "Retry limit and delay",
+            "kind": "control_flow",
+            "nodes": [
+              {
+                "id": "response",
+                "label": "Retryable response",
+                "description": "Entry from the overview: response is HTTP 429 or 5xx.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "limit",
+                "label": "Check attempt count",
+                "description": "The maximum is three attempts total.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "exhausted",
+                "label": "No further attempt",
+                "description": "The three-attempt maximum is reached; final response handling is unstated.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "header",
+                "label": "Check Retry-After",
+                "description": "For an available retry, check whether the response supplies the header.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "header_wait",
+                "label": "Wait header value",
+                "description": "The Retry-After value replaces the scheduled delay.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "scheduled",
+                "label": "Select scheduled delay",
+                "description": "Use the next attempt number to select the scheduled wait.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "wait250",
+                "label": "Wait 250 ms",
+                "description": "Scheduled wait before attempt two.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "wait500",
+                "label": "Wait 500 ms",
+                "description": "Scheduled wait before attempt three.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "next",
+                "label": "Make next attempt",
+                "description": "After the applicable wait, make the next attempt. The policy may repeat this sequence, up to three attempts total.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "response",
+                "to": "limit",
+                "label": "check total attempts"
+              },
+              {
+                "from": "limit",
+                "to": "exhausted",
+                "label": "three made"
+              },
+              {
+                "from": "limit",
+                "to": "header",
+                "label": "fewer than three"
+              },
+              {
+                "from": "header",
+                "to": "header_wait",
+                "label": "header present"
+              },
+              {
+                "from": "header",
+                "to": "scheduled",
+                "label": "header absent"
+              },
+              {
+                "from": "scheduled",
+                "to": "wait250",
+                "label": "attempt two next"
+              },
+              {
+                "from": "scheduled",
+                "to": "wait500",
+                "label": "attempt three next"
+              },
+              {
+                "from": "header_wait",
+                "to": "next",
+                "label": "delay elapses"
+              },
+              {
+                "from": "wait250",
+                "to": "next",
+                "label": "delay elapses"
+              },
+              {
+                "from": "wait500",
+                "to": "next",
+                "label": "delay elapses"
+              }
+            ]
+          }
+        ],
+        "quality_review_status": "revised",
+        "quality_review_note": "The review flagged: The Overview diagram loops from \u201cRetryable response\u201d back to \u201cMake attempt,\u201d creating a cycle. The explanation skill requires forward-only diagrams; show the next attempt as a distinct node or describe the repetition without a backward edge The answer was revised and passed a final review."
+      },
+      "diagnostic_before_fix": "explanation_concept_source_range_out_of_bounds"
+    }
+  ],
+  "summary": {
+    "api_successes": 1,
+    "total_cases": 1,
+    "api_success_rate_percent": 100,
+    "completed_reviews": 1,
+    "boolean_automated_checks_passed": 5,
+    "boolean_automated_checks_total": 5,
+    "manual_factual_score": null
+  }
+}

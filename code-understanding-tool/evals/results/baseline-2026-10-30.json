@@ -1,0 +1,653 @@
+{
+  "evaluation_version": 1,
+  "generated_at": "2026-10-30T08:48:04.666Z",
+  "git_revision": "47343a7",
+  "source_corpus": "evals/cases.json",
+  "note": "First live baseline. Three cases returned validated explanations; one documentation case failed API generation and was retried separately with the same failure. Manual factual scores cover successful responses only; end-to-end score treats an API failure as zero for its case.",
+  "results": [
+    {
+      "id": "retry-recursion-control-flow",
+      "status": 200,
+      "duration_ms": 35786,
+      "checks": {
+        "api_success": true,
+        "visual_present": true,
+        "incomplete_detection_matches": true,
+        "source_ranges_well_formed": true,
+        "review_status": "revised",
+        "visual_requirement_met": true
+      },
+      "expectations": [
+        "A successful operation result is returned immediately.",
+        "A rejected operation enters the catch path.",
+        "When attempts is at most one, the current error is rethrown and retry stops.",
+        "Otherwise retry calls itself with attempts decremented by one.",
+        "The default of three permits at most three operation calls total."
+      ],
+      "manual_scores": {
+        "expectation_points": [
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "factual_points": 10,
+        "factual_max": 10,
+        "factual_percent": 100,
+        "grounding": 2,
+        "diagram_fidelity": 1,
+        "incomplete_code_handling": null,
+        "notes": "Accurate branch outcomes and attempt limit. Diagram shows success/failure and the retry choice, but the recursive retry node does not visually loop back to the operation."
+      },
+      "explanation": {
+        "title": "Retrying an Asynchronous Operation",
+        "summary": "`retry` awaits the operation. If it succeeds, its result is returned. If it throws or rejects, the function rethrows the error when no retries remain; otherwise, it calls itself with one fewer attempt. With the default of 3 attempts, this allows up to three total calls: the initial call and up to two retries.",
+        "visual_note": "The control-flow diagram shows the awaited call\u2019s success or failure as an explicit decision, followed by the retry-limit decision.",
+        "concepts": [
+          {
+            "term": "Recursive retry",
+            "explanation": "On failure, `retry` calls itself with `attempts - 1`. This repeats the same operation while reducing the remaining attempt count.",
+            "source_ranges": [
+              {
+                "start_line": 5,
+                "end_line": 7
+              }
+            ]
+          },
+          {
+            "term": "Rethrowing an error",
+            "explanation": "When `attempts <= 1`, the caught error is thrown again, so this function does not swallow that final failure.",
+            "source_ranges": [
+              {
+                "start_line": 5,
+                "end_line": 6
+              }
+            ]
+          },
+          {
+            "term": "Awaiting the operation",
+            "explanation": "`await operation()` waits for the operation to settle. A successful result is returned; a thrown error or rejection enters the `catch` block as `error`.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 4
+              }
+            ]
+          }
+        ],
+        "walkthrough": [
+          {
+            "heading": "Try the operation",
+            "explanation": "The function calls `operation()` and awaits its result. If the awaited call succeeds, its result is returned. If it throws or rejects, control moves to `catch`.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 4
+              }
+            ]
+          },
+          {
+            "heading": "Decide whether to retry",
+            "explanation": "After a failure, `attempts <= 1` checks whether this is the last allowed attempt. If so, the error is rethrown. Otherwise, the function calls itself with one fewer attempt. Each recursive call follows the same flow.",
+            "source_ranges": [
+              {
+                "start_line": 4,
+                "end_line": 7
+              }
+            ]
+          },
+          {
+            "heading": "Default attempt count",
+            "explanation": "When no `attempts` value is supplied, it starts at 3. That permits the initial call plus two retries before a failure is rethrown.",
+            "source_ranges": [
+              {
+                "start_line": 1,
+                "end_line": 1
+              },
+              {
+                "start_line": 5,
+                "end_line": 7
+              }
+            ]
+          }
+        ],
+        "assumptions": [],
+        "visuals": [
+          {
+            "title": "Retry control flow",
+            "kind": "control_flow",
+            "nodes": [
+              {
+                "id": "start",
+                "label": "Start retry",
+                "description": "Use the supplied attempts count, or default to 3.",
+                "source_ranges": [
+                  {
+                    "start_line": 1,
+                    "end_line": 1
+                  }
+                ]
+              },
+              {
+                "id": "call",
+                "label": "Await operation",
+                "description": "Call the operation and wait for its result.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "outcome",
+                "label": "Did the awaited call succeed?",
+                "description": "The awaited call either provides a result or throws/rejects into the catch block.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "success",
+                "label": "Return result",
+                "description": "A successful operation result ends this call.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "caught",
+                "label": "Catch error",
+                "description": "A thrown or rejected operation reaches this branch as error.",
+                "source_ranges": [
+                  {
+                    "start_line": 4,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "limit",
+                "label": "Check attempts",
+                "description": "Test whether attempts is 1 or less.",
+                "source_ranges": [
+                  {
+                    "start_line": 5,
+                    "end_line": 5
+                  }
+                ]
+              },
+              {
+                "id": "throw",
+                "label": "Rethrow error",
+                "description": "End this call by throwing the caught error.",
+                "source_ranges": [
+                  {
+                    "start_line": 6,
+                    "end_line": 6
+                  }
+                ]
+              },
+              {
+                "id": "again",
+                "label": "Retry with fewer attempts",
+                "description": "Call retry again with attempts reduced by one; the new call repeats the operation.",
+                "source_ranges": [
+                  {
+                    "start_line": 7,
+                    "end_line": 7
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "start",
+                "to": "call",
+                "label": "begins"
+              },
+              {
+                "from": "call",
+                "to": "outcome",
+                "label": "awaits result"
+              },
+              {
+                "from": "outcome",
+                "to": "success",
+                "label": "succeeds"
+              },
+              {
+                "from": "outcome",
+                "to": "caught",
+                "label": "throws or rejects"
+              },
+              {
+                "from": "caught",
+                "to": "limit",
+                "label": "checks remaining attempts"
+              },
+              {
+                "from": "limit",
+                "to": "throw",
+                "label": "attempts \u2264 1"
+              },
+              {
+                "from": "limit",
+                "to": "again",
+                "label": "attempts > 1"
+              }
+            ]
+          }
+        ],
+        "quality_review_status": "revised",
+        "quality_review_note": "The review flagged: In the control-flow diagram, `Await operation` has success and failure branches but is not an explicit decision node. Add a decision node for whether the awaited call succeeds, with distinct success and throws/rejects outcomes, as required  The answer was revised and passed a final review."
+      }
+    },
+    {
+      "id": "incomplete-access-control",
+      "status": 200,
+      "duration_ms": 18199,
+      "checks": {
+        "api_success": true,
+        "visual_present": true,
+        "incomplete_detection_matches": true,
+        "source_ranges_well_formed": true,
+        "review_status": "passed",
+        "visual_requirement_met": true
+      },
+      "expectations": [
+        "A missing user returns anonymous.",
+        "An inactive user returns disabled before the ownership check.",
+        "An owner returns owner.",
+        "Other users currently return denied.",
+        "The TODO does not implement shared-access authorization and its intended behavior is unspecified."
+      ],
+      "manual_scores": {
+        "expectation_points": [
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "factual_points": 10,
+        "factual_max": 10,
+        "factual_percent": 100,
+        "grounding": 2,
+        "diagram_fidelity": 2,
+        "incomplete_code_handling": 2,
+        "notes": "Explains the sequential early returns, current denied outcome, and unspecified TODO. Diagram edges preserve the guard order and outcomes; automated coverage note is conservative."
+      },
+      "explanation": {
+        "title": "Access decision order",
+        "summary": "The function checks access in sequence and returns as soon as one condition matches: missing user, inactive user, or resource ownership. If none match, it returns \"denied\". The TODO marks shared-access checking as unfinished; that check does not currently affect the result.",
+        "visual_note": "One control-flow view shows all three sequential guards and their early returns, including the unfinished shared-access check. Automated checks found source decisions without distinct diagram paths. The diagram is shown; compare it with the walkthrough and linked source lines.",
+        "concepts": [
+          {
+            "term": "Early return",
+            "explanation": "Each matching condition immediately returns a result, so later checks only run when all earlier conditions were false.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 4
+              }
+            ]
+          },
+          {
+            "term": "Unimplemented shared-access check",
+            "explanation": "The TODO is a comment, not executable logic. As written, users who pass the earlier checks but do not own the resource receive \"denied\"; the intended shared-access behavior is unspecified.",
+            "source_ranges": [
+              {
+                "start_line": 5,
+                "end_line": 6
+              }
+            ]
+          }
+        ],
+        "walkthrough": [
+          {
+            "heading": "Check for a user",
+            "explanation": "If `user` is missing or otherwise falsy, return \"anonymous\" immediately. Otherwise, continue to the active-status check.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 2
+              }
+            ]
+          },
+          {
+            "heading": "Check whether the user is active",
+            "explanation": "If `user.isActive` is falsy, return \"disabled\". Only an active user proceeds to the ownership check.",
+            "source_ranges": [
+              {
+                "start_line": 3,
+                "end_line": 3
+              }
+            ]
+          },
+          {
+            "heading": "Check ownership, then deny by default",
+            "explanation": "If the resource's `ownerId` equals the user's `id`, return \"owner\". Otherwise, execution reaches the TODO comment and then returns \"denied\". No shared-access check currently runs.",
+            "source_ranges": [
+              {
+                "start_line": 4,
+                "end_line": 6
+              }
+            ]
+          }
+        ],
+        "assumptions": [],
+        "visuals": [
+          {
+            "title": "Access decision flow",
+            "kind": "control_flow",
+            "nodes": [
+              {
+                "id": "start",
+                "label": "Start",
+                "description": "Receive the user and resource.",
+                "source_ranges": [
+                  {
+                    "start_line": 1,
+                    "end_line": 1
+                  }
+                ]
+              },
+              {
+                "id": "user-check",
+                "label": "User present?",
+                "description": "Test `!user`.",
+                "source_ranges": [
+                  {
+                    "start_line": 2,
+                    "end_line": 2
+                  }
+                ]
+              },
+              {
+                "id": "anonymous",
+                "label": "Return anonymous",
+                "description": "Stop when the user is missing or falsy.",
+                "source_ranges": [
+                  {
+                    "start_line": 2,
+                    "end_line": 2
+                  }
+                ]
+              },
+              {
+                "id": "active-check",
+                "label": "User active?",
+                "description": "Reached only when a user is present; test `!user.isActive`.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "disabled",
+                "label": "Return disabled",
+                "description": "Stop when the user is inactive.",
+                "source_ranges": [
+                  {
+                    "start_line": 3,
+                    "end_line": 3
+                  }
+                ]
+              },
+              {
+                "id": "owner-check",
+                "label": "Resource owned?",
+                "description": "Reached only when the user is present and active; compare `resource.ownerId` with `user.id`.",
+                "source_ranges": [
+                  {
+                    "start_line": 4,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "owner",
+                "label": "Return owner",
+                "description": "Stop when the IDs match.",
+                "source_ranges": [
+                  {
+                    "start_line": 4,
+                    "end_line": 4
+                  }
+                ]
+              },
+              {
+                "id": "todo",
+                "label": "Shared-access TODO",
+                "description": "No executable shared-access check is present here.",
+                "source_ranges": [
+                  {
+                    "start_line": 5,
+                    "end_line": 5
+                  }
+                ]
+              },
+              {
+                "id": "denied",
+                "label": "Return denied",
+                "description": "Reached when the user is present and active but does not own the resource.",
+                "source_ranges": [
+                  {
+                    "start_line": 6,
+                    "end_line": 6
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "start",
+                "to": "user-check",
+                "label": "begins checks"
+              },
+              {
+                "from": "user-check",
+                "to": "anonymous",
+                "label": "user missing"
+              },
+              {
+                "from": "user-check",
+                "to": "active-check",
+                "label": "user present"
+              },
+              {
+                "from": "active-check",
+                "to": "disabled",
+                "label": "inactive"
+              },
+              {
+                "from": "active-check",
+                "to": "owner-check",
+                "label": "active"
+              },
+              {
+                "from": "owner-check",
+                "to": "owner",
+                "label": "IDs match"
+              },
+              {
+                "from": "owner-check",
+                "to": "todo",
+                "label": "IDs differ"
+              },
+              {
+                "from": "todo",
+                "to": "denied",
+                "label": "continues"
+              }
+            ]
+          }
+        ],
+        "quality_review_status": "passed",
+        "quality_review_note": "A second model pass checked this explanation against your source and request, including math and visuals where relevant.",
+        "incomplete_items": [
+          {
+            "kind": "unfinished_marker",
+            "title": "Unfinished-work marker",
+            "explanation": "The source marks work as unfinished. It does not specify the intended behavior.",
+            "source_ranges": [
+              {
+                "start_line": 5,
+                "end_line": 5
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "quadratic-formula-math",
+      "status": 200,
+      "duration_ms": 13302,
+      "checks": {
+        "api_success": true,
+        "visual_present": false,
+        "incomplete_detection_matches": true,
+        "source_ranges_well_formed": true,
+        "review_status": "passed",
+        "visual_requirement_met": true
+      },
+      "expectations": [
+        "The plus-minus symbol represents two candidate calculations, one with plus and one with minus.",
+        "The discriminant is b\u00b2 - 4ac.",
+        "A positive discriminant gives two distinct real roots, zero gives one repeated real root, and a negative discriminant gives no real roots.",
+        "The formula requires a to be nonzero."
+      ],
+      "manual_scores": {
+        "expectation_points": [
+          2,
+          2,
+          0,
+          2
+        ],
+        "factual_points": 6,
+        "factual_max": 8,
+        "factual_percent": 75,
+        "grounding": 2,
+        "diagram_fidelity": null,
+        "incomplete_code_handling": null,
+        "notes": "Explains \u00b1, the discriminant, and a \u2260 0, but omits the positive/zero/negative discriminant outcome classification."
+      },
+      "explanation": {
+        "title": "Quadratic Formula",
+        "summary": "For an equation of the form ax\u00b2 + bx + c = 0 with a \u2260 0, the quadratic formula gives its solutions by substituting a, b, and c. The \u00b1 means calculate both the plus and minus possibilities.",
+        "visual_note": "A diagram would add little here; the formula and the two choices represented by \u00b1 are clearest in prose.",
+        "concepts": [
+          {
+            "term": "Coefficients",
+            "explanation": "In ax\u00b2 + bx + c = 0, a, b, and c are the coefficients used in the formula. The condition a \u2260 0 ensures the equation is quadratic and the denominator 2a is nonzero.",
+            "source_ranges": [
+              {
+                "start_line": 1,
+                "end_line": 1
+              }
+            ]
+          },
+          {
+            "term": "Discriminant",
+            "explanation": "The expression b\u00b2 \u2212 4ac under the square root is called the discriminant. Its value affects whether the formula produces real or complex solutions; the supplied material does not specify a number system.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 2
+              }
+            ]
+          },
+          {
+            "term": "\u00b1 gives two candidates",
+            "explanation": "The symbol \u00b1 represents two calculations: one using + before the square root and one using \u2212. These yield the equation's solutions, which may coincide when the square root is zero.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 2
+              }
+            ]
+          }
+        ],
+        "walkthrough": [
+          {
+            "heading": "Identify the equation's coefficients",
+            "explanation": "For an equation written as ax\u00b2 + bx + c = 0, identify the values of a, b, and c. Confirm that a is not zero, as required by the formula's stated condition.",
+            "source_ranges": [
+              {
+                "start_line": 1,
+                "end_line": 1
+              }
+            ]
+          },
+          {
+            "heading": "Substitute and evaluate both signs",
+            "explanation": "Place the coefficients into (\u2212b \u00b1 \u221a(b\u00b2 \u2212 4ac)) / (2a). Evaluate the expression under the square root, then calculate once with + and once with \u2212; the resulting value or values are the solutions for x.",
+            "source_ranges": [
+              {
+                "start_line": 2,
+                "end_line": 2
+              }
+            ]
+          }
+        ],
+        "assumptions": [],
+        "visuals": [],
+        "quality_review_status": "passed",
+        "quality_review_note": "A second model pass checked this explanation against your source and request, including math and visuals where relevant."
+      }
+    },
+    {
+      "id": "documented-upload-retry-policy",
+      "status": 500,
+      "duration_ms": 10301,
+      "checks": {
+        "api_success": false,
+        "visual_present": false,
+        "incomplete_detection_matches": null,
+        "source_ranges_well_formed": null,
+        "review_status": "missing",
+        "visual_requirement_met": true
+      },
+      "expectations": [
+        "Three attempts total includes the initial attempt.",
+        "Only 429 and 5xx responses are retried.",
+        "The scheduled waits are 250 ms and then 500 ms.",
+        "Retry-After replaces the scheduled delay.",
+        "Other 4xx responses are returned without retry."
+      ],
+      "manual_scores": null,
+      "explanation": {
+        "error": "The generated explanation was incomplete or invalid. Please retry the request."
+      },
+      "api_error": "The generated explanation was incomplete or invalid. Please retry the request."
+    }
+  ],
+  "summary": {
+    "completed_cases": 3,
+    "total_cases": 4,
+    "api_success_rate_percent": 75,
+    "factual_score_completed_responses": "26/28",
+    "factual_score_completed_responses_percent": 92.9,
+    "end_to_end_case_score_percent": 68.8,
+    "diagram_fidelity_average": "3/4",
+    "incomplete_code_handling_average": "2/2",
+    "reviewed_or_revised_responses": "3/3",
+    "automated_boolean_checks": "15/18",
+    "failed_case_ids": [
+      "documented-upload-retry-policy"
+    ],
+    "factual_scores_exclude_failed_generation": true,
+    "grounding_average": "6/6"
+  }
+}

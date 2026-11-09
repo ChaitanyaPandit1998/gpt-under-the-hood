@@ -1,0 +1,117 @@
+{
+  "evaluation_version": 1,
+  "generated_at": "2026-11-09T09:03:06.976Z",
+  "git_revision": "47343a7",
+  "source_corpus": "evals/cases.json",
+  "note": "Diagnostic attempt only: the OS denied Codex CLI startup in the restricted process environment. No cases reached model generation; this is not a quality baseline.",
+  "results": [
+    {
+      "id": "retry-recursion-control-flow",
+      "status": 500,
+      "api_error": "The operating system blocked Codex CLI from starting. Check the app’s local development permissions and terminal output, then retry.",
+      "duration_ms": 78,
+      "checks": {
+        "api_success": false,
+        "visual_present": false,
+        "visual_requirement_met": false,
+        "incomplete_detection_matches": null,
+        "source_ranges_well_formed": null,
+        "review_status": "missing"
+      },
+      "expectations": [
+        "A successful operation result is returned immediately.",
+        "A rejected operation enters the catch path.",
+        "When attempts is at most one, the current error is rethrown and retry stops.",
+        "Otherwise retry calls itself with attempts decremented by one.",
+        "The default of three permits at most three operation calls total."
+      ],
+      "manual_scores": null,
+      "explanation": {
+        "error": "The operating system blocked Codex CLI from starting. Check the app’s local development permissions and terminal output, then retry."
+      }
+    },
+    {
+      "id": "incomplete-access-control",
+      "status": 500,
+      "api_error": "The operating system blocked Codex CLI from starting. Check the app’s local development permissions and terminal output, then retry.",
+      "duration_ms": 23,
+      "checks": {
+        "api_success": false,
+        "visual_present": false,
+        "visual_requirement_met": false,
+        "incomplete_detection_matches": null,
+        "source_ranges_well_formed": null,
+        "review_status": "missing"
+      },
+      "expectations": [
+        "A missing user returns anonymous.",
+        "An inactive user returns disabled before the ownership check.",
+        "An owner returns owner.",
+        "Other users currently return denied.",
+        "The TODO does not implement shared-access authorization and its intended behavior is unspecified."
+      ],
+      "manual_scores": null,
+      "explanation": {
+        "error": "The operating system blocked Codex CLI from starting. Check the app’s local development permissions and terminal output, then retry."
+      }
+    },
+    {
+      "id": "quadratic-formula-math",
+      "status": 500,
+      "api_error": "The operating system blocked Codex CLI from starting. Check the app’s local development permissions and terminal output, then retry.",
+      "duration_ms": 22,
+      "checks": {
+        "api_success": false,
+        "visual_present": false,
+        "visual_requirement_met": true,
+        "incomplete_detection_matches": null,
+        "source_ranges_well_formed": null,
+        "review_status": "missing"
+      },
+      "expectations": [
+        "The plus-minus symbol represents two candidate calculations, one with plus and one with minus.",
+        "The discriminant is b² - 4ac.",
+        "A positive discriminant gives two distinct real roots, zero gives one repeated real root, and a negative discriminant gives no real roots.",
+        "The formula requires a to be nonzero."
+      ],
+      "manual_scores": null,
+      "explanation": {
+        "error": "The operating system blocked Codex CLI from starting. Check the app’s local development permissions and terminal output, then retry."
+      }
+    },
+    {
+      "id": "documented-upload-retry-policy",
+      "status": 500,
+      "api_error": "The operating system blocked Codex CLI from starting. Check the app’s local development permissions and terminal output, then retry.",
+      "duration_ms": 22,
+      "checks": {
+        "api_success": false,
+        "visual_present": false,
+        "visual_requirement_met": true,
+        "incomplete_detection_matches": null,
+        "source_ranges_well_formed": null,
+        "review_status": "missing"
+      },
+      "expectations": [
+        "Three attempts total includes the initial attempt.",
+        "Only 429 and 5xx responses are retried.",
+        "The scheduled waits are 250 ms and then 500 ms.",
+        "Retry-After replaces the scheduled delay.",
+        "Other 4xx responses are returned without retry."
+      ],
+      "manual_scores": null,
+      "explanation": {
+        "error": "The operating system blocked Codex CLI from starting. Check the app’s local development permissions and terminal output, then retry."
+      }
+    }
+  ],
+  "summary": {
+    "api_successes": 0,
+    "total_cases": 4,
+    "api_success_rate_percent": 0,
+    "completed_reviews": 0,
+    "boolean_automated_checks_passed": 2,
+    "boolean_automated_checks_total": 12,
+    "manual_factual_score": null
+  }
+}

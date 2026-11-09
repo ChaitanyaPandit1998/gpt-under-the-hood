@@ -12,7 +12,7 @@ import { annotateIncompleteCode } from "../domain/incomplete-code.ts";
 import { MAX_FOLLOW_UP_HISTORY_MESSAGES } from "../domain/explanation-types.ts";
 import type { GenerationPhase } from "../domain/generation-progress.ts";
 import { followUpSchema, quizSchema, transcriptionSchema } from "./response-schemas.ts";
-import { validateFollowUp, validateQuiz, validateTranscription } from "./response-validation.ts";
+import { ExplanationValidationError, validateFollowUp, validateQuiz, validateTranscription } from "./response-validation.ts";
 import { createReviewedExplanation, type CodexRunner } from "./explanation-service.ts";
 
 export type { CodexRunner } from "./explanation-service.ts";
@@ -84,6 +84,7 @@ function sendJson(response: import("node:http").ServerResponse, status: number, 
 }
 
 function classifyModelFailure(error: unknown): string {
+  if (error instanceof ExplanationValidationError) return error.failureCategory;
   const message = error instanceof Error ? error.message : "";
   if (/timed out|timeout/i.test(message)) return "timeout";
   if (/cancelled|canceled|aborted/i.test(message)) return "cancelled";

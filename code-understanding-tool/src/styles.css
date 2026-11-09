@@ -124,7 +124,8 @@ button{color:inherit}
   .diagram-print-alternative ol,.diagram-print-alternative ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;row-gap:1px;margin:0 0 4px;padding-left:20px}
   .diagram-print-alternative li{margin:0 0 1px;padding-right:4px;break-inside:avoid;page-break-inside:avoid}
   .source-reference{color:#4c438f!important;background:#f4f2ff!important}
-  .page-footer{padding:10px 0 0!important;color:#666!important}
+  /* The app footer is decorative; avoid spilling it alone onto a nearly blank final page. */
+  .page-footer{display:none!important}
 }
 
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

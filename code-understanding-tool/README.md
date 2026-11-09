@@ -23,6 +23,18 @@ The app passes submitted source text, follow-up questions, quiz context, and scr
 
 Before hosting this for multiple users, replace the Vite middleware with a production API and establish a real security boundary: authenticate users, protect state-changing requests against CSRF, isolate provider credentials per server-side identity, enforce per-user and global rate/concurrency/request-size limits, keep uploaded files in isolated temporary storage, define retention and deletion policies, and add redacted structured observability and abuse monitoring. Also review provider data handling, network egress, secret storage, dependency/build hardening, and deployment access controls. The current prototype is not production-ready for shared or public use.
 
+## Evaluate explanation quality
+
+Run the synthetic regression corpus against the local Codex-backed explanation pipeline:
+
+```sh
+npm run eval:baseline
+```
+
+This requires Node 22.6 or newer, a signed-in Codex CLI, and access to its configured service. It sends test inputs through the real explanation and second-pass review flow, may use model quota, and saves raw responses with automatic checks under `evals/results/`. Human rubric scores are added only after comparing each response with its written expectations. The corpus, scoring rubric, run instructions, and measured results are in [evals/README.md](evals/README.md). This small synthetic set is useful for regression tracking; it does not establish production reliability.
+
+The latest full run generated all four explanations and scored 96.9% on factual criteria. Its remaining gaps were the missing recursive return edge in a retry diagram, an incomplete review for an unnecessary cyclic diagram, and missing explicit positive/zero/negative discriminant outcomes. Use later runs against the same corpus to check whether changes address these gaps.
+
 Select a passage in the explanation to ask a follow-up focused on that text. The selected passage is sent with the question and checked against the full source.
 
 Use **Start a quick check** below an explanation to generate three multiple-choice questions from the submitted material. Answers and score stay in the current page session and are not saved.
