@@ -28,6 +28,8 @@ function App() {
   const [explanationDepth, setExplanationDepth] = useState<ExplanationDepth>("balanced");
   const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>("beginner");
   const [source, setSource] = useState("");
+  const [pullRequestUrl, setPullRequestUrl] = useState("");
+  const [isLoadingPullRequest, setIsLoadingPullRequest] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [textSelection, setTextSelection] = useState<TextSelection | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
@@ -170,7 +172,29 @@ function App() {
     setTranscription(null);
     setNeedsApproval(false);
     setApproved(false);
+    setPullRequestUrl("");
     if (screenshotInput.current) screenshotInput.current.value = "";
+  }
+
+  async function loadPullRequest() {
+    setError("");
+    setIsLoadingPullRequest(true);
+    try {
+      const response = await fetch("/api/pull-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: pullRequestUrl }),
+      });
+      const payload = await response.json() as { source_text?: string; error?: string };
+      if (!response.ok || typeof payload.source_text !== "string") throw new Error(payload.error || "Could not load this pull request.");
+      resetExplanation();
+      setMode("pull_request");
+      setSource(payload.source_text);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to load this pull request.");
+    } finally {
+      setIsLoadingPullRequest(false);
+    }
   }
 
   async function transcribeScreenshot(file: File) {
@@ -253,10 +277,14 @@ function App() {
             transcription={transcription}
             needsApproval={needsApproval}
             approved={approved}
+            pullRequestUrl={pullRequestUrl}
+            isLoadingPullRequest={isLoadingPullRequest}
             explanationDepth={explanationDepth}
             learnerLevel={learnerLevel}
             error={error}
             onModeChange={updateMode}
+            onPullRequestUrlChange={setPullRequestUrl}
+            onLoadPullRequest={loadPullRequest}
             onSourceChange={updateSource}
             onExample={loadExample}
             onClear={clearInput}

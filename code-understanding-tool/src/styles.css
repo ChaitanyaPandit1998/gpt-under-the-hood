@@ -272,6 +272,18 @@ html[data-theme="dark"] .quiz-option.correct{border-color:#41644f;background:#26
 html[data-theme="dark"] .quiz-option.incorrect{border-color:#694543;background:#382827;color:#ebb1aa}
 html[data-theme="dark"] .quiz-feedback.is-correct,html[data-theme="dark"] .quiz-score{color:#a8d7b8}
 html[data-theme="dark"] .quiz-feedback.is-incorrect{color:#ebb1aa}
+.pull-request-import{display:grid;gap:7px;padding:13px 15px;border-bottom:1px solid #ececf2;background:#fff}
+.pull-request-import label{font-size:11px;font-weight:600;color:#55566b}
+.pull-request-import>div{display:flex;gap:8px}
+.pull-request-import input{min-width:0;flex:1;border:1px solid #e4e4ed;border-radius:7px;padding:9px 11px;background:#fcfcfe;color:#38394d;font:11px 'DM Mono',monospace;outline:none}
+.pull-request-import input:focus{border-color:#a59dec;box-shadow:0 0 0 3px #7164e81a}
+.pull-request-import button{border:0;border-radius:7px;background:#7164e8;color:white;padding:0 15px;font-size:11px;font-weight:600;cursor:pointer}
+.pull-request-import button:disabled{opacity:.5;cursor:default}
+.pull-request-import>span{font-size:10px;line-height:1.45;color:#9293a2}
+html[data-theme="dark"] .pull-request-import{border-color:#393c4f;background:#252836}
+html[data-theme="dark"] .pull-request-import label{color:#e1e2ec}
+html[data-theme="dark"] .pull-request-import input{border-color:#44475b;background:#1e212d;color:#e1e2ec}
+html[data-theme="dark"] .pull-request-import>span{color:#bfc1cf}
 
 /* Warm and cool accent themes keep the same readable light surfaces. */
 html[data-theme="yellow"]{--theme-accent:#9a6500;--theme-accent-strong:#754900;--theme-accent-soft:#fff3cf;--theme-page-start:#fffdf7;--theme-page-end:#f8f2df;background:var(--theme-page-end)}
