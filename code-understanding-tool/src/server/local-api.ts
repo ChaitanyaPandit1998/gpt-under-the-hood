@@ -15,6 +15,7 @@ import { followUpSchema, quizSchema, transcriptionSchema } from "./response-sche
 import { ExplanationValidationError, validateFollowUp, validateQuiz, validateTranscription } from "./response-validation.ts";
 import { createReviewedExplanation, type CodexRunner } from "./explanation-service.ts";
 import { loadPublicPullRequest, type PullRequestFetch } from "./github-pull-request.ts";
+import { loadPullRequestPlan } from "./pull-request-plan.ts";
 
 export type { CodexRunner } from "./explanation-service.ts";
 
@@ -468,6 +469,22 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
                 ? error.message
                 : "Unable to read this screenshot.";
           sendJson(response, isTooLarge ? 413 : 500, { error: message });
+        }
+      });
+
+      server.middlewares.use("/api/pull-request-plan", async (request, response) => {
+        if (request.method !== "POST") {
+          response.setHeader("Allow", "POST");
+          sendJson(response, 405, { error: "Method not allowed" });
+          return;
+        }
+        try {
+          const parsed = await readJsonRequest(request, 4_000);
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("The request body must be a JSON object.");
+          sendJson(response, 200, { plan: await loadPullRequestPlan((parsed as { url?: unknown }).url, fetchPullRequest) });
+        } catch (error) {
+          sendJson(response, error instanceof Error && error.message === "REQUEST_TOO_LARGE" ? 413 : 400,
+            { error: error instanceof Error ? error.message : "Unable to build a PR chapter plan." });
         }
       });
 

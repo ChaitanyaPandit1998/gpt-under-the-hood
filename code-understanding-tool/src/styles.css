@@ -282,6 +282,22 @@ html[data-theme="dark"] .quiz-feedback.is-incorrect{color:#ebb1aa}
 .chapter-sidebar ol{list-style:none;padding:0;margin:12px 0}
 .chapter-sidebar button{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;font:inherit;font-size:12px;line-height:1.5;color:inherit;background:transparent;border:0;border-radius:8px;padding:10px;min-height:44px;overflow-wrap:anywhere;cursor:pointer}
 .chapter-sidebar button>span{flex-shrink:0;min-width:2ch;white-space:nowrap;font-family:'DM Mono',monospace;opacity:.65}
+.pr-study{padding:24px;border:1px solid var(--line);border-radius:16px;background:var(--theme-page-start);font-size:13px;line-height:1.6}
+.pr-study-header{display:flex;justify-content:space-between;align-items:start;gap:16px}
+.pr-study-header h2{font-family:Manrope,sans-serif;margin:8px 0;overflow-wrap:anywhere}
+.pr-study button,.pr-study select{font:inherit;cursor:pointer}
+.pr-study-header button{padding:10px;flex-shrink:0}
+.pr-study .chapter-layout{margin-top:24px}
+.pr-study .chapter-sidebar ol{max-height:65vh;overflow:auto}
+.pr-revision{overflow-wrap:anywhere;font-size:11px}
+.pr-manifest{margin:20px 0}
+.pr-manifest ul{max-height:280px;overflow:auto;padding-left:20px}
+.pr-manifest li{overflow-wrap:anywhere;padding:5px 0}
+.pr-study textarea{width:100%;box-sizing:border-box;resize:vertical;font:11px/1.6 'DM Mono',monospace;color:inherit;background:transparent;border:1px solid var(--line)}
+.pr-study .result-card{padding:16px 12px 0}
+html[data-theme="dark"] .pr-study{--line:#45485a;background:#222532;color:#e8e9f2}
+@media(max-width:700px){.pr-study{padding:16px}.pr-study-header{flex-direction:column}.pr-study .chapter-sidebar ol{max-height:180px}}
+@media print{.pr-study-header>button,.pr-manifest,.pr-study .chapter-toolbar,.pr-study .chapter-pagination,.pr-study .chapter-sidebar{display:none!important}}
 .chapter-sidebar button[aria-current="step"]{background:var(--theme-accent-soft);color:var(--theme-accent-strong);font-weight:600}
 .chapter-body{min-width:0}
 .chapter-heading{margin-bottom:20px}

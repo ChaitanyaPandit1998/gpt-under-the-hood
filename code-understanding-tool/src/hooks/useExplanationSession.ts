@@ -164,7 +164,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
   }
 
   return {
-    explanation, isGenerating, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus,
+    explanation, setExplanation, isGenerating, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus,
     followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion,
     followUpMessages, followUpError, error, setError,
     invalidatePendingRequests, resetExplanation, explainSource, askFollowUp,
