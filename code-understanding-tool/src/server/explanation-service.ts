@@ -10,9 +10,8 @@ import { validateExplanation, validateExplanationReview } from "./response-valid
 
 const appRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-function sourceWithLineNumbers(sourceText: string): string {
+export function sourceWithLineNumbers(sourceText: string): string {
   const lines = sourceText.split(/\r\n|\r|\n/);
-  if (lines.length > 1_000) return `Source line count: ${lines.length}.\n${sourceText}`;
   const width = String(lines.length).length;
   return `Source line count: ${lines.length}.\n${lines.map((line, index) => `${String(index + 1).padStart(width, " ")} | ${line}`).join("\n")}`;
 }
