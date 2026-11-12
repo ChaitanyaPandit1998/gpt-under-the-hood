@@ -102,6 +102,20 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
 }
 
 describe("local explanation API integration", () => {
+  it("builds a coverage-aware chapter outline without invoking the model", async () => {
+    const runner = vi.fn<CodexRunner>();
+    const fetcher: PullRequestFetch = async (input) => String(input).includes("/files?")
+      ? Response.json([{ filename: "src/app.ts", status: "modified", additions: 1, deletions: 0, patch: "+const enabled = true;" }])
+      : Response.json({ title: "Add feature", head: { sha: "deadbeef" }, changed_files: 1 });
+    const request = createApiHarness(runner, undefined, fetcher);
+    const response = await request("/api/pull-request-plan", { url: "https://github.com/acme/demo/pull/7" });
+    expect(response.status).toBe(200);
+    expect(response.json()).toMatchObject({ plan: { filesComplete: true, chapters: [{ id: "overview" }, { id: "chapter-1", files: ["src/app.ts"] }] } });
+    expect(runner).not.toHaveBeenCalled();
+    expect((await request("/api/pull-request-plan", { url: "https://github.com/acme/demo/pull/7" }, "https://evil.example")).status).toBe(403);
+    expect((await request("/api/pull-request-plan", {}, undefined, "GET")).status).toBe(405);
+  });
+
   it("loads a public GitHub pull request through the guarded local API", async () => {
     const fetchPullRequest: PullRequestFetch = vi.fn(async (input) => String(input).endsWith("/files?per_page=100")
       ? Response.json([{ filename: "src/app.ts", status: "modified", additions: 1, deletions: 0, patch: "+const enabled = true;" }])

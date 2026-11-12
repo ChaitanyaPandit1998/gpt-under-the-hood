@@ -7,6 +7,7 @@ import { GraphView } from "./GraphView";
 import { SpeechReader } from "./SpeechReader";
 import { SourceRanges } from "./SourceRanges";
 import { UnderstandingCheck } from "./UnderstandingCheck";
+import { ChapterPage, ChapterReader } from "./ChapterReader";
 
 export type TextSelection = { text: string; top: number; left: number; wasTruncated: boolean };
 
@@ -54,7 +55,6 @@ export function ExplanationResult({
       <div className="result-topline"><span className="result-label"><span className="result-spark">✳</span> YOUR EXPLANATION</span><div className="result-actions"><button className="copy-explanation" type="button" onClick={onCopy}>{copyStatus || "Copy explanation"}</button><span className="preview-badge">EXPLANATION</span></div></div>
       <div className="explanation-content">
         <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
-        <p className="result-summary">{explanation.summary}</p>
         {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
           <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
           <p>The source contains unfinished work. Its intended behavior is not specified, so the explanation does not infer it.</p>
@@ -68,8 +68,13 @@ export function ExplanationResult({
           <span>{explanation.quality_review_note}</span>
         </aside>}
         <SpeechReader explanation={explanation} />
+        <ChapterReader explanation={explanation}>
+        <ChapterPage id="overview"><p className="result-summary">{explanation.summary}</p></ChapterPage>
+        <ChapterPage id="concepts">
         {explanation.concepts.length > 0 && <div className="result-section"><div className="section-caption">KEY IDEAS</div><div className="concept-grid">{explanation.concepts.map((concept, index) => <article className="concept-card" key={`${concept.term}-${index}`}><h3>{concept.term}</h3><p>{concept.explanation}</p><SourceRanges ranges={concept.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article>)}</div></div>}
-        {explanation.walkthrough.length > 0 && <div className="result-section walkthrough-section"><div className="section-caption">WALKTHROUGH</div><div className="walkthrough-list">{explanation.walkthrough.map((step, index) => <article className="walkthrough-item" key={`${step.heading}-${index}`}><div className="walkthrough-heading"><span className="number-badge">{index + 1}</span><div><h3>{step.heading}</h3></div></div><p className="result-body">{step.explanation}</p><SourceRanges ranges={step.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article>)}</div></div>}
+        </ChapterPage>
+        {explanation.walkthrough.map((step, index) => <ChapterPage id={`step-${index}`} key={`${step.heading}-${index}`}><div className="result-section walkthrough-section"><div className="section-caption">WALKTHROUGH</div><div className="walkthrough-list"><article className="walkthrough-item"><div className="walkthrough-heading"><span className="number-badge">{index + 1}</span><div><h3>{step.heading}</h3></div></div><p className="result-body">{step.explanation}</p><SourceRanges ranges={step.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article></div></div></ChapterPage>)}
+        <ChapterPage id="visuals">
         {activeVisual && <div className="result-section">
           <div className="section-caption diagram-section-caption">{activeVisual.kind === "control_flow" ? "CONTROL FLOW MAP" : "CONCEPT MAP"}</div>
           {explanation.visuals.length > 1 && <div className="diagram-view-tabs" role="tablist" aria-label="Diagram views">{explanation.visuals.map((visual, index) => <button key={`${visual.title}-${index}`} type="button" role="tab" id={`diagram-tab-${index}`} aria-selected={index === activeVisualIndex} aria-controls="active-diagram-panel" tabIndex={index === activeVisualIndex ? 0 : -1} onKeyDown={(event) => selectVisualFromKeyboard(event, index)} onClick={() => setActiveVisualIndex(index)}>{visual.title}</button>)}</div>}
@@ -84,8 +89,12 @@ export function ExplanationResult({
           {visual.edges.length > 0 && <ul>{visual.edges.map((edge, edgeIndex) => <li key={`${edge.from}-${edge.to}-${edgeIndex}`}>{visual.nodes.find((node) => node.id === edge.from)?.label ?? edge.from} {edge.label ? `(${edge.label})` : "connects to"} {visual.nodes.find((node) => node.id === edge.to)?.label ?? edge.to}.</li>)}</ul>}
         </section>)}</div>}
         {explanation.visual_note && <p className={`visual-omitted-note ${explanation.visuals.length > 0 ? "coverage-screen-note" : ""}`}><strong>{explanation.visuals.length === 0 ? "Diagram note." : "Coverage note."}</strong> {explanation.visual_note}</p>}
+        </ChapterPage>
+        <ChapterPage id="recap">
         {explanation.assumptions.length > 0 && <div className="assumptions"><div className="section-caption">WHAT THE INPUT DOESN’T TELL US</div>{explanation.assumptions.map((assumption, index) => <p key={`${assumption.statement}-${index}`}><strong>{assumption.statement}</strong> {assumption.reason}</p>)}</div>}
         <UnderstandingCheck source={source} explanation={explanation} />
+        </ChapterPage>
+        </ChapterReader>
       </div>
       <section className="followup-section" aria-label="Ask a follow-up question">
         <div className="section-caption">KEEP EXPLORING</div>

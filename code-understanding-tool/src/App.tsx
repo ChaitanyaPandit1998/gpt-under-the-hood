@@ -6,6 +6,8 @@ import { useExplanationSession } from "./hooks/useExplanationSession";
 import { LearningWorkspace } from "./components/LearningWorkspace";
 import { ExplanationResult, type TextSelection } from "./components/ExplanationResult";
 import { PageDisplayControls } from "./components/PageDisplayControls";
+import { PullRequestStudy } from "./components/PullRequestStudy";
+import type { PullRequestPlan } from "./domain/pull-request-plan";
 
 const exampleCode = `function retry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
   return operation().catch((error) => {
@@ -30,6 +32,8 @@ function App() {
   const [source, setSource] = useState("");
   const [pullRequestUrl, setPullRequestUrl] = useState("");
   const [isLoadingPullRequest, setIsLoadingPullRequest] = useState(false);
+  const [prPlan, setPrPlan] = useState<PullRequestPlan | null>(null);
+  const pullRequestLoadId = useRef(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [textSelection, setTextSelection] = useState<TextSelection | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
@@ -96,6 +100,9 @@ function App() {
 
   function updateMode(nextMode: Mode) {
     if (nextMode === mode) return;
+    pullRequestLoadId.current += 1;
+    setIsLoadingPullRequest(false);
+    setPrPlan(null);
     resetExplanation();
     setMode(nextMode);
   }
@@ -118,6 +125,9 @@ function App() {
   }
 
   function updateSource(value: string) {
+    pullRequestLoadId.current += 1;
+    setIsLoadingPullRequest(false);
+    setPrPlan(null);
     transcriptionRequestId.current += 1;
     transcriptionRequestController.current?.abort();
     transcriptionRequestController.current = null;
@@ -177,23 +187,26 @@ function App() {
   }
 
   async function loadPullRequest() {
+    const requestId = ++pullRequestLoadId.current;
     setError("");
     setIsLoadingPullRequest(true);
     try {
-      const response = await fetch("/api/pull-request", {
+      const response = await fetch("/api/pull-request-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: pullRequestUrl }),
       });
-      const payload = await response.json() as { source_text?: string; error?: string };
-      if (!response.ok || typeof payload.source_text !== "string") throw new Error(payload.error || "Could not load this pull request.");
+      const payload = await response.json() as { plan?: PullRequestPlan; error?: string };
+      if (requestId !== pullRequestLoadId.current) return;
+      if (!response.ok || !payload.plan?.chapters.length) throw new Error(payload.error || "Could not load this pull request.");
       resetExplanation();
       setMode("pull_request");
-      setSource(payload.source_text);
+      setSource("");
+      setPrPlan(payload.plan);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to load this pull request.");
+      if (requestId === pullRequestLoadId.current) setError(caught instanceof Error ? caught.message : "Unable to load this pull request.");
     } finally {
-      setIsLoadingPullRequest(false);
+      if (requestId === pullRequestLoadId.current) setIsLoadingPullRequest(false);
     }
   }
 
@@ -264,7 +277,7 @@ function App() {
             <p>Bring a piece of code or documentation. Get an explanation that helps you build a mental model, not just skim the surface.</p>
           </section>
 
-          <LearningWorkspace
+          {prPlan ? <PullRequestStudy plan={prPlan} theme={pageTheme} onClose={() => setPrPlan(null)} /> : <LearningWorkspace
             mode={mode}
             source={source}
             lineCount={lineCount}
@@ -294,9 +307,9 @@ function App() {
             onLearnerLevelChange={setLearnerLevel}
             onExplain={() => void explainSource()}
             onRetry={() => screenshotFile && needsApproval && !transcription ? void transcribeScreenshot(screenshotFile) : void explainSource()}
-          />
+          />}
 
-          {explanation && <ExplanationResult
+          {!prPlan && explanation && <ExplanationResult
             explanation={explanation}
             source={source}
             theme={pageTheme}

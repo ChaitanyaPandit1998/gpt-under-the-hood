@@ -23,7 +23,7 @@ export function parsePublicPullRequestUrl(value: unknown): { owner: string; repo
   return { owner: match[1]!, repo: match[2]!, number };
 }
 
-async function readBoundedJson(response: Response): Promise<unknown> {
+export async function readBoundedJson(response: Response): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_GITHUB_RESPONSE_BYTES) {
     throw new Error("GitHub returned an unusually large pull request response.");
