@@ -101,7 +101,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
       const response = await fetch("/api/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_text: source, material_kind: mode, teaching_mode: "auto", visual_preference: "auto", explanation_depth: depth, learner_level: learnerLevel, progress_id: progressId }),
+        body: JSON.stringify({ source_text: source, material_kind: mode === "code" ? "code" : "docs", teaching_mode: "auto", visual_preference: "auto", explanation_depth: depth, learner_level: learnerLevel, progress_id: progressId }),
         signal: requestController.signal,
       });
       const payload = await response.json();

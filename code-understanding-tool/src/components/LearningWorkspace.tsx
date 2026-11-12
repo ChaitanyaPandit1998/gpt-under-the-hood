@@ -15,10 +15,14 @@ type Props = {
   transcription: Transcription | null;
   needsApproval: boolean;
   approved: boolean;
+  pullRequestUrl: string;
+  isLoadingPullRequest: boolean;
   explanationDepth: ExplanationDepth;
   learnerLevel: LearnerLevel;
   error: string;
   onModeChange: (mode: Mode) => void;
+  onPullRequestUrlChange: (url: string) => void;
+  onLoadPullRequest: () => void;
   onSourceChange: (source: string) => void;
   onExample: () => void;
   onClear: () => void;
@@ -31,9 +35,9 @@ type Props = {
 };
 
 export function LearningWorkspace({
-  mode, source, lineCount, sourceEditor, screenshotInput, isTranscribing, isGenerating, generationPhase,
+  mode, source, lineCount, sourceEditor, screenshotInput, isTranscribing, isGenerating, generationPhase, pullRequestUrl, isLoadingPullRequest,
   screenshotPreview, transcription, needsApproval, approved, explanationDepth, learnerLevel, error,
-  onModeChange, onSourceChange, onExample, onClear, onScreenshotSelected, onApproveTranscription,
+  onModeChange, onPullRequestUrlChange, onLoadPullRequest, onSourceChange, onExample, onClear, onScreenshotSelected, onApproveTranscription,
   onDepthChange, onLearnerLevelChange, onExplain, onRetry,
 }: Props) {
   return <section className="workspace" aria-label="Learning workspace">
@@ -50,27 +54,34 @@ export function LearningWorkspace({
           <div className="segmented" role="tablist" aria-label="Input type">
             <button role="tab" id="tab-code" aria-controls="source-input" aria-selected={mode === "code"} tabIndex={mode === "code" ? 0 : -1} className={mode === "code" ? "active" : ""} onKeyDown={(event) => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); onModeChange(mode === "code" ? "docs" : "code"); document.getElementById(mode === "code" ? "tab-docs" : "tab-code")?.focus(); } }} onClick={() => onModeChange("code")}>⌘ <span>Code</span></button>
             <button role="tab" id="tab-docs" aria-controls="source-input" aria-selected={mode === "docs"} tabIndex={mode === "docs" ? 0 : -1} className={mode === "docs" ? "active" : ""} onKeyDown={(event) => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); onModeChange(mode === "code" ? "docs" : "code"); document.getElementById(mode === "code" ? "tab-docs" : "tab-code")?.focus(); } }} onClick={() => onModeChange("docs")}>▤ <span>Documentation</span></button>
+            <button role="tab" id="tab-pr" aria-controls="source-input" aria-selected={mode === "pull_request"} tabIndex={mode === "pull_request" ? 0 : -1} className={mode === "pull_request" ? "active" : ""} onClick={() => onModeChange("pull_request")}>⑂ <span>Pull request</span></button>
           </div>
-          <div className="input-tools"><span className="language-pill">{mode === "code" ? "Language detected automatically" : "Markdown or plain text"}</span><span className="toolbar-divider" /><button className="tool-button" onClick={onClear} disabled={isTranscribing || isGenerating || (!source && !screenshotPreview)} aria-label="Clear input" title="Clear input">⌫</button></div>
+          <div className="input-tools"><span className="language-pill">{mode === "code" ? "Language detected automatically" : mode === "pull_request" ? "Public GitHub PR" : "Markdown or plain text"}</span><span className="toolbar-divider" /><button className="tool-button" onClick={onClear} disabled={isTranscribing || isGenerating || (!source && !screenshotPreview && !pullRequestUrl)} aria-label="Clear input" title="Clear input">⌫</button></div>
         </div>
+
+        {mode === "pull_request" && <form className="pull-request-import" onSubmit={(event) => { event.preventDefault(); onLoadPullRequest(); }}>
+          <label htmlFor="pull-request-url">GitHub pull request URL</label>
+          <div><input id="pull-request-url" type="url" value={pullRequestUrl} onChange={(event) => onPullRequestUrlChange(event.target.value)} placeholder="https://github.com/owner/repo/pull/123" disabled={isLoadingPullRequest || isGenerating} /><button type="submit" disabled={!pullRequestUrl.trim() || isLoadingPullRequest || isGenerating}>{isLoadingPullRequest ? "Loading…" : "Load PR"}</button></div>
+          <span>Public GitHub pull requests only. Review the fetched description and diff below before asking for an explanation.</span>
+        </form>}
 
         <div className={`editor-wrap ${source || (screenshotPreview && !isTranscribing) ? "has-source" : ""}`}>
           {mode === "code" && (source || (screenshotPreview && !isTranscribing)) && <div className="line-numbers" aria-hidden="true">{Array.from({ length: lineCount }, (_, i) => <span key={i}>{i + 1}</span>)}</div>}
-          <textarea id="source-input" ref={sourceEditor} aria-label={mode === "code" ? "Code input" : "Documentation input"} spellCheck={false} value={source} onChange={(event) => onSourceChange(event.target.value)} placeholder={mode === "code" ? "Paste a code snippet here…" : "Paste documentation here…"} className={mode === "code" ? "source-editor code-editor" : "source-editor docs-editor"} disabled={isTranscribing} />
+          <textarea id="source-input" ref={sourceEditor} aria-label={mode === "code" ? "Code input" : mode === "pull_request" ? "Pull request description and diff" : "Documentation input"} spellCheck={false} value={source} onChange={(event) => onSourceChange(event.target.value)} placeholder={mode === "code" ? "Paste a code snippet here…" : mode === "pull_request" ? "Load a GitHub pull request, or paste its description and diff…" : "Paste documentation here…"} className={mode === "code" ? "source-editor code-editor" : "source-editor docs-editor"} disabled={isTranscribing} />
           {!source && (!screenshotPreview || isTranscribing) && <div className="editor-empty" aria-hidden="true">
-            {isTranscribing ? <><div className="empty-icon">◌</div><strong>Reading the screenshot…</strong><span>The model is extracting visible code or documentation.</span></> : <><div className="empty-icon">{mode === "code" ? "{ }" : "Aa"}</div><strong>{mode === "code" ? "Paste a code snippet to get started" : "Paste a passage or document to explore"}</strong><span>{mode === "code" ? "Any language is welcome. A few lines are enough." : "Technical docs, API references, or concepts you want to unpack."}</span></>}
+            {isTranscribing ? <><div className="empty-icon">◌</div><strong>Reading the screenshot…</strong><span>The model is extracting visible code or documentation.</span></> : <><div className="empty-icon">{mode === "code" ? "{ }" : mode === "pull_request" ? "⑂" : "Aa"}</div><strong>{mode === "code" ? "Paste a code snippet to get started" : mode === "pull_request" ? "Load a GitHub pull request to get started" : "Paste a passage or document to explore"}</strong><span>{mode === "code" ? "Any language is welcome. A few lines are enough." : mode === "pull_request" ? "The PR description and file changes will appear here for review." : "Technical docs, API references, or concepts you want to unpack."}</span></>}
           </div>}
         </div>
 
         {source.trim() && <section className="print-source-section" aria-label="Submitted source material">
-          <div className="section-caption">{mode === "code" ? "SOURCE CODE" : "SOURCE DOCUMENTATION"}</div>
+          <div className="section-caption">{mode === "code" ? "SOURCE CODE" : mode === "pull_request" ? "PULL REQUEST MATERIAL" : "SOURCE DOCUMENTATION"}</div>
           <pre className={`print-source ${mode === "code" ? "print-source-code" : ""}`}>{source}</pre>
         </section>}
 
         <div className="input-footer">
           <span>{source ? `${source.length.toLocaleString()} characters · ${lineCount} lines` : "Your input stays in this local session"}</span>
           <input ref={screenshotInput} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; if (file) onScreenshotSelected(file); event.currentTarget.value = ""; }} />
-          <button className="upload-button" onClick={() => screenshotInput.current?.click()} disabled={isTranscribing || isGenerating}><span>▧</span> Add screenshot</button>
+          {mode !== "pull_request" && <button className="upload-button" onClick={() => screenshotInput.current?.click()} disabled={isTranscribing || isGenerating}><span>▧</span> Add screenshot</button>}
         </div>
       </div>
 
@@ -103,7 +114,7 @@ export function LearningWorkspace({
 
       <div className="action-row">
         <span className="privacy-note"><span>◈</span> Nothing is saved automatically</span>
-        <button className="generate-button" disabled={!source.trim() || isGenerating || isTranscribing || (needsApproval && !approved)} onClick={onExplain}>{isTranscribing ? "Reading screenshot…" : isGenerating && generationPhase ? generationPhaseCopy[generationPhase].button : "Help me understand"} <span>{isGenerating || isTranscribing ? "◌" : "→"}</span></button>
+      <button className="generate-button" disabled={!source.trim() || isGenerating || isTranscribing || isLoadingPullRequest || (needsApproval && !approved)} onClick={onExplain}>{isTranscribing ? "Reading screenshot…" : isGenerating && generationPhase ? generationPhaseCopy[generationPhase].button : "Help me understand"} <span>{isGenerating || isTranscribing || isLoadingPullRequest ? "◌" : "→"}</span></button>
       </div>
       {isGenerating && generationPhase && <div className="generation-progress" role="status" aria-live="polite" aria-atomic="true">
         <span className="generation-progress-spinner" aria-hidden="true" />

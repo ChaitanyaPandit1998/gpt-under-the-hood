@@ -3,7 +3,7 @@ import type { IncompleteCodeItem } from "./incomplete-code.ts";
 
 export const MAX_FOLLOW_UP_HISTORY_MESSAGES = 20;
 
-export type Mode = "code" | "docs";
+export type Mode = "code" | "docs" | "pull_request";
 export type ExplanationDepth = "overview" | "balanced" | "detailed";
 export type LearnerLevel = "beginner" | "intermediate" | "advanced";
 

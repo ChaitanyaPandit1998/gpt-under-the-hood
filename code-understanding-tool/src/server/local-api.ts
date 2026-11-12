@@ -14,6 +14,7 @@ import type { GenerationPhase } from "../domain/generation-progress.ts";
 import { followUpSchema, quizSchema, transcriptionSchema } from "./response-schemas.ts";
 import { ExplanationValidationError, validateFollowUp, validateQuiz, validateTranscription } from "./response-validation.ts";
 import { createReviewedExplanation, type CodexRunner } from "./explanation-service.ts";
+import { loadPublicPullRequest, type PullRequestFetch } from "./github-pull-request.ts";
 
 export type { CodexRunner } from "./explanation-service.ts";
 
@@ -253,8 +254,9 @@ function imageMatchesMime(image: Buffer, mimeType: string) {
   return false;
 }
 
-export function createLocalExplanationApi(options: { runCodex?: CodexRunner; limits?: Partial<ApiLimits> } = {}): Plugin {
+export function createLocalExplanationApi(options: { runCodex?: CodexRunner; limits?: Partial<ApiLimits>; fetchPullRequest?: PullRequestFetch } = {}): Plugin {
   const executeCodex = options.runCodex ?? runCodex;
+  const fetchPullRequest = options.fetchPullRequest ?? fetch;
   const limits = { ...defaultApiLimits, ...options.limits };
   const requestIds = new WeakMap<import("node:http").IncomingMessage, string>();
   const loggedModelErrors = new WeakSet<Error>();
@@ -466,6 +468,29 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
                 ? error.message
                 : "Unable to read this screenshot.";
           sendJson(response, isTooLarge ? 413 : 500, { error: message });
+        }
+      });
+
+      server.middlewares.use("/api/pull-request", async (request, response) => {
+        if (request.method !== "POST") {
+          response.setHeader("Allow", "POST");
+          sendJson(response, 405, { error: "Method not allowed" });
+          return;
+        }
+        try {
+          const parsed = await readJsonRequest(request, 4_000);
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            sendJson(response, 400, { error: "The request body must be a JSON object." });
+            return;
+          }
+          const pullRequestUrl = (parsed as { url?: unknown }).url;
+          const sourceText = await loadPublicPullRequest(pullRequestUrl, fetchPullRequest);
+          sendJson(response, 200, { source_text: sourceText });
+        } catch (error) {
+          const tooLarge = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
+          sendJson(response, tooLarge ? 413 : 400, {
+            error: tooLarge ? "Pull request link request is too large." : error instanceof Error ? error.message : "Unable to load this pull request.",
+          });
         }
       });
 

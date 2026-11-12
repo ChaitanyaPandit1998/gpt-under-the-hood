@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ViteDevServer } from "vite";
 import { createLocalExplanationApi, findCodexCliForRequest, type CodexRunner } from "./local-api";
+import type { PullRequestFetch } from "./github-pull-request";
 
 type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => unknown;
 type RegisteredMiddleware = { path: string; handler: Middleware };
@@ -36,9 +37,9 @@ const responsesBySchemaKey: Record<string, unknown> = {
   ] },
 };
 
-function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters<typeof createLocalExplanationApi>[0]>["limits"]) {
+function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters<typeof createLocalExplanationApi>[0]>["limits"], fetchPullRequest?: PullRequestFetch) {
   const stack: RegisteredMiddleware[] = [];
-  const plugin = createLocalExplanationApi({ runCodex, limits });
+  const plugin = createLocalExplanationApi({ runCodex, limits, fetchPullRequest });
   const configureServer = plugin.configureServer as (server: ViteDevServer) => void;
   configureServer({
     middlewares: {
@@ -101,6 +102,28 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
 }
 
 describe("local explanation API integration", () => {
+  it("loads a public GitHub pull request through the guarded local API", async () => {
+    const fetchPullRequest: PullRequestFetch = vi.fn(async (input) => String(input).endsWith("/files?per_page=100")
+      ? Response.json([{ filename: "src/app.ts", status: "modified", additions: 1, deletions: 0, patch: "+const enabled = true;" }])
+      : Response.json({ title: "Add feature", body: "A short description", html_url: "https://github.com/acme/demo/pull/7", state: "open", base: { ref: "main" }, head: { ref: "feature", sha: "deadbeef" } }));
+    const isolatedRequest = createApiHarness(vi.fn<CodexRunner>(), undefined, fetchPullRequest);
+    const response = await isolatedRequest("/api/pull-request", { url: "https://github.com/acme/demo/pull/7" });
+
+    expect(response.status).toBe(200);
+    const payload = response.json() as { source_text: string };
+    expect(payload.source_text).toContain("Pull request: Add feature");
+    expect(payload.source_text).toContain("File: src/app.ts");
+  });
+
+  it("rejects non-GitHub pull request URLs without making an outbound request", async () => {
+    const fetchPullRequest: PullRequestFetch = vi.fn();
+    const isolatedRequest = createApiHarness(vi.fn<CodexRunner>(), undefined, fetchPullRequest);
+    const response = await isolatedRequest("/api/pull-request", { url: "https://attacker.example/collect" });
+
+    expect(response.status).toBe(400);
+    expect(fetchPullRequest).not.toHaveBeenCalled();
+  });
+
   const runCodex = vi.fn<CodexRunner>(async (rawPrompt) => {
     const prompt = String(rawPrompt);
     if (prompt.includes("You are the second-pass quality reviewer")) return passedReview;
