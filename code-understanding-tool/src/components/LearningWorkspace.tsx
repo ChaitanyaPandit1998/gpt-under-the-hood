@@ -1,4 +1,4 @@
-import type { ChangeEvent, RefObject } from "react";
+import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
 import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "../domain/explanation-types";
 import { generationPhaseCopy, type GenerationPhase } from "../domain/generation-progress";
 
@@ -40,6 +40,18 @@ export function LearningWorkspace({
   onModeChange, onPullRequestUrlChange, onLoadPullRequest, onSourceChange, onExample, onClear, onScreenshotSelected, onApproveTranscription,
   onDepthChange, onLearnerLevelChange, onExplain, onRetry,
 }: Props) {
+  const inputModes: Mode[] = ["code", "docs", "pull_request"];
+
+  function handleModeTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, currentMode: Mode) {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    event.preventDefault();
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const currentIndex = inputModes.indexOf(currentMode);
+    const nextMode = inputModes[(currentIndex + direction + inputModes.length) % inputModes.length]!;
+    onModeChange(nextMode);
+    document.getElementById(nextMode === "pull_request" ? "tab-pr" : `tab-${nextMode}`)?.focus();
+  }
+
   return <section className="workspace" aria-label="Learning workspace">
       <div className="workspace-heading">
         <div>
@@ -52,9 +64,9 @@ export function LearningWorkspace({
       <div className="input-card">
         <div className="input-toolbar">
           <div className="segmented" role="tablist" aria-label="Input type">
-            <button role="tab" id="tab-code" aria-controls="source-input" aria-selected={mode === "code"} tabIndex={mode === "code" ? 0 : -1} className={mode === "code" ? "active" : ""} onKeyDown={(event) => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); onModeChange(mode === "code" ? "docs" : "code"); document.getElementById(mode === "code" ? "tab-docs" : "tab-code")?.focus(); } }} onClick={() => onModeChange("code")}>⌘ <span>Code</span></button>
-            <button role="tab" id="tab-docs" aria-controls="source-input" aria-selected={mode === "docs"} tabIndex={mode === "docs" ? 0 : -1} className={mode === "docs" ? "active" : ""} onKeyDown={(event) => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); onModeChange(mode === "code" ? "docs" : "code"); document.getElementById(mode === "code" ? "tab-docs" : "tab-code")?.focus(); } }} onClick={() => onModeChange("docs")}>▤ <span>Documentation</span></button>
-            <button role="tab" id="tab-pr" aria-controls="source-input" aria-selected={mode === "pull_request"} tabIndex={mode === "pull_request" ? 0 : -1} className={mode === "pull_request" ? "active" : ""} onClick={() => onModeChange("pull_request")}>⑂ <span>Pull request</span></button>
+            <button role="tab" id="tab-code" aria-controls="source-input" aria-selected={mode === "code"} tabIndex={mode === "code" ? 0 : -1} className={mode === "code" ? "active" : ""} onKeyDown={(event) => handleModeTabKeyDown(event, "code")} onClick={() => onModeChange("code")}>⌘ <span>Code</span></button>
+            <button role="tab" id="tab-docs" aria-controls="source-input" aria-selected={mode === "docs"} tabIndex={mode === "docs" ? 0 : -1} className={mode === "docs" ? "active" : ""} onKeyDown={(event) => handleModeTabKeyDown(event, "docs")} onClick={() => onModeChange("docs")}>▤ <span>Documentation</span></button>
+            <button role="tab" id="tab-pr" aria-controls="source-input" aria-selected={mode === "pull_request"} tabIndex={mode === "pull_request" ? 0 : -1} className={mode === "pull_request" ? "active" : ""} onKeyDown={(event) => handleModeTabKeyDown(event, "pull_request")} onClick={() => onModeChange("pull_request")}>⑂ <span>Pull request</span></button>
           </div>
           <div className="input-tools"><span className="language-pill">{mode === "code" ? "Language detected automatically" : mode === "pull_request" ? "Public GitHub PR" : "Markdown or plain text"}</span><span className="toolbar-divider" /><button className="tool-button" onClick={onClear} disabled={isTranscribing || isGenerating || (!source && !screenshotPreview && !pullRequestUrl)} aria-label="Clear input" title="Clear input">⌫</button></div>
         </div>
