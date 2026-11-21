@@ -69,3 +69,67 @@ Measured on 2026-11-09 with four cases through the current working tree based on
 The remaining issues are explicit: map the three discriminant signs to their outcomes, represent recursion without losing the retry relationship, and avoid generating a diagram for a prose policy when its cycle cannot be represented under the current diagram rules. These results are a small regression sample, not a production reliability claim.
 
 These are small-sample baseline measurements, not a claim of production reliability. Keep the set fixed for comparisons, and add new cases when a real failure reveals a missing category.
+
+## DeckCraft Export Feasibility Pilot
+
+`deckcraft-pilot.mjs` tests the actual standalone DeckCraft CLI, not a substitute
+presentation library. It intentionally supports only the previously reviewed
+FastAPI #9816 `fastapi/params.py` chapter at snapshot
+`e676874f76ff728af2fe60eebf50246d630e6caa`, with pinned chapter coordinates.
+It is a curated five-slide example, not a general chapter-to-slide converter.
+
+Prerequisites: an explicitly supplied DeckCraft CLI (tested with 0.18.1), Poppler
+(`pdftotext`), and the saved public chapter result containing `url`, `headSha`,
+`chapter`, and `explanation`. No model calls, image generation, or application
+server are required by this benchmark.
+
+```sh
+npm run eval:deckcraft -- --cli /path/to/deckcraft-cli --input /path/to/saved-public-result.json --output evals/deckcraft-results/fastapi-pilot
+```
+
+Outputs include native `.deckcraft`, editable `.pptx`, PDF, previews, the complete
+original explanation, and a line-numbered source companion. Notes preserve the
+full revision and review note; visible slide footers preserve citations and
+scope warnings for PDF readers. The benchmark checks five slides/pages, notes,
+warnings, bounds, and identical DeckCraft-rendered previews before/after PPTX
+round-trip. Inspect every rendered page separately; bounds and text extraction
+do not establish absence of overlap or clipping.
+
+Generated outputs are ignored by Git. No CLI binary is bundled or installed by
+this script. CLI licences, release verification, cross-platform availability,
+independent PowerPoint compatibility, generic layout, and production integration
+remain separate adoption checks. This pilot does not add export functionality
+to the app or expose an MCP server.
+
+## WordCraft and VectorCraft Pilots
+
+The pilots below are local, case-specific feasibility tests of actual native
+CLIs. They require the saved FastAPI result used above; binary paths are supplied
+explicitly. They do not download software or invoke model/image providers.
+
+```sh
+npm run eval:wordcraft -- --cli /path/to/wordcraft-cli --input /path/to/saved-public-result.json --output evals/wordcraft-results/fastapi-pilot
+npm run eval:vectorcraft -- --cli /path/to/vectorcraft-cli --input /path/to/saved-public-result.json --output evals/vectorcraft-results/fastapi-pilot
+```
+
+WordCraft (tested 0.18.1) creates a DOCX study guide and strict PDF export, checks
+five heading-style chapters, citations, the original review property, and exact
+DOCX text round-trip. Optional `--figure /path/to/diagram.png` includes the existing
+DeckCraft illustration as a raster figure, not an editable vector. Poppler's
+`pdftotext` is required. In the pilot, inspect all four pages and also render the
+DOCX through the bundled LibreOffice helper; structural checks alone do not prove
+layout or Microsoft Word compatibility. Its output report intentionally leaves
+visual review pending until somebody inspects the generated files.
+
+VectorCraft (tested 0.24.1) builds one four-node view from the captured diagram
+data using native commands, with safe mode/no-prefs enabled. It exports native,
+SVG, PNG and PDF files; checks live text, an actual native text edit, citation
+metadata, known edge mapping, bounds, SVG round-trip, and basic rejection of
+active/external SVG elements. This check is not a production SVG sanitizer. The
+layout is curated and does not establish graph-layout quality in general. Inspect
+the PNG and independent browser/PDF renderings, including font substitution and
+label/connector collisions. The pilot deliberately uses Source Sans 3 after a
+Liberation Sans fallback was observed during its smoke test.
+
+No binary or generated output is committed. The product integration sequence,
+limits, security boundary, and release gates are recorded in `../PLAN.md`.

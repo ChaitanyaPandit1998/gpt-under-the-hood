@@ -9,3 +9,6 @@ npm-debug.log*
 test-results/
 playwright-report/
 evals/image-results/
+evals/deckcraft-results/
+evals/wordcraft-results/
+evals/vectorcraft-results/

@@ -101,6 +101,61 @@ dated entry for future work; never record secrets or private source material.
 - No images were generated. Next: push the fix and recheck PR #5 for merge;
   continue monitoring additional languages and complex cases after integration.
 
+## 2026-11-21 - Actual DeckCraft Export Pilot
+
+- Downloaded the official standalone macOS CLI 0.18.1 into a temporary folder,
+  without a system-wide installation. Its archive SHA-256 matched the GitHub
+  release asset digest: `10992f73c88a4c0361dd0fec3a4d7490731ffb3ea9658ee2274b396e3341af00`.
+- Added a repeatable, deliberately case-specific export benchmark for the saved
+  public FastAPI params chapter. No generic converter or app UI was added.
+- Built five slides with native editable text/branch diagrams and exported
+  `.deckcraft`, `.pptx`, and PDF. Full source and original explanation accompany
+  the files. Speaker notes retain the exact review note and revision; each slide
+  visibly includes chapter citations and partial-patch/verification caveats.
+- Native and PPTX inspections passed five-slide, notes, source, warning, and bounds
+  checks. All five DeckCraft-rendered preview images were identical after PPTX
+  round-trip. Poppler extracted five PDF pages with citations and warnings.
+- Agent inspected all native slide previews and all independently Poppler-rendered
+  PDF pages. This is not a Microsoft PowerPoint compatibility test or an
+  independent human quality assessment. Generic source selection/layout is not
+  tested by this curated example. No model/image-provider calls were made.
+- `npm run check` passed: lint, 138 unit/API tests, TypeScript, production build.
+  Existing Vite native-config warnings remain. No new browser tests were run;
+  this experiment does not change the app UI. Next: evaluate a bounded,
+  optional export adapter and independent PowerPoint compatibility before adding
+  a user-facing export action. Keep DeckCraft outside the core explanation path.
+
+## 2026-11-21 - WordCraft and VectorCraft Pilots and Integration Plan
+
+- WordCraft CLI 0.18.1 archive matched published SHA-256
+  `34397cf6fcf73ee8ae8d53cab08fbdfc213262dbb6753c2965ebb7cde37b8616`.
+  Built a four-page, five-chapter DOCX/PDF guide from the same saved public PR
+  result. Heading styles, citation text, exact original review property, and DOCX
+  text round-trip checks passed. Agent inspected all native pages and all four
+  pages independently rendered with bundled LibreOffice. The optional figure
+  reuses a DeckCraft raster image; it is not an editable WordCraft vector.
+- VectorCraft CLI 0.24.1 archive matched published SHA-256
+  `7f0c8261e5c831d9681e48272f9ba73bf8702dbf6ceb84f98177c7c007faddf2`.
+  Native commands created a four-node/four-edge view with live editable text,
+  citations and source metadata. Native text editing, SVG round-trip, bounds,
+  basic SVG content checks, and PDF citations passed. Agent inspected native,
+  Chrome SVG, and Poppler PDF renderings, moving labels clear of connectors.
+- The initial VectorCraft font fallback was resolved by explicitly selecting its
+  Source Sans 3 font. All binaries remain temporary, not installed system-wide
+  or committed. No model/image-provider calls were made by these pilots.
+- Added repeatable case-specific benchmark scripts and the phased integration
+  plan in PLAN.md: typed snapshots, optional adapters, bounded local jobs, UI and
+  consent, source/quality preservation, SVG safety, and release gates. This does
+  not yet add a generic converter, public export endpoint, or app Export button.
+- Scope: one public case on macOS arm64. Native Microsoft Office, other operating
+  systems, generic/dense/multilingual layouts, and production isolation remain
+  unverified. These agent inspections are not independent human assessments.
+- Final checks passed: lint, 144 unit/API tests (including six fail-fast pilot
+  guard tests), TypeScript, production build, and 26 desktop/mobile browser tests.
+  All three native CLI pilots were rerun successfully. Existing Vite native-config
+  warnings remain. Next: review and merge the pilots/plan, then implement the
+  bounded WordCraft adapter behind a feature flag as described in PLAN.md.
+
 ## Existing Work - Baseline Recorded 2026-11-21
 
 This is a retrospective inventory, not a claim that all work occurred today.
