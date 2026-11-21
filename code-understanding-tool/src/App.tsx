@@ -310,6 +310,7 @@ function App() {
           />}
 
           {!prPlan && explanation && <ExplanationResult
+            materialMode={mode}
             explanation={explanation}
             source={source}
             theme={pageTheme}

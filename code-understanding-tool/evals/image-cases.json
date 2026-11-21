@@ -1,0 +1,29 @@
+{
+  "sanitization": "Manually authored synthetic chapter summaries. No repository content, names, paths, URLs, credentials, or personal data.",
+  "cases": [
+    {
+      "id": "version-compatibility",
+      "title": "One interface, two supported versions",
+      "summary": "An application supports either of two library versions. A compatibility adapter selects the installed version and exposes one stable interface to the rest of the application. This does not imply that both versions run together.",
+      "visualBrief": "Show a selector choosing one of two differently shaped connectors, then an adapter and a single consistent output interface. Make the inactive connector visually muted.",
+      "requiredElements": ["Two alternative versions", "Exactly one selected version", "One stable adapter interface"],
+      "failureModes": ["Both versions depicted as simultaneously active", "Adapter changing the business behavior", "Unexplained extra connections"]
+    },
+    {
+      "id": "request-validation",
+      "title": "Validate before processing",
+      "summary": "A request is checked before it is processed. A valid request proceeds to processing and a response. An invalid request stops at validation and returns an error without entering processing.",
+      "visualBrief": "Show an incoming document reaching a checkpoint with two distinct outcomes. The accepted route reaches a processing station. The rejected route ends at a stop marker before that station. Distinguish the routes by symbols as well as color.",
+      "requiredElements": ["Validation before processing", "Accepted route reaches processing", "Rejected route stops before processing"],
+      "failureModes": ["Invalid request reaches processing", "Validation shown after processing", "Outcome distinguished by color alone"]
+    },
+    {
+      "id": "bounded-retries",
+      "title": "Retry with a stopping condition",
+      "summary": "An operation can be attempted at most three times. A success stops further attempts immediately. If all three attempts fail, the operation ends in failure rather than retrying forever.",
+      "visualBrief": "Show three attempt stations in sequence, with a success exit available from each station and a terminal failure exit after the third. Do not draw a loop back to the first station.",
+      "requiredElements": ["At most three attempts", "Early success exit", "Terminal failure after the final attempt"],
+      "failureModes": ["Infinite retry loop", "More than three attempts", "Success followed by another attempt"]
+    }
+  ]
+}

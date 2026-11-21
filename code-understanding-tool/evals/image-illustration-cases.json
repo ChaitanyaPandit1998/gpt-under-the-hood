@@ -1,0 +1,13 @@
+{
+  "sanitization": "Manually authored synthetic artwork brief. No repository content, names, paths, URLs, credentials, or personal data.",
+  "cases": [
+    {
+      "id": "reviewing-requests-artwork",
+      "title": "Reviewing incoming requests: decorative cover",
+      "summary": "An optional visual metaphor for examining an incoming request. This artwork does not explain validation outcomes, code behavior, or security guarantees.",
+      "visualBrief": "One blank ivory document with a folded corner and one large teal magnifying glass examining its surface. A small amber geometric accent balances the composition. Keep the document blank. Make both objects recognizable at thumbnail size.",
+      "requiredElements": ["Recognizable blank document", "Recognizable magnifying glass", "Simple composition legible at thumbnail size", "No technical flow or approval claims"],
+      "failureModes": ["Garbled or readable text", "Unrequested flowchart or connectors", "An approval or security guarantee", "Unrecognizable or malformed main objects"]
+    }
+  ]
+}

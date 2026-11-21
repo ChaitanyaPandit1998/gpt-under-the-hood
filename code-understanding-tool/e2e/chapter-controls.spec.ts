@@ -1,0 +1,88 @@
+import { expect, test } from "@playwright/test";
+
+for (const mode of ["code", "docs"] as const) {
+test(`${mode}: adapts just one section, retains original warnings and restores cached variants`, async ({ page }, testInfo) => {
+  const requests: Record<string, unknown>[] = [];
+  const source = "const value = 42;\nconsole.log(value);";
+  await page.route("**/api/**", async (route) => {
+    if (route.request().url().includes("explain-progress")) return route.fulfill({ json: { phase: "drafting" } });
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    requests.push(body);
+    const original = requests.length === 1;
+    return route.fulfill({ json: {
+      title: original ? "Original explanation" : `Variant ${requests.length}`,
+      summary: original ? "Original overview remains available." : "This is the adapted section.",
+      concepts: [], walkthrough: [{ heading: "Assignment", explanation: "Assigns 42 to value.", source_ranges: [{ start_line: 1, end_line: 1 }] }],
+      assumptions: [{ statement: "No broader context.", reason: "Only two source lines were supplied." }],
+      visuals: [], visual_note: "", quality_review_status: "incomplete", quality_review_note: "A remaining concern could not be verified.",
+    } });
+  });
+  await page.goto("/");
+  if (mode === "docs") await page.getByRole("tab", { name: /Documentation/ }).click();
+  const editor = page.getByRole("textbox", { name: mode === "code" ? "Code input" : "Documentation input", exact: true });
+  await editor.fill(source);
+  await page.getByRole("button", { name: "Help me understand", exact: false }).click();
+  await expect(page.getByRole("heading", { name: "Original explanation", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  const overview = page.getByRole("region", { name: "Customize Overview", exact: true });
+  await overview.getByRole("button", { name: "Go deeper", exact: true }).click();
+  expect(requests).toHaveLength(1);
+  await overview.getByText("Customize explanation", { exact: true }).click();
+  await overview.getByRole("combobox", { name: "Chapter tone" }).selectOption("technical");
+  await overview.getByRole("combobox", { name: "Chapter focus" }).selectOption("example");
+  await overview.getByRole("button", { name: "Generate section variant", exact: true }).click();
+  await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toBeVisible();
+  expect(requests[1]).toMatchObject({ source_text: source, material_kind: mode, explanation_depth: "detailed", explanation_tone: "technical", explanation_focus: "example" });
+  expect(requests[1].learner_question).toContain("Explain ONLY");
+  expect(requests[1].learner_question).toContain("Original overview remains available.");
+  await expect(page.getByText("Original overview remains available.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Second-pass review", { exact: false }).first()).toBeVisible();
+  await overview.getByRole("button", { name: "Select source lines 1 through 1", exact: true }).click();
+  await expect(editor).toBeFocused();
+  const outline = page.getByRole("navigation", { name: "Explanation chapters", exact: true });
+  await outline.getByRole("button", { name: /Assignment/ }).click();
+  const assignment = page.getByRole("region", { name: "Customize Assignment", exact: true });
+  await assignment.getByText("Customize explanation", { exact: true }).click();
+  await expect(assignment.getByRole("combobox", { name: "Chapter depth" })).toHaveValue("balanced");
+  await expect(assignment.getByRole("combobox", { name: "Chapter tone" })).toHaveValue("plain");
+  await outline.getByRole("button", { name: /Overview/ }).click();
+  await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toBeVisible();
+  await overview.getByRole("combobox", { name: "Chapter focus" }).selectOption("behaviour");
+  await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toHaveCount(0);
+  await overview.getByRole("combobox", { name: "Chapter focus" }).selectOption("example");
+  await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toBeVisible();
+  expect(requests).toHaveLength(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  if (mode === "code") await overview.screenshot({ path: testInfo.outputPath("chapter-controls.png") });
+});
+}
+
+test("cancels section work when navigating and ignores its late response", async ({ page }) => {
+  let count = 0;
+  let release = () => {};
+  await page.route("**/api/**", async (route) => {
+    if (route.request().url().includes("explain-progress")) return route.fulfill({ json: { phase: "drafting" } });
+    count += 1;
+    const original = count === 1;
+    if (!original) await new Promise<void>((resolve) => { release = resolve; });
+    await route.fulfill({ json: {
+      title: original ? "Original" : "Late variant", summary: "Supplied source only.", concepts: [],
+      walkthrough: [{ heading: "Assignment", explanation: "Assigns a value.", source_ranges: [{ start_line: 1, end_line: 1 }] }],
+      assumptions: [], visuals: [], visual_note: "",
+    } }).catch(() => {});
+  });
+  await page.goto("/");
+  await page.getByRole("textbox", { name: "Code input", exact: true }).fill("const value = 42;");
+  await page.getByRole("button", { name: "Help me understand", exact: false }).click();
+  await expect(page.getByRole("heading", { name: "Original", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  const overview = page.getByRole("region", { name: "Customize Overview", exact: true });
+  await overview.getByRole("button", { name: "Generate section variant", exact: true }).click();
+  await expect.poll(() => count).toBe(2);
+  const outline = page.getByRole("navigation", { name: "Explanation chapters", exact: true });
+  await outline.getByRole("button", { name: /Assignment/ }).click();
+  release();
+  await outline.getByRole("button", { name: /Overview/ }).click();
+  await expect(overview.getByRole("button", { name: "Generate section variant", exact: true })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "Late variant", exact: true })).toHaveCount(0);
+});

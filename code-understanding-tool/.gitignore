@@ -6,3 +6,6 @@ dist/
 !.env.example
 npm-debug.log*
 *.tsbuildinfo
+test-results/
+playwright-report/
+evals/image-results/

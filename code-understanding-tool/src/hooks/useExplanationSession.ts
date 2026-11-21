@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { MAX_FOLLOW_UP_HISTORY_MESSAGES, type Explanation, type ExplanationDepth, type FollowUpAnswer, type FollowUpMessage, type LearnerLevel, type Mode } from "../domain/explanation-types";
 import { isGenerationPhase, type GenerationPhase } from "../domain/generation-progress";
+import type { ChapterSettings } from "../domain/chapter-settings";
 
-type SessionInput = { source: string; mode: Mode; depth: ExplanationDepth; learnerLevel: LearnerLevel };
+type SessionInput = { source: string; mode: Mode; depth: ExplanationDepth; learnerLevel: LearnerLevel; tone?: ChapterSettings["tone"]; focus?: ChapterSettings["focus"]; learnerQuestion?: string };
 
 function createProgressId(): string {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -12,7 +13,7 @@ function createProgressId(): string {
   });
 }
 
-export function useExplanationSession({ source, mode, depth, learnerLevel }: SessionInput) {
+export function useExplanationSession({ source, mode, depth, learnerLevel, tone = "plain", focus = "auto", learnerQuestion }: SessionInput) {
   const [explanation, setExplanation] = useState<Explanation | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationPhase, setGenerationPhase] = useState<GenerationPhase | null>(null);
@@ -101,7 +102,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel }: Ses
       const response = await fetch("/api/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_text: source, material_kind: mode === "code" ? "code" : "docs", teaching_mode: "auto", visual_preference: "auto", explanation_depth: depth, learner_level: learnerLevel, progress_id: progressId }),
+        body: JSON.stringify({ source_text: source, material_kind: mode === "code" ? "code" : "docs", teaching_mode: "auto", visual_preference: "auto", explanation_depth: depth, learner_level: learnerLevel, explanation_tone: tone, explanation_focus: focus, learner_question: learnerQuestion, progress_id: progressId }),
         signal: requestController.signal,
       });
       const payload = await response.json();

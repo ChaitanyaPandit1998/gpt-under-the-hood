@@ -16,6 +16,9 @@ import { ExplanationValidationError, validateFollowUp, validateQuiz, validateTra
 import { createReviewedExplanation, type CodexRunner } from "./explanation-service.ts";
 import { loadPublicPullRequest, type PullRequestFetch } from "./github-pull-request.ts";
 import { loadPullRequestPlan } from "./pull-request-plan.ts";
+import { loadPullRequestEvidence } from "./pull-request-evidence.ts";
+import { chapterArtworkPrompt, parseArtworkRequest } from "../domain/chapter-illustrations.ts";
+import { generateCloudflareImage, CLOUDFLARE_IMAGE_MODEL, type CloudflareImageCredentials } from "./cloudflare-image-client.ts";
 
 export type { CodexRunner } from "./explanation-service.ts";
 
@@ -29,6 +32,7 @@ type ApiLimits = {
   progressRecordTtlMs: number;
   terminalProgressTtlMs: number;
   explanationTimeoutMs: number;
+  maxChapterCovers: number;
 };
 const defaultApiLimits: ApiLimits = {
   maxConcurrentModelRequests: 2,
@@ -37,6 +41,7 @@ const defaultApiLimits: ApiLimits = {
   progressRecordTtlMs: 10 * 60_000,
   terminalProgressTtlMs: 60_000,
   explanationTimeoutMs: 5 * 60_000,
+  maxChapterCovers: 12,
 };
 
 async function findCodexCli(): Promise<string> {
@@ -255,7 +260,7 @@ function imageMatchesMime(image: Buffer, mimeType: string) {
   return false;
 }
 
-export function createLocalExplanationApi(options: { runCodex?: CodexRunner; limits?: Partial<ApiLimits>; fetchPullRequest?: PullRequestFetch } = {}): Plugin {
+export function createLocalExplanationApi(options: { runCodex?: CodexRunner; limits?: Partial<ApiLimits>; fetchPullRequest?: PullRequestFetch; imageCredentials?: CloudflareImageCredentials; fetchImages?: typeof fetch } = {}): Plugin {
   const executeCodex = options.runCodex ?? runCodex;
   const fetchPullRequest = options.fetchPullRequest ?? fetch;
   const limits = { ...defaultApiLimits, ...options.limits };
@@ -264,6 +269,7 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
   const generationProgress = new Map<string, { phase: GenerationPhase; updatedAt: number }>();
   const progressTimers = new Map<string, NodeJS.Timeout>();
   let activeModelRequestCount = 0;
+  let chapterCoverRequests = 0;
   const deleteProgress = (id: string) => {
     generationProgress.delete(id);
     const timer = progressTimers.get(id);
@@ -469,6 +475,57 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
                 ? error.message
                 : "Unable to read this screenshot.";
           sendJson(response, isTooLarge ? 413 : 500, { error: message });
+        }
+      });
+
+      server.middlewares.use("/api/chapter-cover", async (request, response) => {
+        response.setHeader("Cache-Control", "no-store");
+        if (request.method !== "POST") {
+          response.setHeader("Allow", "POST");
+          sendJson(response, 405, { error: "Method not allowed" });
+          return;
+        }
+        let theme;
+        try { theme = parseArtworkRequest(await readJsonRequest(request, 4_000)); }
+        catch (error) {
+          sendJson(response, error instanceof Error && error.message === "REQUEST_TOO_LARGE" ? 413 : 400,
+            { error: error instanceof Error && error.message !== "REQUEST_TOO_LARGE" ? error.message : "Artwork request is too large." });
+          return;
+        }
+        const credentials = options.imageCredentials;
+        if (!credentials?.accountId || !credentials.apiToken) {
+          sendJson(response, 503, { error: "Cloudflare image credentials are not configured on the local server. Configure them locally and restart the server." });
+          return;
+        }
+        if (chapterCoverRequests >= limits.maxChapterCovers) {
+          sendJson(response, 429, { error: "The server-session chapter-cover request limit has been reached. No image request was sent." });
+          return;
+        }
+        try {
+        const result = await runModelRequest(request, response, "chapter-cover", async (signal, markPhase) => {
+          chapterCoverRequests += 1;
+          markPhase("generating_artwork");
+          const image = await generateCloudflareImage(chapterArtworkPrompt(theme), credentials, options.fetchImages ?? fetch, signal);
+          return { theme, model: CLOUDFLARE_IMAGE_MODEL, latencyMs: image.latencyMs, dataUrl: `data:image/${image.extension === "jpg" ? "jpeg" : "png"};base64,${image.bytes.toString("base64")}` };
+        }, 95_000);
+        if (result.status === "completed") sendJson(response, 200, result.value);
+        } catch (error) {
+          if (!response.headersSent && !response.destroyed) sendJson(response, 500, { error: error instanceof Error ? error.message : "Artwork generation failed." });
+        }
+      });
+
+      server.middlewares.use("/api/pull-request-evidence", async (request, response) => {
+        if (request.method !== "POST") {
+          response.setHeader("Allow", "POST");
+          sendJson(response, 405, { error: "Method not allowed" });
+          return;
+        }
+        try {
+          const parsed = await readJsonRequest(request, 4_000);
+          sendJson(response, 200, await loadPullRequestEvidence(parsed, fetchPullRequest));
+        } catch (error) {
+          sendJson(response, error instanceof Error && error.message === "REQUEST_TOO_LARGE" ? 413 : 400,
+            { error: error instanceof Error ? error.message : "Unable to load PR evidence." });
         }
       });
 
@@ -700,6 +757,8 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
             teaching_mode?: unknown;
             explanation_depth?: unknown;
             learner_level?: unknown;
+            explanation_tone?: unknown;
+            explanation_focus?: unknown;
             learner_question?: unknown;
             visual_preference?: unknown;
             progress_id?: unknown;
@@ -726,6 +785,12 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
           }
           progressId = typeof payload.progress_id === "string" ? payload.progress_id : undefined;
 
+          if ((payload.explanation_tone !== undefined && (typeof payload.explanation_tone !== "string" || !["plain", "technical"].includes(payload.explanation_tone))) ||
+              (payload.explanation_focus !== undefined && (typeof payload.explanation_focus !== "string" || !["auto", "concepts", "behaviour", "example"].includes(payload.explanation_focus)))) {
+            sendJson(response, 400, { error: "Choose a supported explanation tone and focus." });
+            return;
+          }
+
           const materialKind = payload.material_kind === "docs" ? "documentation" : "code";
           const teachingMode = ["auto", "walkthrough", "concepts", "control_flow"].includes(String(payload.teaching_mode))
             ? String(payload.teaching_mode)
@@ -745,6 +810,8 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
               teachingMode,
               explanationDepth,
               learnerLevel,
+              explanationTone: payload.explanation_tone === "technical" ? "technical" : "plain",
+              explanationFocus: typeof payload.explanation_focus === "string" ? payload.explanation_focus : "auto",
               visualPreference: String(payload.visual_preference ?? "auto"),
               learnerQuestion: typeof payload.learner_question === "string" ? payload.learner_question : undefined,
               onProgress: (phase) => {

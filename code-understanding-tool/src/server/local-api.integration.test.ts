@@ -37,9 +37,9 @@ const responsesBySchemaKey: Record<string, unknown> = {
   ] },
 };
 
-function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters<typeof createLocalExplanationApi>[0]>["limits"], fetchPullRequest?: PullRequestFetch) {
+function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters<typeof createLocalExplanationApi>[0]>["limits"], fetchPullRequest?: PullRequestFetch, imageOptions?: Pick<NonNullable<Parameters<typeof createLocalExplanationApi>[0]>, "imageCredentials" | "fetchImages">) {
   const stack: RegisteredMiddleware[] = [];
-  const plugin = createLocalExplanationApi({ runCodex, limits, fetchPullRequest });
+  const plugin = createLocalExplanationApi({ runCodex, limits, fetchPullRequest, ...imageOptions });
   const configureServer = plugin.configureServer as (server: ViteDevServer) => void;
   configureServer({
     middlewares: {
@@ -102,6 +102,56 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
 }
 
 describe("local explanation API integration", () => {
+  it("generates a generic opt-in cover without sending chapter material or invoking Codex", async () => {
+    const image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=";
+    const runner = vi.fn<CodexRunner>();
+    const fetchImages = vi.fn<typeof fetch>(async () => Response.json({ success: true, result: { image } }));
+    const request = createApiHarness(runner, { maxChapterCovers: 1 }, undefined, { imageCredentials: { accountId: "a".repeat(32), apiToken: "test-token" }, fetchImages });
+    expect((await request("/api/chapter-cover", { theme: "review", approved: false })).status).toBe(400);
+    expect((await request("/api/chapter-cover", { theme: "review", approved: true, source: "PRIVATE_CODE" })).status).toBe(400);
+    expect(fetchImages).not.toHaveBeenCalled();
+    const response = await request("/api/chapter-cover", { theme: "review", approved: true });
+    expect(response.status).toBe(200);
+    expect(response.json()).toMatchObject({ theme: "review", dataUrl: `data:image/png;base64,${image}` });
+    const input = JSON.parse(String(fetchImages.mock.calls[0][1]?.body));
+    expect(Object.keys(input).sort()).toEqual(["prompt", "steps"]);
+    expect(input.prompt).toContain("Decorative metaphor only");
+    expect(input.prompt).not.toContain("PRIVATE_CODE");
+    expect(runner).not.toHaveBeenCalled();
+    expect((await request("/api/chapter-cover", { theme: "review", approved: true })).status).toBe(429);
+    expect(fetchImages).toHaveBeenCalledTimes(1);
+    expect((await request("/api/chapter-cover", { theme: "review", approved: true }, "https://evil.example")).status).toBe(403);
+    expect((await request("/api/chapter-cover", {}, undefined, "GET")).status).toBe(405);
+  });
+
+  it("returns a clear JSON error when covers are unconfigured or the provider fails", async () => {
+    const empty = createApiHarness(vi.fn<CodexRunner>());
+    expect((await empty("/api/chapter-cover", { theme: "review", approved: true })).status).toBe(503);
+    const fetchImages = vi.fn<typeof fetch>(async () => new Response("PRIVATE_PROVIDER_BODY", { status: 401 }));
+    const request = createApiHarness(vi.fn<CodexRunner>(), undefined, undefined, { imageCredentials: { accountId: "a".repeat(32), apiToken: "test-token" }, fetchImages });
+    const response = await request("/api/chapter-cover", { theme: "review", approved: true });
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(response.json())).toContain("HTTP 401");
+    expect(JSON.stringify(response.json())).not.toContain("PRIVATE_PROVIDER_BODY");
+  });
+
+  it("loads on-demand evidence behind the local guard without invoking a model", async () => {
+    const headSha = "a".repeat(40);
+    const runner = vi.fn<CodexRunner>();
+    const fetcher: PullRequestFetch = async (input) => String(input).includes("/files?")
+      ? Response.json([{ filename: "src/app.ts", patch: "+validate(input);" }])
+      : Response.json({ title: "Validate", head: { sha: headSha }, changed_files: 1 });
+    const request = createApiHarness(runner, undefined, fetcher);
+    const body = { url: "https://github.com/acme/demo/pull/7", headSha, filename: "src/app.ts", page: 1, offset: 0 };
+    const response = await request("/api/pull-request-evidence", body);
+    expect(response.status).toBe(200);
+    expect(response.json()).toMatchObject({ filename: "src/app.ts", nextOffset: null, chapter: { files: ["src/app.ts"] } });
+    expect(runner).not.toHaveBeenCalled();
+    expect((await request("/api/pull-request-evidence", body, "https://evil.example")).status).toBe(403);
+    expect((await request("/api/pull-request-evidence", {}, undefined, "GET")).status).toBe(405);
+    expect((await request("/api/pull-request-evidence", { ...body, page: 6 })).status).toBe(400);
+  });
+
   it("builds a coverage-aware chapter outline without invoking the model", async () => {
     const runner = vi.fn<CodexRunner>();
     const fetcher: PullRequestFetch = async (input) => String(input).includes("/files?")
@@ -176,6 +226,28 @@ describe("local explanation API integration", () => {
     expect(runCodex).toHaveBeenCalledTimes(2);
     expect(runCodex.mock.calls[0]?.[0]).toContain("explanation_depth: overview");
     expect(runCodex.mock.calls[0]?.[0]).toContain("learner_level: intermediate");
+  });
+
+  it("passes chapter tone and focus through drafting and review", async () => {
+    const response = await request("/api/explain", {
+      source_text: "const value = 42;", explanation_tone: "technical", explanation_focus: "behaviour",
+      learner_question: "Explain only the assignment section.",
+    });
+    expect(response.status).toBe(200);
+    expect(runCodex).toHaveBeenCalledTimes(2);
+    for (const call of runCodex.mock.calls) {
+      expect(call[0]).toContain("tone=technical");
+      expect(call[0]).toContain("focus=behaviour");
+      expect(call[0]).toContain("Explain only the assignment section.");
+    }
+  });
+
+  it("rejects unsupported chapter preferences before model work", async () => {
+    for (const preferences of [{ explanation_tone: "persuasive" }, { explanation_focus: "invented" }, { explanation_tone: ["plain"] }]) {
+      const response = await request("/api/explain", { source_text: "const value = 42;", ...preferences });
+      expect(response.status).toBe(400);
+    }
+    expect(runCodex).not.toHaveBeenCalled();
   });
 
   it("keeps an incomplete control-flow diagram and flags uncertain coverage", async () => {
