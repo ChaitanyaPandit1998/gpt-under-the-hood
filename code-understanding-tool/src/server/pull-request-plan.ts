@@ -6,7 +6,7 @@ const MAX_FILES = 500;
 const MAX_PATCH = 24_000;
 const MAX_EVIDENCE = 600_000;
 const MAX_CHAPTER = 36_000;
-type Pull = { title?: string; body?: string; head?: { sha?: string }; changed_files?: number };
+type Pull = { title?: string; body?: string; head?: { sha?: string }; base?: { sha?: string }; changed_files?: number };
 type RemoteFile = { filename?: string; status?: string; additions?: number; deletions?: number; patch?: string };
 
 export async function loadPullRequestPlan(value: unknown, fetcher: PullRequestFetch = fetch): Promise<PullRequestPlan> {
@@ -36,7 +36,7 @@ export async function loadPullRequestPlan(value: unknown, fetcher: PullRequestFe
       for (const remote of result.value as RemoteFile[]) {
         if (!remote || typeof remote.filename !== "string" || remote.filename.length > 1_000) throw new Error("GitHub returned an invalid file path.");
         if (files.some((file) => file.path === remote.filename)) throw new Error("GitHub returned duplicate file paths. Reload the PR manifest.");
-        const file: PlannedFile = { path: remote.filename, status: String(remote.status ?? "changed"), additions: Number(remote.additions) || 0, deletions: Number(remote.deletions) || 0, coverage: "included" };
+        const file: PlannedFile = { path: remote.filename, status: String(remote.status ?? "changed"), additions: Number(remote.additions) || 0, deletions: Number(remote.deletions) || 0, coverage: "included", page };
         files.push(file);
         if (typeof remote.patch !== "string" || !remote.patch.trim()) { file.coverage = "unavailable"; continue; }
         const header = `\n--- File: ${file.path} (${file.status}; +${file.additions}/-${file.deletions}) ---\n`;
@@ -59,7 +59,7 @@ export async function loadPullRequestPlan(value: unknown, fetcher: PullRequestFe
     }
     // Do not combine patches from different head revisions if a PR changes during pagination.
     const latest = (await get(base)).value as Pull;
-    if (latest.head?.sha !== pull.head.sha || latest.changed_files !== pull.changed_files) throw new Error("The PR changed during import. Reload it to build a consistent chapter plan.");
+    if (latest.head?.sha !== pull.head.sha || latest.base?.sha !== pull.base?.sha || latest.changed_files !== pull.changed_files) throw new Error("The PR changed during import. Reload it to build a consistent chapter plan.");
     const warnings: string[] = [];
     const filesComplete = !more && (!Number.isSafeInteger(pull.changed_files) || files.length === pull.changed_files);
     if (more) warnings.push(`Only the first ${MAX_FILES} changed files were fetched.`);
@@ -91,7 +91,7 @@ export async function loadPullRequestPlan(value: unknown, fetcher: PullRequestFe
     const fullManifest = files.map((file) => `${file.path} (${file.status}; +${file.additions}/-${file.deletions}; ${file.coverage})`).join("\n");
     const manifest = fullManifest.length <= 80_000 ? fullManifest : fullManifest.slice(0, 80_000) + "\n[Overview inventory excerpt only; use the structured file manifest for the complete fetched list.]";
     const chapters = [{ id: "overview", title: "Overview and change inventory", files: [], sourceText: `${context}\n\nFile inventory (not implementation evidence):\n${manifest}\n\nNo patches are provided for this overview. Describe scope and the reading plan; do not infer implementation behavior from filenames.` }, ...evidenceChapters.map((chapter) => ({ ...chapter, sourceText: `${context}\n\nCurrent chapter: ${chapter.title}\nOnly the following patches are evidence for this chapter. Other chapters have not been supplied.\n${chapter.sourceText}` }))];
-    return { title, url, headSha: pull.head.sha, totalFiles: Number.isSafeInteger(pull.changed_files) ? pull.changed_files! : null, filesComplete, files, chapters, warnings };
+    return { title, url, headSha: pull.head.sha, baseSha: pull.base?.sha, totalFiles: Number.isSafeInteger(pull.changed_files) ? pull.changed_files! : null, filesComplete, files, chapters, warnings };
   } catch (error) {
     if (controller.signal.aborted) throw new Error("Loading the PR manifest timed out. Try again.");
     throw error;

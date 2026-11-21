@@ -1,6 +1,9 @@
 import { createContext, useContext, useId, useRef, useState, type ReactNode } from "react";
 import type { Explanation } from "../domain/explanation-types";
 import { explanationChapters, prefersChapters } from "../domain/explanation-chapters";
+import { ChapterIllustration } from "./ChapterIllustration";
+import type { ChapterArtwork } from "../domain/chapter-illustrations";
+import { ChapterRefinement, type ChapterRefinementContext } from "./ChapterRefinement";
 
 const ChapterContext = createContext<string | null>(null);
 
@@ -9,15 +12,16 @@ export function ChapterPage({ id, children }: { id: string; children: ReactNode 
   return <div className="chapter-page" hidden={activeChapter !== null && activeChapter !== id}>{children}</div>;
 }
 
-export function ChapterReader({ explanation, children }: { explanation: Explanation; children: ReactNode }) {
+export function ChapterReader({ explanation, children, artworkEnabled = true, refinementContext }: { explanation: Explanation; children: ReactNode; artworkEnabled?: boolean; refinementContext?: ChapterRefinementContext }) {
   // A new result starts a new reading session, even when the result component stays mounted.
-  return <Reader key={JSON.stringify(explanation)} explanation={explanation}>{children}</Reader>;
+  return <Reader key={JSON.stringify(explanation)} explanation={explanation} artworkEnabled={artworkEnabled} refinementContext={refinementContext}>{children}</Reader>;
 }
 
-function Reader({ explanation, children }: { explanation: Explanation; children: ReactNode }) {
+function Reader({ explanation, children, artworkEnabled, refinementContext }: { explanation: Explanation; children: ReactNode; artworkEnabled: boolean; refinementContext?: ChapterRefinementContext }) {
   const chapters = explanationChapters(explanation);
   const [chapterMode, setChapterMode] = useState(() => prefersChapters(explanation));
   const [index, setIndex] = useState(0);
+  const [covers, setCovers] = useState<Record<string, ChapterArtwork>>({});
   const heading = useRef<HTMLHeadingElement>(null);
   const headingId = useId();
   const chapter = chapters[index];
@@ -46,6 +50,14 @@ function Reader({ explanation, children }: { explanation: Explanation; children:
           <p aria-live="polite" aria-atomic="true">Chapter {index + 1} of {chapters.length}</p>
           <h3 id={headingId} ref={heading} tabIndex={-1}>{chapter.title}</h3>
         </header>}
+        {chapterMode && artworkEnabled && <ChapterIllustration key={chapter.id} cached={covers[chapter.id]} onChange={(artwork) => setCovers((current) => {
+          const next = { ...current };
+          if (artwork) next[chapter.id] = artwork;
+          else delete next[chapter.id];
+          return next;
+        })} />}
+        {refinementContext && chapters.map((item) => <ChapterRefinement key={item.id} context={refinementContext} title={item.title} active={chapterMode && item.id === chapter.id}
+          section={item.id === "overview" ? explanation.summary : item.id === "concepts" ? explanation.concepts : item.id.startsWith("step-") ? explanation.walkthrough[Number(item.id.slice(5))] : item.id === "visuals" ? { visuals: explanation.visuals, note: explanation.visual_note } : explanation.assumptions} />)}
         <ChapterContext value={chapterMode ? chapter.id : null}>{children}</ChapterContext>
         {chapterMode && <nav className="chapter-pagination" aria-label="Chapter navigation">
           <button type="button" disabled={index === 0} onClick={() => navigate(index - 1)}>Previous</button>

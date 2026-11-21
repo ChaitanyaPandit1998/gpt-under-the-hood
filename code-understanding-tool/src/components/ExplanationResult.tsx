@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
-import type { Explanation, FollowUpMessage } from "../domain/explanation-types";
+import type { Explanation, FollowUpMessage, Mode } from "../domain/explanation-types";
 import type { SourceRange } from "../domain/source-ranges";
 import type { ThemeMode } from "../domain/theme";
 import { formatMathText } from "../domain/format-math-text";
@@ -12,6 +12,8 @@ import { ChapterPage, ChapterReader } from "./ChapterReader";
 export type TextSelection = { text: string; top: number; left: number; wasTruncated: boolean };
 
 type Props = {
+  allowChapterArtwork?: boolean;
+  materialMode?: Mode;
   explanation: Explanation;
   source: string;
   theme: ThemeMode;
@@ -32,6 +34,8 @@ type Props = {
 };
 
 export function ExplanationResult({
+  allowChapterArtwork = true,
+  materialMode = "code",
   explanation, source, theme, lineCount, isAskingFollowUp, copyStatus, followUpQuestion,
   selectedTextForQuestion, followUpMessages, followUpError, textSelection, onCopy, onSelectRange,
   onFollowUpQuestionChange, onAskFollowUp, onClearSelectedTextContext, onAskAboutSelectedText,
@@ -68,7 +72,7 @@ export function ExplanationResult({
           <span>{explanation.quality_review_note}</span>
         </aside>}
         <SpeechReader explanation={explanation} />
-        <ChapterReader explanation={explanation}>
+        <ChapterReader explanation={explanation} artworkEnabled={allowChapterArtwork} refinementContext={allowChapterArtwork ? { source, mode: materialMode, theme, onSelectRange } : undefined}>
         <ChapterPage id="overview"><p className="result-summary">{explanation.summary}</p></ChapterPage>
         <ChapterPage id="concepts">
         {explanation.concepts.length > 0 && <div className="result-section"><div className="section-caption">KEY IDEAS</div><div className="concept-grid">{explanation.concepts.map((concept, index) => <article className="concept-card" key={`${concept.term}-${index}`}><h3>{concept.term}</h3><p>{concept.explanation}</p><SourceRanges ranges={concept.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article>)}</div></div>}

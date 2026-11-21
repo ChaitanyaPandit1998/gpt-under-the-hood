@@ -4,14 +4,25 @@ export type PlannedFile = {
   additions: number;
   deletions: number;
   coverage: "included" | "partial" | "unavailable" | "omitted_budget";
+  page?: number;
 };
 
 export type PullRequestChapter = { id: string; title: string; files: string[]; sourceText: string };
+
+export type PullRequestEvidence = {
+  chapter: PullRequestChapter;
+  filename: string;
+  offset: number;
+  endOffset: number;
+  nextOffset: number | null;
+  totalCharacters: number;
+};
 
 export type PullRequestPlan = {
   title: string;
   url: string;
   headSha: string;
+  baseSha?: string;
   totalFiles: number | null;
   filesComplete: boolean;
   files: PlannedFile[];
