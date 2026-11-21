@@ -54,6 +54,25 @@ dated entry for future work; never record secrets or private source material.
 - Explanation quality on a real large PR still needs live generation and human
   assessment. Next: open a review PR and inspect CI before considering merge.
 
+## 2026-11-21 - Live Explanation Quality Check (Merge Held)
+
+- Generated one real chapter from public FastAPI PR #9816 through the local API:
+  `Implementation: fastapi - part 4`, containing the `fastapi/params.py` patch
+  excerpt (26,045 source characters). Balanced depth, beginner audience, plain
+  tone, behaviour focus. No images generated. Request duration: about 189 seconds.
+- The pipeline revised the draft but returned `quality_review_status: incomplete`.
+  Its final review identified missing diagram branches for the example/examples/
+  regex checks, extras selection, v2 pattern fallback, and per-argument unset
+  filter. The response exposes this limitation rather than claiming a pass.
+- Agent spot-check of cited patch lines supported the main text claims about
+  warning conditions, version switching, v1 extras precedence, unset filtering,
+  and truncation. This is not an independent human quality assessment, execution
+  test of FastAPI, or proof that every generated statement is correct.
+- PR #5 remains unmerged: live generation works, but the selected example did not
+  pass its final completeness review. No automatic generation retry was made.
+- Next: improve focused diagram coverage and add a regression case for these
+  multiple independent decisions, then rerun the live check before merging.
+
 ## Existing Work - Baseline Recorded 2026-11-21
 
 This is a retrospective inventory, not a claim that all work occurred today.
