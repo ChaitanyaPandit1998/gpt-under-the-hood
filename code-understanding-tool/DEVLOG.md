@@ -73,6 +73,34 @@ dated entry for future work; never record secrets or private source material.
 - Next: improve focused diagram coverage and add a regression case for these
   multiple independent decisions, then rerun the live check before merging.
 
+## 2026-11-21 - Multi-Decision Diagram Planning
+
+- Added a bounded lexical planning aid for Python-like conditions, assertions,
+  short-circuit selections, conditional expressions, and comprehension filters.
+  Diff removals, comments, strings, and docstrings are excluded; source line
+  coordinates are preserved. Repeated fragments retain occurrence coordinates.
+- The aid is explicitly untrusted and non-exhaustive, not a new correctness
+  verifier. Drafting, review, repair, and final audit receive the same candidate
+  list and instructions to allocate focused views and recheck the whole list.
+- Expanded the explanation skill's guidance for sequential warning checks,
+  truthiness versus None checks, extras precedence, and per-item unset filtering.
+- Added a synthetic field-options evaluation case and eight automated regression
+  tests, including preservation of incomplete status after failed final review.
+- `npm run check` passed: lint, 138 unit/API tests, TypeScript, production build.
+- All 26 desktop/mobile mocked browser regression tests passed.
+- Reran the exact saved source and settings from the previously failing public
+  FastAPI chapter. The request completed in about 196 seconds with status
+  `revised`: it was repaired and passed the final model review. Five views now
+  expose warning/skip, extras truthiness, version-specific pattern fallbacks,
+  the path assertion, and keep/omit filtering, with separate non-path entry.
+- A source-link diagnostic found branching nodes for all 17 candidate locations
+  across nine groups and no graph cycles. Agent spot-check supported sequencing,
+  extras overwrite behaviour, per-item filtering, and excerpt limitations.
+  These checks are not semantic proof or an independent human assessment; one
+  successful rerun does not establish general model reliability.
+- No images were generated. Next: push the fix and recheck PR #5 for merge;
+  continue monitoring additional languages and complex cases after integration.
+
 ## Existing Work - Baseline Recorded 2026-11-21
 
 This is a retrospective inventory, not a claim that all work occurred today.

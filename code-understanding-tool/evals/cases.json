@@ -48,6 +48,24 @@
       "incomplete_expected": false
     },
     {
+      "id": "python-field-options-independent-decisions",
+      "material_kind": "code",
+      "teaching_mode": "control_flow",
+      "source_text": "def field_options(example, examples, regex, pattern, extra, json_schema_extra, v2, unset, warn):\n    if example is not unset:\n        warn('example deprecated')\n    kwargs = dict(extra)\n    if examples is not None:\n        kwargs['examples'] = examples\n    if regex is not None:\n        warn('regex deprecated')\n    selected = json_schema_extra or extra\n    if v2:\n        kwargs['pattern'] = pattern or regex\n    else:\n        kwargs['regex'] = pattern or regex\n        kwargs.update(selected)\n    filtered = {k: v for k, v in kwargs.items() if v is not unset}\n    return filtered",
+      "expectations": [
+        "Show the three independent checks sequentially, each with action and skip paths; they are not an if/elif chain.",
+        "An explicit None example warns unless it is identical to the supplied unset object. An empty examples list is included because it is not None.",
+        "The regex warning depends on regex being not None, not on the version or whether pattern was supplied.",
+        "An empty schema-extras dictionary falls back to extra; show both truthiness outcomes.",
+        "Show both version branches and the pattern-or-regex selection in each, with empty patterns taking the fallback.",
+        "In the v1 branch, selected extras are merged after setting regex and may overwrite it; v2 does not perform that merge.",
+        "The final filter keeps versus omits each item using identity with unset, not truthiness; describe repetition without a back edge.",
+        "Use an overview plus focused views that collectively cover these decisions, with valid source links and rejoin/exit context."
+      ],
+      "visual_expected": true,
+      "incomplete_expected": false
+    },
+    {
       "id": "documented-upload-retry-policy",
       "material_kind": "docs",
       "teaching_mode": "walkthrough",
