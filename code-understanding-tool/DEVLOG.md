@@ -40,6 +40,20 @@ dated entry for future work; never record secrets or private source material.
 - Next: test a real long PR, evaluate explanation quality, and consider explicit
   variant export and persisted reading progress after validation.
 
+## 2026-11-21 - Post-Push Large-PR Validation
+
+- Reviewed chapter preference isolation, cached variants, cancellation, artwork
+  consent, server-side credentials, evidence bounds, and revision checks. No
+  blocking issue identified in this focused review; this is not an independent
+  security audit or a human assessment of generated explanations.
+- Live import of `https://github.com/fastapi/fastapi/pull/9816` passed: 274 unique
+  files, complete inventory, 29 chapters; 139 included patches, 2 partial,
+  2 unavailable, and 131 excluded by the initial evidence budget.
+- Loaded 2,243 patch characters for an excluded test file on demand and verified
+  its revision context. No model or image requests were made.
+- Explanation quality on a real large PR still needs live generation and human
+  assessment. Next: open a review PR and inspect CI before considering merge.
+
 ## Existing Work - Baseline Recorded 2026-11-21
 
 This is a retrospective inventory, not a claim that all work occurred today.
