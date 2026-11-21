@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ViteDevServer } from "vite";
 import { createLocalExplanationApi, findCodexCliForRequest, type CodexRunner } from "./local-api";
 import type { PullRequestFetch } from "./github-pull-request";
+import { defaultVisualPreferences } from "../domain/visual-brief";
 
 type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => unknown;
 type RegisteredMiddleware = { path: string; handler: Middleware };
@@ -37,9 +38,9 @@ const responsesBySchemaKey: Record<string, unknown> = {
   ] },
 };
 
-function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters<typeof createLocalExplanationApi>[0]>["limits"], fetchPullRequest?: PullRequestFetch, imageOptions?: Pick<NonNullable<Parameters<typeof createLocalExplanationApi>[0]>, "imageCredentials" | "fetchImages">) {
+function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters<typeof createLocalExplanationApi>[0]>["limits"], fetchPullRequest?: PullRequestFetch, visualOptions?: Pick<NonNullable<Parameters<typeof createLocalExplanationApi>[0]>, "imageCredentials" | "fetchImages" | "diagramExporter" | "compactVisualPlanning">) {
   const stack: RegisteredMiddleware[] = [];
-  const plugin = createLocalExplanationApi({ runCodex, limits, fetchPullRequest, ...imageOptions });
+  const plugin = createLocalExplanationApi({ runCodex, limits, fetchPullRequest, ...visualOptions });
   const configureServer = plugin.configureServer as (server: ViteDevServer) => void;
   configureServer({
     middlewares: {
@@ -102,6 +103,85 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
 }
 
 describe("local explanation API integration", () => {
+  it("renders only an approved brief with validated scene data", async () => {
+    const brief = { disposition: "render", visualType: "comparison", takeaway: "Compare two outcomes.", composition: "Use two panels.",
+      caption: "Comparison.", altText: "Two outcomes side by side.", guardrails: [], content: [{ label: "Compare", role: "illustrative", statement: "Example only.", chapterLines: [] }] };
+    const scene = { background: "#f7f7f7", items: [{ kind: "text", text: "Comparison", x: 50, y: 70, size: 28, color: "#002233", align: "left" }] };
+    const runner = vi.fn<CodexRunner>().mockResolvedValueOnce(scene).mockResolvedValueOnce({ ...scene, items: [{ ...scene.items[0], x: -10 }] });
+    const renderScene = vi.fn(async () => Buffer.from("fixture-png"));
+    const request = createApiHarness(runner, undefined, undefined, { diagramExporter: { available: async () => true, export: vi.fn(), renderScene } });
+    expect((await request("/api/visual-render", { ...brief, disposition: "text-only", visualType: "none" })).status).toBe(400);
+    expect(runner).not.toHaveBeenCalled();
+    expect((await request("/api/visual-render", { brief, resolution: "arbitrary-size" })).status).toBe(400);
+    expect(runner).not.toHaveBeenCalled();
+    const reply = await request("/api/visual-render", { brief, resolution: "full-hd" });
+    expect(reply.status).toBe(200);
+    expect(reply.headers["content-type"]).toBe("image/png");
+    expect(renderScene).toHaveBeenCalledWith(scene, expect.any(AbortSignal), "full-hd");
+    expect((await request("/api/visual-render", brief)).status).toBe(502);
+    expect(renderScene).toHaveBeenCalledTimes(1);
+    runner.mockResolvedValueOnce(scene);
+    const planned = await request("/api/visual-plan", brief);
+    expect(planned.status).toBe(200);
+    expect(planned.json()).toEqual({ scene });
+    expect((await request("/api/visual-render", { scene, resolution: "hd" })).status).toBe(200);
+    expect((await request("/api/visual-render", { scene, resolution: "full-hd" })).status).toBe(200);
+    expect((await request("/api/visual-render", { scene: { ...scene, items: [] } })).status).toBe(400);
+    expect(runner).toHaveBeenCalledTimes(3);
+    expect(renderScene).toHaveBeenCalledTimes(3);
+  });
+  it("only expands compact drawings in opted-in planning, not in client render requests", async () => {
+    const brief = { disposition: "render", visualType: "comparison", takeaway: "Compare two choices.", composition: "Show two labels.",
+      caption: "Choices.", altText: "Two choices.", guardrails: [], content: [{ label: "Choices", role: "illustrative", statement: "Two labels.", chapterLines: [] }] };
+    const compact = { background: "#ffffff", items: [
+      { kind: "text-run", x: 50, y: 70, dx: 100, dy: 0, size: 24, color: "#123456", align: "left", labels: ["One", "Two"] },
+    ] };
+    const runner = vi.fn<CodexRunner>(async () => compact);
+    const renderScene = vi.fn(async () => Buffer.from("fixture-png"));
+    const diagramExporter = { available: async () => true, export: vi.fn(), renderScene };
+    const defaultRequest = createApiHarness(runner, undefined, undefined, { diagramExporter });
+    const enabledRequest = createApiHarness(runner, undefined, undefined, { diagramExporter, compactVisualPlanning: true });
+    expect((await defaultRequest("/api/visual-plan", brief)).status).toBe(502);
+    const result = await enabledRequest("/api/visual-plan", brief);
+    expect(result.status).toBe(200);
+    expect(runner.mock.calls[1][0]).toContain("Use compact items when practical");
+    const scene = { background: "#ffffff", items: ["One", "Two"].map((text, index) => ({
+      kind: "text", text, x: 50 + index * 100, y: 70, size: 24, color: "#123456", align: "left",
+    })) };
+    expect(result.json()).toEqual({ scene });
+    expect((await enabledRequest("/api/visual-render", { scene: compact, resolution: "standard" })).status).toBe(400);
+    expect((await enabledRequest("/api/visual-render", { scene, resolution: "standard" })).status).toBe(200);
+    expect(renderScene).toHaveBeenCalledTimes(1);
+    expect(renderScene).toHaveBeenCalledWith(scene, expect.any(AbortSignal), "standard");
+  });
+  it("generates a bounded visual brief with opted-in source only", async () => {
+    const brief = { disposition: "render", visualType: "decision-flow", takeaway: "Show what retries.", composition: "A short flow.",
+      caption: "Retry on rejection.", altText: "An operation repeats.", guardrails: ["Not a runtime trace."],
+      content: [{ label: "Retry", role: "source", statement: "The source repeats the operation.", chapterLines: [2] }] };
+    const runner = vi.fn<CodexRunner>(async () => brief);
+    const request = createApiHarness(runner);
+    const body = { context: "A retry explanation.", source: "try();\nretry();", preferences: { ...defaultVisualPreferences, style: "expressive", includeSource: true, additionalContext: "A learner-provided variant with a waiting period." } };
+    expect((await request("/api/visual-brief", { ...body, preferences: defaultVisualPreferences })).status).toBe(400);
+    expect((await request("/api/visual-brief", body, "http://example.test")).status).toBe(403);
+    expect(runner).not.toHaveBeenCalled();
+    const result = await request("/api/visual-brief", body);
+    expect(result.status).toBe(200);
+    expect(result.headers["cache-control"]).toBe("no-store");
+    expect(result.json()).toEqual({ brief });
+    expect(runner.mock.calls[0][0]).toContain('2: retry();');
+    expect(runner.mock.calls[0][0]).toContain("Visual style: Expressive illustration");
+    expect(runner.mock.calls[0][0]).toContain("A learner-provided variant with a waiting period.");
+    expect(runner.mock.calls[0][0]).not.toMatch(/Riemann Hypothesis|Attention walkthrough|Retrying worker/);
+    const invalid = await request("/api/visual-brief", { context: body.context, preferences: defaultVisualPreferences });
+    expect(invalid.status).toBe(502);
+    expect(runner.mock.calls[1][0]).not.toContain("retry();");
+    expect((await request("/api/visual-brief", { ...body, designPrompt: " " })).status).toBe(400);
+    expect((await request("/api/visual-brief", { ...body, designPrompt: "x".repeat(8001) })).status).toBe(400);
+    expect(runner).toHaveBeenCalledTimes(2);
+    expect((await request("/api/visual-brief", { ...body, designPrompt: "Use a single annotated comparison." })).status).toBe(200);
+    expect(runner.mock.calls[2][0]).toMatch(/BEGIN_UNTRUSTED_CONTEXT_[^\n]+\n\n\{"designPrompt":"Use a single annotated comparison\."/);
+    expect(runner.mock.calls[2][0]).not.toContain("A learner-provided variant");
+  });
   it("generates a generic opt-in cover without sending chapter material or invoking Codex", async () => {
     const image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=";
     const runner = vi.fn<CodexRunner>();

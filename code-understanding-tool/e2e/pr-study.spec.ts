@@ -18,7 +18,7 @@ const plan: PullRequestPlan = {
 
 async function workspace(page: Page) {
   const state = {
-    generations: [] as Record<string, unknown>[], evidence: [] as Record<string, unknown>[],
+    generations: [] as Record<string, unknown>[], evidence: [] as Record<string, unknown>[], imports: 0,
     covers: [] as Record<string, unknown>[], holdCover: false, releaseCover: () => {},
     holdGeneration: false, holdEvidence: false, evidenceError: "",
     releaseGeneration: () => {}, releaseEvidence: () => {},
@@ -26,7 +26,8 @@ async function workspace(page: Page) {
   // No GitHub or model requests leave the browser during these regression tests.
   await page.route("**/api/**", async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
-    if (endpoint === "/api/pull-request-plan") return route.fulfill({ json: { plan } });
+    if (endpoint === "/api/document-export") return route.fulfill({ json: { available: false } });
+    if (endpoint === "/api/pull-request-plan") { state.imports += 1; return route.fulfill({ json: { plan } }); }
     if (endpoint === "/api/explain-progress") return route.fulfill({ json: { phase: "drafting" } });
     if (endpoint === "/api/chapter-cover") {
       const body = route.request().postDataJSON() as Record<string, unknown>;
@@ -82,6 +83,40 @@ test("imports an outline without generation and navigates its boundaries", async
   await page.getByRole("button", { name: "Previous chapter", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Overview and change inventory", exact: true })).toBeVisible();
   expect(state.generations).toHaveLength(0);
+});
+
+test("saves and resumes a pinned PR with cached variants and patch evidence", async ({ page }) => {
+  const state = await workspace(page);
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Simplify", exact: true }).click();
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Explanation 2", exact: true })).toBeVisible();
+  const manifest = page.getByText("File manifest and evidence coverage", { exact: true });
+  const load = page.getByRole("button", { name: "Load patch section for src/large.ts", exact: true });
+  await manifest.click();
+  await load.click();
+  await expect(page.getByRole("heading", { name: "Large file section 1", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Explanation 3", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Save PR study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Large file section 1", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Explanation 3", exact: true })).toBeVisible();
+  await expect(page.getByText(`Snapshot: ${headSha}.`, { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: /Overview and change inventory/ }).click();
+  await expect(page.getByRole("heading", { name: "Explanation 2", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Go deeper", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  expect(state.generations).toHaveLength(3);
+  expect(state.imports).toBe(1);
+  expect(state.evidence).toHaveLength(1);
+  await manifest.click();
+  await load.click();
+  await expect(page.getByRole("heading", { name: "Large file section 2", exact: true })).toBeVisible();
+  expect(state.evidence[1]).toMatchObject({ headSha, offset: 12 });
 });
 
 test("generates only selected source and restores cached results by preferences", async ({ page }) => {
@@ -196,6 +231,7 @@ test("cancels evidence loading and ignores late sections", async ({ page }) => {
 
 test("cover generation is opt-in, sends no code, and preserves behavioural explanation and citations", async ({ page }) => {
   const state = await workspace(page);
+  const coverCaption = page.getByRole("region", { name: "Optional chapter cover" }).getByText("Conceptual illustration", { exact: true });
   await page.getByRole("button", { name: "Next chapter", exact: true }).click();
   await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
@@ -205,16 +241,16 @@ test("cover generation is opt-in, sends no code, and preserves behavioural expla
   await expect(page.getByText("Use the source-backed walkthrough", { exact: false })).toBeVisible();
   await page.getByRole("checkbox", { name: /I approve sending/ }).check();
   await page.getByRole("button", { name: "Generate cover", exact: true }).click();
-  await expect(page.getByText("Conceptual illustration", { exact: true })).toBeVisible();
+  await expect(coverCaption).toBeVisible();
   expect(state.covers).toEqual([{ theme: "review", approved: true }]);
   expect(state.generations).toHaveLength(1);
   await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Select source lines 2 through 3", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Chapter source", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "Previous chapter", exact: true }).click();
-  await expect(page.getByText("Conceptual illustration", { exact: true })).toHaveCount(0);
+  await expect(coverCaption).toHaveCount(0);
   await page.getByRole("button", { name: "Next chapter", exact: true }).click();
-  await expect(page.getByText("Conceptual illustration", { exact: true })).toBeVisible();
+  await expect(coverCaption).toBeVisible();
   expect(state.covers).toHaveLength(1);
   await page.getByRole("button", { name: "Hide cover", exact: true }).click();
   await expect(page.getByRole("img", { name: /Decorative isometric illustration/ })).toHaveCount(0);

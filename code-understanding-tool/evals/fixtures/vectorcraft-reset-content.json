@@ -1,0 +1,24 @@
+{
+  "url": "https://github.com/fastapi/fastapi/pull/16424",
+  "lineLabel": "PR diff in fastapi/routing.py",
+  "explanation": {
+    "visuals": [{
+      "title": "Content length for a 205 response",
+      "nodes": [
+        { "id": "allowed", "label": "Is a response body allowed?", "source_ranges": [{ "start_line": 770, "end_line": 770 }] },
+        { "id": "empty", "label": "Clear the response body", "source_ranges": [{ "start_line": 771, "end_line": 771 }] },
+        { "id": "check", "label": "Is the status 205?", "source_ranges": [{ "start_line": 776, "end_line": 776 }] },
+        { "id": "reset", "label": "Set Content-Length to zero", "source_ranges": [{ "start_line": 777, "end_line": 777 }] },
+        { "id": "extend", "label": "Append dependency headers", "source_ranges": [{ "start_line": 778, "end_line": 778 }] }
+      ],
+      "edges": [
+        { "from": "allowed", "to": "extend", "label": "Body allowed" },
+        { "from": "allowed", "to": "empty", "label": "Body not allowed" },
+        { "from": "empty", "to": "check", "label": "After clearing the body" },
+        { "from": "check", "to": "extend", "label": "Not 205" },
+        { "from": "check", "to": "reset", "label": "205" },
+        { "from": "reset", "to": "extend", "label": "After updating length" }
+      ]
+    }]
+  }
+}

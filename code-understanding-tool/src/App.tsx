@@ -8,6 +8,7 @@ import { ExplanationResult, type TextSelection } from "./components/ExplanationR
 import { PageDisplayControls } from "./components/PageDisplayControls";
 import { PullRequestStudy } from "./components/PullRequestStudy";
 import type { PullRequestPlan } from "./domain/pull-request-plan";
+import { accessSavedStudy, type ResultReadingState, type SavedStudy } from "./domain/saved-study";
 
 const exampleCode = `function retry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
   return operation().catch((error) => {
@@ -33,6 +34,11 @@ function App() {
   const [pullRequestUrl, setPullRequestUrl] = useState("");
   const [isLoadingPullRequest, setIsLoadingPullRequest] = useState(false);
   const [prPlan, setPrPlan] = useState<PullRequestPlan | null>(null);
+  const [savedStudy, setSavedStudy] = useState<SavedStudy>();
+  const [restoredStudy, setRestoredStudy] = useState<SavedStudy>();
+  const [restoreRevision, setRestoreRevision] = useState(0);
+  const [storageBusy, setStorageBusy] = useState(true);
+  const [storageMessage, setStorageMessage] = useState("");
   const pullRequestLoadId = useRef(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [textSelection, setTextSelection] = useState<TextSelection | null>(null);
@@ -48,6 +54,56 @@ function App() {
   const session = useExplanationSession({ source, mode, depth: explanationDepth, learnerLevel });
   const { explanation, isGenerating, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus, followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion, followUpMessages, followUpError, error, setError, resetExplanation, explainSource, askFollowUp } = session;
   const lineCount = useMemo(() => Math.max(source.split("\n").length, 1), [source]);
+
+  useEffect(() => {
+    let active = true;
+    void accessSavedStudy({ type: "read" }).then((study) => {
+      if (active) setSavedStudy(study);
+    }).catch(() => {
+      if (active) setStorageMessage("Local study storage is unavailable.");
+    }).finally(() => {
+      if (active) setStorageBusy(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  async function saveStudy(study: SavedStudy) {
+    if (storageBusy) return;
+    if (savedStudy && !window.confirm("Replace the saved study on this browser?")) return;
+    setStorageBusy(true);
+    try {
+      await accessSavedStudy({ type: "save", study });
+      setSavedStudy(study); setStorageMessage("Study saved in this browser.");
+    } catch { setStorageMessage("Could not save this study. Browser storage may be unavailable or full."); }
+    finally { setStorageBusy(false); }
+  }
+
+  function saveSourceStudy(reading: ResultReadingState) {
+    if (explanation && mode !== "pull_request") void saveStudy({ version: 1, source, mode, depth: explanationDepth, level: learnerLevel, explanation, reading });
+  }
+
+  function resumeStudy(study: SavedStudy) {
+    if ((source.trim() || prPlan || isLoadingPullRequest || isTranscribing) && !window.confirm("Replace the current workspace with the saved study?")) return;
+    clearInput();
+    setMode(study.mode);
+    if (study.mode === "pull_request") {
+      setPullRequestUrl(study.plan.url); setPrPlan(study.plan);
+    } else {
+      setSource(study.source); setExplanationDepth(study.depth); setLearnerLevel(study.level);
+      session.setExplanation(study.explanation);
+    }
+    setRestoredStudy(study); setRestoreRevision((revision) => revision + 1); setStorageMessage("Saved study restored.");
+  }
+
+  async function deleteStudy() {
+    if (storageBusy) return;
+    setStorageBusy(true);
+    try {
+      await accessSavedStudy({ type: "delete" });
+      setSavedStudy(undefined); setStorageMessage("Saved study deleted from this browser.");
+    } catch { setStorageMessage("Could not delete the saved study."); }
+    finally { setStorageBusy(false); }
+  }
 
   useEffect(() => {
     document.documentElement.dataset.theme = pageTheme;
@@ -277,7 +333,18 @@ function App() {
             <p>Bring a piece of code or documentation. Get an explanation that helps you build a mental model, not just skim the surface.</p>
           </section>
 
-          {prPlan ? <PullRequestStudy plan={prPlan} theme={pageTheme} onClose={() => setPrPlan(null)} /> : <LearningWorkspace
+          {(savedStudy || storageMessage) && <section className="saved-study-tools" aria-label="Local saved study">
+            {savedStudy && <div className="chapter-toolbar">
+              <span><strong>Saved on this browser:</strong> {savedStudy.mode === "pull_request" ? savedStudy.plan.title : savedStudy.explanation.title}</span>
+              <button type="button" disabled={storageBusy} onClick={() => resumeStudy(savedStudy)}>Resume saved study</button>
+              <button type="button" disabled={storageBusy} onClick={() => void deleteStudy()}>Delete saved study</button>
+            </div>}
+            {storageMessage && <p role="status">{storageMessage}</p>}
+          </section>}
+
+          {prPlan ? <PullRequestStudy key={restoreRevision} plan={prPlan} theme={pageTheme} onClose={() => setPrPlan(null)}
+            initialReading={restoredStudy?.mode === "pull_request" && restoredStudy.plan === prPlan ? restoredStudy.reading : undefined}
+            saving={storageBusy} onSave={(reading) => void saveStudy({ version: 1, mode: "pull_request", plan: prPlan, reading })} /> : <LearningWorkspace
             mode={mode}
             source={source}
             lineCount={lineCount}
@@ -306,16 +373,22 @@ function App() {
             onDepthChange={setExplanationDepth}
             onLearnerLevelChange={setLearnerLevel}
             onExplain={() => void explainSource()}
-            onRetry={() => screenshotFile && needsApproval && !transcription ? void transcribeScreenshot(screenshotFile) : void explainSource()}
+            onCancelExplanation={session.invalidatePendingRequests}
+            onRetry={() => mode === "pull_request" ? void loadPullRequest() : screenshotFile && needsApproval && !transcription ? void transcribeScreenshot(screenshotFile) : void explainSource()}
           />}
 
           {!prPlan && explanation && <ExplanationResult
+            key={restoreRevision}
+            initialReading={restoredStudy && restoredStudy.mode !== "pull_request" && restoredStudy.explanation === explanation && restoredStudy.source === source ? restoredStudy.reading : undefined}
+            onSaveStudy={mode === "pull_request" ? undefined : saveSourceStudy}
+            savingStudy={storageBusy || isGenerating}
             materialMode={mode}
             explanation={explanation}
             source={source}
             theme={pageTheme}
             lineCount={lineCount}
             isAskingFollowUp={isAskingFollowUp}
+            isRegenerating={isGenerating}
             copyStatus={copyStatus}
             followUpQuestion={followUpQuestion}
             selectedTextForQuestion={selectedTextForQuestion}

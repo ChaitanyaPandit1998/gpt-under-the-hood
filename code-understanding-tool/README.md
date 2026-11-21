@@ -4,6 +4,8 @@ An interactive workspace that helps people understand code and documentation thr
 
 See [PLAN.md](PLAN.md) for the implementation plan, milestones, and current decisions.
 
+See [docs/architecture.md](docs/architecture.md) for the application architecture diagram and the main runtime boundaries.
+
 ## Run locally
 
 ```sh
@@ -11,7 +13,7 @@ npm install
 npm run dev
 ```
 
-The app loads a task-specific provider-neutral skill for explanation, screenshot transcription, follow-up answers, or knowledge checks, then sends requests to Codex CLI through the local Vite development server. The model chooses an explanation style that fits the material; the interface currently has one “Help me understand” action. Codex CLI must be installed and signed in. The server looks for `codex` on its `PATH`, checks the packaged macOS Codex CLI location, and supports `CODEX_CLI_PATH` when it is installed elsewhere. The one-shot request ignores personal Codex configuration and disables shell/code execution and extension tools. Screenshot text is read by the model, shown for editing, and requires explicit approval before explanation; image files are temporary.
+The app loads a task-specific provider-neutral skill for explanation, screenshot transcription, follow-up answers, or knowledge checks, then sends requests to Codex CLI through the local Vite development server. The model chooses an explanation style that fits the material; the interface currently has one “Help me understand” action. You can paste source/docs or load a public GitHub pull request URL; PR title, description, and changed-file patches are fetched and shown in the editable source area before explanation. Private PRs are not supported yet. Codex CLI must be installed and signed in. The server looks for `codex` on its `PATH`, checks the packaged macOS Codex CLI location, and supports `CODEX_CLI_PATH` when it is installed elsewhere. The one-shot request ignores personal Codex configuration and disables shell/code execution and extension tools. Screenshot text is read by the model, shown for editing, and requires explicit approval before explanation; image files are temporary.
 
 If a request reports that Codex CLI cannot reach its service, check network access for the terminal running `npm run dev`. Restricted or offline development environments may block the CLI connection even when Codex is signed in; start the local server from a terminal with network access and retry.
 
@@ -19,7 +21,7 @@ If a request reports that Codex CLI cannot reach its service, check network acce
 
 This is a local-only prototype. Both Vite development and preview servers bind to `127.0.0.1`; the API accepts loopback-host requests and rejects cross-origin browser requests. Do not expose it with `--host`, a reverse proxy, a tunnel, or a public deployment. The host/origin check is a browser-request guard, not user authentication or protection for a shared server.
 
-The app passes submitted source text, follow-up questions, quiz context, and screenshot images to the Codex CLI signed in on the same machine. The CLI may send that content to its configured service. The app does not save learning sessions, but temporary request files are created while processing and removed afterward. Operational diagnostics include random request IDs, endpoint names, phase durations, outcomes, and broad failure categories; they must not include source text, prompts, screenshots, or raw provider errors.
+The app passes submitted source text, follow-up questions, quiz context, and screenshot images to the Codex CLI signed in on the same machine. The CLI may send that content to its configured service. When loading a PR, the local server makes outbound requests to the GitHub API for public PR metadata and file patches; that content is then passed to Codex when you request an explanation. The app does not save learning sessions, but temporary request files are created while processing and removed afterward. Operational diagnostics include random request IDs, endpoint names, phase durations, outcomes, and broad failure categories; they must not include source text, prompts, screenshots, or raw provider errors.
 
 Before hosting this for multiple users, replace the Vite middleware with a production API and establish a real security boundary: authenticate users, protect state-changing requests against CSRF, isolate provider credentials per server-side identity, enforce per-user and global rate/concurrency/request-size limits, keep uploaded files in isolated temporary storage, define retention and deletion policies, and add redacted structured observability and abuse monitoring. Also review provider data handling, network egress, secret storage, dependency/build hardening, and deployment access controls. The current prototype is not production-ready for shared or public use.
 
@@ -38,6 +40,13 @@ The latest full run generated all four explanations and scored 96.9% on factual 
 Select a passage in the explanation to ask a follow-up focused on that text. The selected passage is sent with the question and checked against the full source.
 
 Use **Start a quick check** below an explanation to generate three multiple-choice questions from the submitted material. Answers and score stay in the current page session and are not saved.
+
+Use **Save study locally** or **Save PR study locally** to keep one study in
+this browser. The saved copy includes the source or pinned PR evidence,
+chapter position, completed explanations and variants, and illustrations.
+Resume or delete it above the workspace. This is opt-in, not encrypted
+storage or a backup. Follow-up conversations, quizzes, and in-progress work
+are not saved. To keep recent changes, save again explicitly.
 
 Before generating an explanation, set **Depth** to Quick overview, Balanced, or Detailed walkthrough, and choose the learner level (Beginner, Intermediate, or Advanced). The model adapts detail and terminology while keeping the same structured response format.
 

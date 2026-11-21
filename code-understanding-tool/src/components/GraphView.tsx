@@ -4,8 +4,9 @@ import { isValidRange, type SourceRange } from "../domain/source-ranges";
 import type { IncompleteCodeItem } from "../domain/incomplete-code.ts";
 import { themeAccents, type ThemeMode } from "../domain/theme";
 import { createGraphLayout, type DiagramVisual, type FlowEdge, type FlowNode } from "./graph-layout";
+import { DiagramExport, type DiagramExportContext } from "./DiagramExport";
 
-export function GraphView({ visual, theme, lineCount, source, onSelectRange, incompleteItems = [] }: { visual: DiagramVisual & { title: string }; theme: ThemeMode; lineCount: number; source: string; onSelectRange: (range: SourceRange) => void; incompleteItems?: IncompleteCodeItem[] }) {
+export function GraphView({ visual, theme, lineCount, source, onSelectRange, incompleteItems = [], exportContext, onIllustrate }: { visual: DiagramVisual & { title: string }; theme: ThemeMode; lineCount: number; source: string; onSelectRange: (range: SourceRange) => void; incompleteItems?: IncompleteCodeItem[]; exportContext?: DiagramExportContext; onIllustrate?: () => void }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showFitControl, setShowFitControl] = useState(false);
   const [compactLayout, setCompactLayout] = useState(false);
@@ -96,6 +97,7 @@ export function GraphView({ visual, theme, lineCount, source, onSelectRange, inc
       {selectedNode.source_ranges.some((range) => isValidRange(range, lineCount)) ? <div className="selected-source"><span className="node-caption">RELATED SOURCE</span>{selectedNode.source_ranges.filter((range) => isValidRange(range, lineCount)).map((range, index) => <div className="selected-source-range" key={`${range.start_line}-${range.end_line}-${index}`}><button className="source-range" type="button" onClick={() => onSelectRange(range)} aria-label={`Select source lines ${range.start_line} through ${range.end_line}`}>Lines {range.start_line}{range.end_line !== range.start_line ? `–${range.end_line}` : ""} · Jump to source</button><pre>{sourceLines.slice(range.start_line - 1, range.end_line).map((text, lineIndex) => `${range.start_line + lineIndex}  ${text}`).join("\n")}</pre></div>)}</div> : <p className="empty-graph">No valid source lines are linked to this item.</p>}
     </div> : <p className="graph-hint">Select a node to inspect its explanation and related source lines. Drag or swipe to pan; scroll or pinch to zoom. Use Fit diagram to show all nodes.</p>}
     {invalidEdgeCount > 0 && <p className="empty-graph">{invalidEdgeCount} connection{invalidEdgeCount === 1 ? " was" : "s were"} omitted because they were duplicated, cyclic, or referenced missing nodes.</p>}
+    {exportContext && <DiagramExport source={source} context={exportContext} onIllustrate={onIllustrate} />}
   </section>;
 }
 

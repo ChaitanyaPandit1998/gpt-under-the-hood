@@ -13,8 +13,8 @@ function createProgressId(): string {
   });
 }
 
-export function useExplanationSession({ source, mode, depth, learnerLevel, tone = "plain", focus = "auto", learnerQuestion }: SessionInput) {
-  const [explanation, setExplanation] = useState<Explanation | null>(null);
+export function useExplanationSession({ source, mode, depth, learnerLevel, tone = "plain", focus = "auto", learnerQuestion }: SessionInput, initialExplanation: Explanation | null = null) {
+  const [explanation, setExplanation] = useState<Explanation | null>(initialExplanation);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationPhase, setGenerationPhase] = useState<GenerationPhase | null>(null);
   const [isAskingFollowUp, setIsAskingFollowUp] = useState(false);
@@ -38,16 +38,20 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
     progressPollingController.current?.abort();
   }, []);
 
-  function invalidatePendingRequests() {
-    explanationRequestId.current += 1;
+  function cancelFollowUp() {
     followUpRequestId.current += 1;
-    setIsGenerating(false);
-    setGenerationPhase(null);
-    setIsAskingFollowUp(false);
-    explanationRequestController.current?.abort();
-    explanationRequestController.current = null;
     followUpRequestController.current?.abort();
     followUpRequestController.current = null;
+    setIsAskingFollowUp(false);
+  }
+
+  function invalidatePendingRequests() {
+    explanationRequestId.current += 1;
+    cancelFollowUp();
+    setIsGenerating(false);
+    setGenerationPhase(null);
+    explanationRequestController.current?.abort();
+    explanationRequestController.current = null;
     progressPollingController.current?.abort();
     progressPollingController.current = null;
   }
@@ -63,22 +67,18 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
   }
 
   async function explainSource() {
+    if (explanationRequestController.current) return;
+    cancelFollowUp();
     const requestId = ++explanationRequestId.current;
     const progressId = createProgressId();
     const requestController = new AbortController();
     const progressController = new AbortController();
-    explanationRequestController.current?.abort();
     explanationRequestController.current = requestController;
     progressPollingController.current?.abort();
     progressPollingController.current = progressController;
     setIsGenerating(true);
     setGenerationPhase("preparing");
     setError("");
-    setExplanation(null);
-    setFollowUpMessages([]);
-    setFollowUpQuestion("");
-    setSelectedTextForQuestion("");
-    setFollowUpError("");
     let polling = true;
     const pollProgress = async () => {
       while (polling && requestId === explanationRequestId.current) {
@@ -109,6 +109,11 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
       if (!response.ok) throw new Error(payload.error || "Could not generate an explanation.");
       if (requestId !== explanationRequestId.current) return;
       setExplanation(payload as Explanation);
+      setCopyStatus("");
+      setFollowUpMessages([]);
+      setFollowUpQuestion("");
+      setSelectedTextForQuestion("");
+      setFollowUpError("");
     } catch (caught) {
       if (requestId !== explanationRequestId.current) return;
       setError(caught instanceof Error ? caught.message : "Unable to reach the local explanation service.");
@@ -128,7 +133,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
   async function askFollowUp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const question = followUpQuestion.trim();
-    if (!question || !explanation || isAskingFollowUp) return;
+    if (!question || !explanation || isAskingFollowUp || explanationRequestController.current) return;
     const requestId = ++followUpRequestId.current;
     const requestController = new AbortController();
     followUpRequestController.current?.abort();

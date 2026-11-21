@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import type { Explanation } from "../domain/explanation-types";
 import { chapterVariantKey, defaultChapterSettings, type ChapterSettings } from "../domain/chapter-settings";
 import { ChapterControls } from "./ChapterControls";
 import type { PlannedFile, PullRequestChapter, PullRequestEvidence, PullRequestPlan } from "../domain/pull-request-plan";
@@ -7,21 +6,26 @@ import type { ThemeMode } from "../domain/theme";
 import { sourceOffsetsForRange } from "../domain/source-ranges";
 import { generationPhaseCopy } from "../domain/generation-progress";
 import { useExplanationSession } from "../hooks/useExplanationSession";
-import { ExplanationResult } from "./ExplanationResult";
+import { ExplanationResult, type ExplanationResultHandle } from "./ExplanationResult";
 import { ChapterIllustration } from "./ChapterIllustration";
 import type { ChapterArtwork } from "../domain/chapter-illustrations";
+import type { CachedPrResult, PrReadingState } from "../domain/saved-study";
 
-export function PullRequestStudy({ plan, theme, onClose }: { plan: PullRequestPlan; theme: ThemeMode; onClose: () => void }) {
-  const [index, setIndex] = useState(0);
-  const [chapterSettings, setChapterSettings] = useState<Record<number, ChapterSettings>>({});
-  const [extraChapters, setExtraChapters] = useState<PullRequestChapter[]>([]);
-  const [evidenceProgress, setEvidenceProgress] = useState<Record<string, { nextOffset: number | null; sections: number; totalCharacters: number; loadedCharacters: number }>>({});
+export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave, saving }: {
+  plan: PullRequestPlan; theme: ThemeMode; onClose: () => void;
+  initialReading?: PrReadingState; onSave: (reading: PrReadingState) => void; saving: boolean;
+}) {
+  const [index, setIndex] = useState(() => Math.max(0, [...plan.chapters, ...(initialReading?.extraChapters ?? [])].findIndex((chapter) => chapter.id === initialReading?.chapterId)));
+  const [chapterSettings, setChapterSettings] = useState<Record<number, ChapterSettings>>(() => initialReading?.settings ?? {});
+  const [extraChapters, setExtraChapters] = useState<PullRequestChapter[]>(() => initialReading?.extraChapters ?? []);
+  const [evidenceProgress, setEvidenceProgress] = useState<PrReadingState["evidenceProgress"]>(() => initialReading?.evidenceProgress ?? {});
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
   const [evidenceError, setEvidenceError] = useState("");
-  const [covers, setCovers] = useState<Record<string, ChapterArtwork>>({});
+  const [covers, setCovers] = useState<Record<string, ChapterArtwork>>(() => initialReading?.covers ?? {});
   const evidenceController = useRef<AbortController | null>(null);
   const evidenceRequestId = useRef(0);
-  const cache = useRef(new Map<string, Explanation>());
+  const [cache] = useState(() => new Map<string, CachedPrResult>(Object.entries(initialReading?.results ?? {})));
+  const resultReader = useRef<ExplanationResultHandle>(null);
   const editor = useRef<HTMLTextAreaElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const chapters = [...plan.chapters, ...extraChapters];
@@ -29,8 +33,19 @@ export function PullRequestStudy({ plan, theme, onClose }: { plan: PullRequestPl
   const source = chapter.sourceText;
   const settingsFor = (chapterIndex: number) => chapterSettings[chapterIndex] ?? { ...defaultChapterSettings, depth: "detailed" as const };
   const settings = settingsFor(index);
-  const session = useExplanationSession({ source, mode: "pull_request", ...settings });
   const cacheKey = (chapterIndex: number, preferences: ChapterSettings) => `${chapterIndex}:${chapterVariantKey(preferences)}`;
+  const activeKey = cacheKey(index, settings);
+  const savedResult = cache.get(activeKey);
+  const session = useExplanationSession({ source, mode: "pull_request", ...settings }, savedResult?.explanation);
+
+  function cacheActiveResult() {
+    if (session.explanation) cache.set(activeKey, { explanation: session.explanation, reading: resultReader.current?.snapshot() });
+  }
+
+  function save() {
+    cacheActiveResult();
+    onSave({ chapterId: chapter.id, settings: chapterSettings, extraChapters, evidenceProgress, results: Object.fromEntries(cache), covers });
+  }
 
   useEffect(() => () => {
     evidenceRequestId.current += 1;
@@ -47,9 +62,9 @@ export function PullRequestStudy({ plan, theme, onClose }: { plan: PullRequestPl
 
   function selectChapter(next: number, nextSettings = settingsFor(next)) {
     cancelEvidence();
-    if (session.explanation) cache.current.set(cacheKey(index, settings), session.explanation);
+    cacheActiveResult();
     session.resetExplanation();
-    session.setExplanation(cache.current.get(cacheKey(next, nextSettings)) ?? null);
+    session.setExplanation(cache.get(cacheKey(next, nextSettings))?.explanation ?? null);
     setChapterSettings((current) => ({ ...current, [next]: nextSettings }));
     setIndex(next);
     if (next !== index) heading.current?.focus();
@@ -93,8 +108,10 @@ export function PullRequestStudy({ plan, theme, onClose }: { plan: PullRequestPl
   return <section className="pr-study" aria-label="Pull request study plan">
     <header className="pr-study-header"><div><div className="section-caption">COVERAGE-AWARE READING PLAN</div><h2>{plan.title}</h2><a href={plan.url} target="_blank" rel="noreferrer">View PR on GitHub</a></div><button type="button" onClick={onClose}>Back to input</button></header>
     <p>{plan.files.length} / {plan.totalFiles ?? "unknown total"} files listed · {plan.files.filter((file) => file.coverage === "included").length} patches included without local trimming in the initial import · {chapters.length} chapters · {plan.filesComplete ? "File inventory complete" : "File inventory incomplete"}</p>
-    <p className="pr-revision">Snapshot: {plan.headSha}. Chapters are generated only when requested. Results stay in this page session; no repository-wide analysis is implied.</p>
-    <p aria-live="polite">{chapters.filter((_, itemIndex) => itemIndex === index ? !!session.explanation : cache.current.has(cacheKey(itemIndex, settingsFor(itemIndex)))).length} / {chapters.length} chapters generated for their selected preferences.</p>
+    <p className="pr-revision">Snapshot: {plan.headSha}. Chapters are generated only when requested. A saved study restores this snapshot, not the latest PR revision.</p>
+    <div className="chapter-toolbar"><button type="button" disabled={saving || !!loadingFile || session.isGenerating} aria-describedby="pr-study-save-note" onClick={save}>Save PR study locally</button>
+      <span id="pr-study-save-note">Stores the imported patches, completed explanations, and illustrations in this browser only when you save.</span></div>
+    <p aria-live="polite">{chapters.filter((_, itemIndex) => itemIndex === index ? !!session.explanation : cache.has(cacheKey(itemIndex, settingsFor(itemIndex)))).length} / {chapters.length} chapters generated for their selected preferences.</p>
     <aside className="incomplete-code-note" aria-label="PR coverage limits"><strong>Initial import coverage limits</strong><ul>{plan.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul><p>Load additional sections below for excluded or excerpted files. Retrieved sections remain separate evidence chapters; no chapter automatically sees all other sections.</p></aside>
     <details className="pr-manifest"><summary>File manifest and evidence coverage</summary><ul>{plan.files.map((file) => <li key={file.path}><code>{file.path}</code> · {file.status} · +{file.additions}/-{file.deletions} · <strong>Initial: {file.coverage.replaceAll("_", " ")}</strong>
       {evidenceProgress[file.path] && <p role="status">{evidenceProgress[file.path].sections} section(s) retrieved · {evidenceProgress[file.path].loadedCharacters} / {evidenceProgress[file.path].totalCharacters} patch characters · {evidenceProgress[file.path].nextOffset === null ? "All GitHub-returned patch sections retrieved" : "More sections remain"}</p>}
@@ -116,13 +133,15 @@ export function PullRequestStudy({ plan, theme, onClose }: { plan: PullRequestPl
         <details><summary>Review chapter source</summary><textarea ref={editor} readOnly aria-label="Chapter source" value={source} rows={10} /></details>
         <ChapterControls settings={settings} onChange={(next) => selectChapter(index, next)} disabled={!!loadingFile} />
         <div className="chapter-toolbar">
-          <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => { cache.current.delete(cacheKey(index, settings)); void session.explainSource(); }}>{session.isGenerating ? "Generating chapter…" : session.explanation ? "Regenerate chapter" : "Generate this chapter"}</button>
-          {session.isGenerating && <button type="button" onClick={session.resetExplanation}>Cancel</button>}
+          <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => void session.explainSource()}>{session.isGenerating ? "Generating chapter…" : session.error ? "Retry chapter generation" : session.explanation ? "Regenerate chapter" : "Generate this chapter"}</button>
+          {session.isGenerating && <button type="button" onClick={session.invalidatePendingRequests}>Cancel</button>}
         </div>
         {session.generationPhase && session.isGenerating && <p role="status">{generationPhaseCopy[session.generationPhase].detail}</p>}
         {session.error && <p role="alert">{session.error}</p>}
-        {session.explanation && <ExplanationResult allowChapterArtwork={false} explanation={session.explanation} source={source} theme={theme} lineCount={source.split("\n").length}
-          isAskingFollowUp={session.isAskingFollowUp} copyStatus={session.copyStatus} followUpQuestion={session.followUpQuestion} selectedTextForQuestion="" followUpMessages={session.followUpMessages} followUpError={session.followUpError} textSelection={null}
+        {session.explanation && <ExplanationResult key={activeKey} ref={resultReader} initialReading={savedResult?.explanation === session.explanation ? savedResult.reading : undefined}
+          allowChapterArtwork={false} explanation={session.explanation} source={source} theme={theme} lineCount={source.split("\n").length}
+          exportContext={{ scope: `PR chapter: ${chapter.title}`, provenance: `PR: ${plan.url}\nHead: ${plan.headSha}\nBase: ${plan.baseSha}\nPreferences: ${JSON.stringify(settings)}\nPR coverage limits: ${plan.warnings.join("; ")}` }}
+          isRegenerating={session.isGenerating} isAskingFollowUp={session.isAskingFollowUp} copyStatus={session.copyStatus} followUpQuestion={session.followUpQuestion} selectedTextForQuestion="" followUpMessages={session.followUpMessages} followUpError={session.followUpError} textSelection={null}
           onCopy={() => void copy()} onSelectRange={(range) => {
             const element = editor.current;
             const offsets = sourceOffsetsForRange(source, range);

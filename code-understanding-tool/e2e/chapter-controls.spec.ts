@@ -3,9 +3,25 @@ import { expect, test } from "@playwright/test";
 for (const mode of ["code", "docs"] as const) {
 test(`${mode}: adapts just one section, retains original warnings and restores cached variants`, async ({ page }, testInfo) => {
   const requests: Record<string, unknown>[] = [];
+  const exports: Record<string, unknown>[] = [];
   const source = "const value = 42;\nconsole.log(value);";
   await page.route("**/api/**", async (route) => {
+    if (route.request().url().includes("document-export")) {
+      if (route.request().method() === "GET") return route.fulfill({ json: { available: true } });
+      exports.push(route.request().postDataJSON());
+      return route.fulfill({ contentType: "application/octet-stream", body: "fake-docx" });
+    }
     if (route.request().url().includes("explain-progress")) return route.fulfill({ json: { phase: "drafting" } });
+    if (route.request().url().endsWith("/visual-brief")) return route.fulfill({ json: { brief: {
+      disposition: "render", visualType: "comparison", takeaway: "Compare two values.", composition: "Show two labels.",
+      content: [{ label: "Value", role: "illustrative", statement: "Example label.", chapterLines: [] }],
+      guardrails: [], caption: "Adapted example.", altText: "Adapted value illustration.",
+    } } });
+    if (route.request().url().endsWith("/visual-plan")) return route.fulfill({ json: { scene: {
+      background: "#ffffff", items: [{ kind: "text", text: "Value", x: 50, y: 80, size: 24, color: "#202033", align: "left" }],
+    } } });
+    if (route.request().url().endsWith("/visual-render")) return route.fulfill({ contentType: "image/png",
+      body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=", "base64") });
     const body = route.request().postDataJSON() as Record<string, unknown>;
     requests.push(body);
     const original = requests.length === 1;
@@ -35,6 +51,12 @@ test(`${mode}: adapts just one section, retains original warnings and restores c
   expect(requests[1]).toMatchObject({ source_text: source, material_kind: mode, explanation_depth: "detailed", explanation_tone: "technical", explanation_focus: "example" });
   expect(requests[1].learner_question).toContain("Explain ONLY");
   expect(requests[1].learner_question).toContain("Original overview remains available.");
+  await overview.getByText("Export document", { exact: false }).click();
+  const download = page.waitForEvent("download");
+  await overview.getByRole("button", { name: "Download document", exact: true }).click();
+  await download;
+  expect(exports[0]).toMatchObject({ scope: "Adapted section: Overview", explanation: { title: "Variant 2" } });
+  expect(exports[0].provenance).toContain('"tone":"technical"');
   await expect(page.getByText("Original overview remains available.", { exact: true })).toBeVisible();
   await expect(page.getByText("Second-pass review", { exact: false }).first()).toBeVisible();
   await overview.getByRole("button", { name: "Select source lines 1 through 1", exact: true }).click();
@@ -54,6 +76,24 @@ test(`${mode}: adapts just one section, retains original warnings and restores c
   expect(requests).toHaveLength(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   if (mode === "code") await overview.screenshot({ path: testInfo.outputPath("chapter-controls.png") });
+  await overview.getByText("Design a visual", { exact: false }).click();
+  await overview.getByRole("button", { name: "Generate visual brief", exact: true }).click();
+  await overview.getByRole("button", { name: "Render image", exact: true }).click();
+  const illustration = overview.getByRole("img", { name: "Adapted value illustration.", exact: true });
+  await expect(illustration).toBeVisible();
+  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toBeVisible();
+  await expect(illustration).toBeVisible();
+  await overview.getByText("Customize explanation", { exact: true }).click();
+  await expect(overview.getByRole("combobox", { name: "Chapter focus" })).toHaveValue("example");
+  await overview.getByRole("combobox", { name: "Chapter focus" }).selectOption("behaviour");
+  await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toHaveCount(0);
+  await overview.getByRole("combobox", { name: "Chapter focus" }).selectOption("example");
+  await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toBeVisible();
+  expect(requests).toHaveLength(2);
 });
 }
 
@@ -61,6 +101,7 @@ test("cancels section work when navigating and ignores its late response", async
   let count = 0;
   let release = () => {};
   await page.route("**/api/**", async (route) => {
+    if (route.request().url().includes("document-export")) return route.fulfill({ json: { available: false } });
     if (route.request().url().includes("explain-progress")) return route.fulfill({ json: { phase: "drafting" } });
     count += 1;
     const original = count === 1;

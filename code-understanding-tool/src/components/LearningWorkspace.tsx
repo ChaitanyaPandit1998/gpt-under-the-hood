@@ -1,5 +1,6 @@
 import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
 import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "../domain/explanation-types";
+import { ExplanationPreferenceCards } from "./ExplanationPreferenceCards";
 import { generationPhaseCopy, type GenerationPhase } from "../domain/generation-progress";
 
 type Props = {
@@ -31,6 +32,7 @@ type Props = {
   onDepthChange: (depth: ExplanationDepth) => void;
   onLearnerLevelChange: (level: LearnerLevel) => void;
   onExplain: () => void;
+  onCancelExplanation: () => void;
   onRetry: () => void;
 };
 
@@ -38,7 +40,7 @@ export function LearningWorkspace({
   mode, source, lineCount, sourceEditor, screenshotInput, isTranscribing, isGenerating, generationPhase, pullRequestUrl, isLoadingPullRequest,
   screenshotPreview, transcription, needsApproval, approved, explanationDepth, learnerLevel, error,
   onModeChange, onPullRequestUrlChange, onLoadPullRequest, onSourceChange, onExample, onClear, onScreenshotSelected, onApproveTranscription,
-  onDepthChange, onLearnerLevelChange, onExplain, onRetry,
+  onDepthChange, onLearnerLevelChange, onExplain, onCancelExplanation, onRetry,
 }: Props) {
   const inputModes: Mode[] = ["code", "docs", "pull_request"];
 
@@ -107,22 +109,7 @@ export function LearningWorkspace({
         {needsApproval && !isTranscribing && <button className="approve-transcription" onClick={onApproveTranscription} disabled={approved || !source.trim()}>{approved ? "Text reviewed ✓" : transcription ? "I reviewed this text" : "Use the text I entered"}</button>}
       </div>}
 
-      <div className="explanation-preferences" aria-label="Explanation preferences">
-        <label>Depth
-          <select value={explanationDepth} onChange={(event) => onDepthChange(event.target.value as ExplanationDepth)}>
-            <option value="overview">Quick overview</option>
-            <option value="balanced">Balanced</option>
-            <option value="detailed">Detailed walkthrough</option>
-          </select>
-        </label>
-        <label>Explain for
-          <select value={learnerLevel} onChange={(event) => onLearnerLevelChange(event.target.value as LearnerLevel)}>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </label>
-      </div>
+      <ExplanationPreferenceCards depth={explanationDepth} audience={learnerLevel} onDepthChange={onDepthChange} onAudienceChange={onLearnerLevelChange} />
 
       <div className="action-row">
         <span className="privacy-note"><span>◈</span> Nothing is saved automatically</span>
@@ -131,7 +118,8 @@ export function LearningWorkspace({
       {isGenerating && generationPhase && <div className="generation-progress" role="status" aria-live="polite" aria-atomic="true">
         <span className="generation-progress-spinner" aria-hidden="true" />
         <span><strong>{generationPhaseCopy[generationPhase].button}</strong> {generationPhaseCopy[generationPhase].detail}</span>
+        <button className="cancel-explanation" type="button" onClick={onCancelExplanation}>Cancel generation</button>
       </div>}
-      {error && <div className="error-message" role="alert"><span>!</span><p>{error}</p><button onClick={onRetry} disabled={isGenerating || isTranscribing}>Try again</button></div>}
+      {error && <div className="error-message" role="alert"><span>!</span><p>{error}</p><button onClick={onRetry} disabled={isGenerating || isTranscribing || isLoadingPullRequest || (mode === "pull_request" && !pullRequestUrl.trim())}>Try again</button></div>}
   </section>;
 }

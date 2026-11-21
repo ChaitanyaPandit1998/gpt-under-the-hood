@@ -22,11 +22,15 @@ Loading a public GitHub PR now builds a plan before any model request:
 
 ## Reading sessions
 
-Completed explanations are cached in memory by chapter, depth, and learner level. Switching chapters cancels pending generation and resets follow-up conversation context. Returning to a completed chapter restores its explanation without a model call. Regeneration replaces that cached result.
+Completed explanations are cached in memory by chapter, depth, learner level, tone, and focus. Switching chapters cancels pending generation and resets follow-up conversation context. Returning to a completed chapter restores its explanation without a model call. Regeneration replaces that cached result.
 
 Citations select lines in the displayed chapter source, not GitHub file line numbers. Copy exports the chapter explanation together with its source and PR head revision as JSON.
 
-Reloading or leaving the study clears the session. Reimport the PR to inspect newer commits. Code and documentation inputs retain the existing explanation workflow; the legacy `/api/pull-request` endpoint remains available.
+**Save PR study locally** keeps one explicit browser snapshot, including the
+pinned revision, downloaded patch sections, retrieval position, and completed
+variants with reader state. Resume restores the saved revision without a GitHub
+or model request. Reimport the PR to inspect newer commits. Unsaved changes
+are lost on reload, and the legacy `/api/pull-request` endpoint remains available.
 
 ## Additional patch evidence
 
@@ -50,7 +54,7 @@ PR study chapters and the chapter-reading mode for standalone code/documentation
 
 The server accepts only a theme identifier and boolean approval, not chapter titles, PR URLs, source code, summaries, or custom prompts. It builds an isometric prompt from fixed public presets and calls FLUX.1 Schnell with four steps and no seed. Configure `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` locally and restart Vite; credentials are used by the server plugin, not client code. Missing configuration produces a clear error without a provider call.
 
-Covers are labelled **Conceptual illustration** and explicitly described as unverified decorative artwork, not code-behaviour diagrams. They are cached by chapter for the page session and can be hidden or removed. A new explanation, study closure, or page reload clears the relevant session. A server instance allows at most 12 cover requests, including failed requests, and shares the existing model-concurrency limit. There are no automatic retries. Cancellation aborts the local request but cannot guarantee that provider-side work is not billed.
+Covers are labelled **Conceptual illustration** and explicitly described as unverified decorative artwork, not code-behaviour diagrams. They are cached by chapter and can be hidden or removed. Unsaved covers are lost when the relevant session ends. A server instance allows at most 12 cover requests, including failed requests, and shares the existing model-concurrency limit. There are no automatic retries. Cancellation aborts the local request but cannot guarantee that provider-side work is not billed.
 
 Covers never modify explanation text, control-flow diagrams, citations, or review status. See `evals/IMAGE_BEHAVIOUR_ASSESSMENT.md` for the pilot findings and their limitations. Browser tests use mocked image responses to verify consent, privacy boundaries, chapter isolation, cancellation, and intact source navigation without spending credits.
 
@@ -66,8 +70,8 @@ For code and documentation, switch to **Chapters** to generate an adapted sectio
 alongside its original. Citations continue to refer to the original source, and
 warnings remain available. These section variants are supplemental: copy, speech,
 and understanding checks still use the original explanation. Navigating away
-cancels in-flight section generation. All preferences and variants are page-session
-only; refreshing clears them.
+cancels in-flight section generation. Preferences and completed variants are
+included only when you explicitly save the study.
 
 Icons and a depth meter improve scanning, while factual behaviour stays in
 source-linked text and diagrams. Optional generated cover images are conceptual,
