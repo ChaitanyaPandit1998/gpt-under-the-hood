@@ -113,7 +113,7 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
             ...current, [storyKey]: { ...current[storyKey], [sceneIndex]: { ...current[storyKey]?.[sceneIndex], [purpose]: image } },
           }))} />}
         <div className="chapter-direct-content" hidden={storyVisible}>
-        {chapterContext && refinementContext && <ReadingTools key={`tools-${chapter.id}`} label="Chapter tools" scope={`This chapter: ${chapter.title}`}
+        {!storyVisible && chapterContext && refinementContext && <ReadingTools key={`tools-${chapter.id}`} label="Chapter tools" scope={`This chapter: ${chapter.title}`}
           explanation={explanation} source={refinementContext.source} context={{ scope: `Chapter: ${chapter.title}`, provenance: "" }}
           refine={<a href={`#${imagePrefix}-refine-${chapter.id}`}>Refine chapter</a>}
           visual={<VisualBriefPanel label="Illustrate chapter" scope={`Chapter: ${chapter.title}`}

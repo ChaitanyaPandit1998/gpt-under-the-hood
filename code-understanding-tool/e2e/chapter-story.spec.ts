@@ -71,6 +71,25 @@ test("keeps the direct chapter available after cancellation or a review failure"
   await expect(page.getByRole("button", { name: "Retry story" })).toBeVisible();
 });
 
+test("stops chapter read-aloud when the story replaces the direct chapter", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "speechSynthesis", { configurable: true, value: {
+      getVoices: () => [], addEventListener: () => {}, removeEventListener: () => {},
+      speak: () => { document.body.dataset.spoken = "chapter"; },
+      cancel: () => { delete document.body.dataset.spoken; },
+    } });
+  });
+  await page.route("**/api/chapter-story", (route) => route.fulfill({ json: { story } }));
+  await openChapters(page);
+  const chapterTools = page.getByRole("group", { name: "Chapter tools" });
+  await chapterTools.getByText("Read aloud", { exact: true }).click();
+  await chapterTools.getByRole("button", { name: "Read chapter aloud", exact: true }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-spoken", "chapter");
+  await page.getByRole("button", { name: "Story", exact: true }).click();
+  await expect(page.getByRole("heading", { name: story.title })).toBeVisible();
+  await expect(page.locator("body")).not.toHaveAttribute("data-spoken");
+});
+
 test("illustrates a single scene on demand and keeps the factual diagram separate", async ({ page }) => {
   const briefs: Record<string, unknown>[] = [];
   const renders: Record<string, unknown>[] = [];

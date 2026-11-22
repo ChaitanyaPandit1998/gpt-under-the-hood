@@ -32,7 +32,10 @@ dated entry for future work; never record secrets or private source material.
 - Passed lint, build, 205 unit/API tests, and 64 desktop/mobile browser tests
   in CI mode. Two earlier browser runs had intermittent failures in existing
   desktop reading tests; the new scene tests passed in each run.
-- Next: open a PR for the complete chapter story and illustration flow.
+- During PR review, fixed direct chapter audio continuing after the story
+  replaces the direct view. Passed lint, build, 205 unit/API tests, and 66
+  browser tests, including the new desktop/mobile playback regression.
+- Next: merge the Story Mode PR after the required check passes on the fix.
 
 ## 2026-11-22 - Visual API route extraction
 
