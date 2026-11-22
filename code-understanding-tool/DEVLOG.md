@@ -3,6 +3,17 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-22 - Automated app checks
+
+- Added a GitHub Actions job for PRs targeting main and pushes to main.
+  It installs locked dependencies, runs lint, unit/API tests and the build,
+  then runs both Playwright projects. Failed browser runs retain diagnostics
+  for seven days. The job uses read-only permissions and no provider secrets.
+- Passed actionlint. A clean macOS checkout passed npm ci, lint, build,
+  201 unit/API tests, and 56 browser tests with Playwright's bundled Chromium
+  and CI mode. This does not substitute for a hosted Ubuntu run.
+- Next: verify the first hosted run and consider making App checks required.
+
 ## 2026-11-22 - Reading workflow review fixes
 
 - Isolated visual drafts by adapted chapter settings and result identity.
