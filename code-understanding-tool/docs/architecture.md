@@ -76,6 +76,7 @@ flowchart LR
 
 - `src/App.tsx` and `src/components/` compose the browser interface; `src/hooks/useExplanationSession.ts` coordinates explanation and follow-up requests.
 - `src/server/local-api.ts` registers the local API routes, validates request boundaries, invokes the model runner, tracks progress, and emits privacy-safe diagnostics.
+- `src/server/visual-api.ts` registers visual brief, scene planning, PNG rendering, and chapter cover routes. It uses the same request concurrency limit, cancellation, and diagnostics as the explanation routes.
 - `src/server/explanation-service.ts` builds explanation prompts and manages the bounded draft, review, repair, and final-review sequence.
 - `src/server/github-pull-request.ts` validates public GitHub PR URLs and fetches bounded metadata and file patches for review in the input editor.
 - `src/server/response-schemas.ts` and `src/server/response-validation.ts` define and validate structured model responses.

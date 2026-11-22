@@ -204,6 +204,38 @@ describe("local explanation API integration", () => {
     expect((await request("/api/chapter-cover", {}, undefined, "GET")).status).toBe(405);
   });
 
+  it("shares model request capacity between visual rendering and explanations", async () => {
+    const scene = { background: "#f7f7f7", items: [{ kind: "text", text: "Comparison", x: 50, y: 70, size: 28, color: "#002233", align: "left" }] };
+    let markRenderStarted!: () => void;
+    const renderStarted = new Promise<void>((resolve) => { markRenderStarted = resolve; });
+    let finishRender!: (image: Buffer) => void;
+    const renderedImage = new Promise<Buffer>((resolve) => { finishRender = resolve; });
+    const runner = vi.fn<CodexRunner>().mockResolvedValueOnce(explanation).mockResolvedValueOnce(passedReview);
+    const request = createApiHarness(runner, { maxConcurrentModelRequests: 1 }, undefined, {
+      diagramExporter: {
+        available: async () => true,
+        export: vi.fn(),
+        renderScene() {
+          markRenderStarted();
+          return renderedImage;
+        },
+      },
+    });
+    const rendering = request("/api/visual-render", { scene, resolution: "standard" });
+    try {
+      await Promise.race([renderStarted, rendering.then(() => {
+        throw new Error("The visual render finished before acquiring a request slot.");
+      })]);
+      expect((await request("/api/explain", { source_text: "const answer = 42;" })).status).toBe(503);
+      expect(runner).not.toHaveBeenCalled();
+    } finally {
+      finishRender(Buffer.from("fixture-png"));
+      await rendering;
+    }
+    expect((await rendering).status).toBe(200);
+    expect((await request("/api/explain", { source_text: "const answer = 42;" })).status).toBe(200);
+  });
+
   it("returns a clear JSON error when covers are unconfigured or the provider fails", async () => {
     const empty = createApiHarness(vi.fn<CodexRunner>());
     expect((await empty("/api/chapter-cover", { theme: "review", approved: true })).status).toBe(503);
