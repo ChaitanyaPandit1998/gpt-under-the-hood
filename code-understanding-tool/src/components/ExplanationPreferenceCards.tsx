@@ -17,7 +17,7 @@ export function ExplanationPreferenceCards({ depth, audience, onDepthChange, onA
   depth: ExplanationDepth; audience: LearnerLevel; onDepthChange: (value: ExplanationDepth) => void; onAudienceChange: (value: LearnerLevel) => void;
 }) {
   const [step, setStep] = useState<"audience" | "depth">("audience");
-  return <section className="explanation-preferences" aria-label="Explanation preferences">
+  return <section className="explanation-preferences" id="explanation-preferences" tabIndex={-1} aria-label="Explanation preferences">
     <div className="choice-steps" role="group" aria-label="Customize explanation">
       <button type="button" aria-pressed={step === "audience"} onClick={() => setStep("audience")}>1. Audience: {audiences.find((choice) => choice.value === audience)?.title}</button>
       <button type="button" aria-pressed={step === "depth"} onClick={() => setStep("depth")}>2. Depth: {depths.find((choice) => choice.value === depth)?.title}</button>

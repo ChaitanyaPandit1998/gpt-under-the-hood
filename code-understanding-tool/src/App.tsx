@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isValidRange, sourceOffsetsForRange, type SourceRange } from "./domain/source-ranges";
+import { isValidRange, type SourceRange } from "./domain/source-ranges";
 import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "./domain/explanation-types";
 import { isThemeMode, type ThemeMode } from "./domain/theme";
 import { useExplanationSession } from "./hooks/useExplanationSession";
@@ -9,13 +9,7 @@ import { PageDisplayControls } from "./components/PageDisplayControls";
 import { PullRequestStudy } from "./components/PullRequestStudy";
 import type { PullRequestPlan } from "./domain/pull-request-plan";
 import { accessSavedStudy, type ResultReadingState, type SavedStudy } from "./domain/saved-study";
-
-const exampleCode = `function retry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
-  return operation().catch((error) => {
-    if (attempts <= 1) throw error;
-    return retry(operation, attempts - 1);
-  });
-}`;
+import type { StarterExample } from "./domain/starter-examples";
 
 function App() {
   const [pageZoom, setPageZoom] = useState(100);
@@ -192,16 +186,6 @@ function App() {
     setSource(value);
   }
 
-  function jumpToSource(range: SourceRange) {
-    const editor = sourceEditor.current;
-    if (!editor) return;
-    const offsets = sourceOffsetsForRange(source, range);
-    if (!offsets) return;
-    editor.focus();
-    editor.setSelectionRange(offsets.start, offsets.end);
-    editor.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-
   async function copyExplanation() {
     if (!explanation) return;
     const formatRanges = (ranges: SourceRange[]) => ranges.filter((range) => isValidRange(range, lineCount)).map((range) => `Lines ${range.start_line}${range.end_line !== range.start_line ? `–${range.end_line}` : ""}`).join(", ");
@@ -225,10 +209,11 @@ function App() {
     }
   }
 
-  function loadExample() {
+  function loadExample(example: StarterExample) {
     clearInput();
-    setMode("code");
-    updateSource(exampleCode);
+    setMode(example.mode);
+    if (example.mode === "pull_request") setPullRequestUrl(example.input);
+    else setSource(example.input);
   }
 
   function clearInput() {
@@ -396,7 +381,6 @@ function App() {
             followUpError={followUpError}
             textSelection={textSelection}
             onCopy={() => void copyExplanation()}
-            onSelectRange={jumpToSource}
             onFollowUpQuestionChange={setFollowUpQuestion}
             onAskFollowUp={askFollowUp}
             onClearSelectedTextContext={clearSelectedTextContext}

@@ -2,10 +2,12 @@ import { createContext, useContext, useId, useImperativeHandle, useRef, useState
 import type { Explanation } from "../domain/explanation-types";
 import { explanationChapters, prefersChapters, type ExplanationChapter } from "../domain/explanation-chapters";
 import { ChapterIllustration } from "./ChapterIllustration";
+import { ChapterOutline } from "./ChapterOutline";
 import type { ChapterArtwork } from "../domain/chapter-illustrations";
 import { ChapterRefinement, type ChapterRefinementContext, type ChapterRefinementHandle } from "./ChapterRefinement";
 import { VisualBriefPanel } from "./VisualBriefPanel";
 import { InlineIllustration } from "./InlineIllustration";
+import { ReadingTools } from "./ReadingTools";
 import type { ReadingState, RenderedIllustration } from "../domain/saved-study";
 
 const ChapterContext = createContext<{
@@ -58,6 +60,7 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
   const headingId = useId();
   const imagePrefix = useId();
   const chapter = chapters[index];
+  const chapterContext = chapterMode && refinementContext ? chapterMaterial(explanation, chapter) : undefined;
   useImperativeHandle(ref, () => ({ snapshot: () => ({
     chapterMode, chapterId: chapter.id, images, covers,
     adapted: Object.fromEntries([...refinementReaders.current].map(([id, refinement]) => [id, refinement.snapshot()])),
@@ -76,25 +79,22 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
       <button type="button" aria-pressed={!chapterMode} onClick={() => setChapterMode(false)}>Full explanation</button>
     </div>
     <div className={chapterMode ? "chapter-layout" : ""}>
-      {chapterMode && <nav className="chapter-sidebar" aria-label="Explanation chapters">
-        <div className="section-caption">CONTENTS</div>
-        <ol>{chapters.map((item, itemIndex) => <li key={item.id}>
-          <button type="button" aria-current={index === itemIndex ? "step" : undefined} onClick={() => navigate(itemIndex)}><span>{itemIndex + 1}</span>{item.title}</button>
-        </li>)}</ol>
-      </nav>}
+      {chapterMode && <ChapterOutline label="Explanation chapters" chapters={chapters} index={index} onSelect={navigate} />}
       <div className="chapter-body" role={chapterMode ? "region" : undefined} aria-labelledby={chapterMode ? headingId : undefined}>
         {chapterMode && <header className="chapter-heading">
           <p aria-live="polite" aria-atomic="true">Chapter {index + 1} of {chapters.length}</p>
           <h3 id={headingId} ref={heading} tabIndex={-1}>{chapter.title}</h3>
         </header>}
-        {chapterMode && refinementContext && <div className="reading-tools chapter-reading-tools" role="group" aria-label="Chapter tools">
-          <div className="section-caption">THIS CHAPTER</div>
-          <a href={`#${imagePrefix}-refine-${chapter.id}`}>Refine chapter</a>
-          <VisualBriefPanel key={chapter.id} label="Illustrate chapter" scope={`Chapter: ${chapter.title}`}
-            explanation={chapterMaterial(explanation, chapter)} source={refinementContext.source}
-            placement={{ id: `${imagePrefix}-${chapter.id}`, onRender: (image) => setImages((current) => ({ ...current, [chapter.id]: image })) }} />
-        </div>}
-        {chapterMode && artworkEnabled && <ChapterIllustration key={chapter.id} cached={covers[chapter.id]} onChange={(artwork) => setCovers((current) => {
+        {chapterContext && refinementContext && <ReadingTools key={`tools-${chapter.id}`} label="Chapter tools" scope={`This chapter: ${chapter.title}`}
+          explanation={explanation} source={refinementContext.source} context={{ scope: `Chapter: ${chapter.title}`, provenance: "" }}
+          refine={<a href={`#${imagePrefix}-refine-${chapter.id}`}>Refine chapter</a>}
+          visual={<VisualBriefPanel label="Illustrate chapter" scope={`Chapter: ${chapter.title}`}
+            explanation={chapterContext} source={refinementContext.source}
+            placement={{ id: `${imagePrefix}-${chapter.id}`, current: images[chapter.id], onRender: (image) => setImages((current) => ({ ...current, [chapter.id]: image })) }} />}
+          chapterSpeech={{ ...chapterContext, summary: chapter.id.startsWith("step-") ? "" : chapterContext.summary,
+            assumptions: chapter.id === "recap" ? chapterContext.assumptions : [], incomplete_items: [] }}
+          collectImages={() => ({ chapters: { [chapter.id]: images[chapter.id] } })} onlyChapterId={chapter.id} />}
+        {chapterMode && artworkEnabled && <ChapterIllustration key={`cover-${chapter.id}`} cached={covers[chapter.id]} onChange={(artwork) => setCovers((current) => {
           const next = { ...current };
           if (artwork) next[chapter.id] = artwork;
           else delete next[chapter.id];

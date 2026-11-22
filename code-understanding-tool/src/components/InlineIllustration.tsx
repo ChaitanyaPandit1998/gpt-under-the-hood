@@ -2,15 +2,36 @@ import { useEffect, useRef, useState } from "react";
 import { visualResolutions } from "../domain/visual-resolution";
 import type { RenderedIllustration } from "../domain/saved-study";
 
-export function InlineIllustration({ image, id }: { image: RenderedIllustration; id?: string }) {
+function usePngUrl(png: Blob) {
   const [preview, setPreview] = useState<{ png: Blob; url: string }>();
-  const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    const url = URL.createObjectURL(image.png);
-    setPreview({ png: image.png, url });
+    const url = URL.createObjectURL(png);
+    setPreview({ png, url });
     return () => URL.revokeObjectURL(url);
-  }, [image.png]);
-  const url = preview?.png === image.png ? preview.url : undefined;
+  }, [png]);
+  return preview?.png === png ? preview.url : undefined;
+}
+
+function ComparisonFigure({ image, label }: { image: RenderedIllustration; label: string }) {
+  const url = usePngUrl(image.png);
+  const { width, height } = visualResolutions[image.resolution];
+  return <figure aria-label={label}>
+    <div className="section-caption">{label}</div>
+    <div className="illustration-comparison-frame">{url && <img src={url} alt={image.alt} width={width} height={height} />}</div>
+    <figcaption>{image.caption} <small>{width} × {height} px</small></figcaption>
+  </figure>;
+}
+
+export function IllustrationComparison({ current, candidate }: { current: RenderedIllustration; candidate: RenderedIllustration }) {
+  return <div className="illustration-comparison" role="group" aria-label="Compare illustrations">
+    <ComparisonFigure image={current} label="Current illustration" />
+    <ComparisonFigure image={candidate} label="New illustration" />
+  </div>;
+}
+
+export function InlineIllustration({ image, id }: { image: RenderedIllustration; id?: string }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const url = usePngUrl(image.png);
   if (!url) return null;
   const { width, height } = visualResolutions[image.resolution];
   return <figure className="visual-brief-preview inline-illustration" id={id} tabIndex={-1}>

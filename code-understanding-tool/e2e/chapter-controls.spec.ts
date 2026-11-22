@@ -59,8 +59,24 @@ test(`${mode}: adapts just one section, retains original warnings and restores c
   expect(exports[0].provenance).toContain('"tone":"technical"');
   await expect(page.getByText("Original overview remains available.", { exact: true })).toBeVisible();
   await expect(page.getByText("Second-pass review", { exact: false }).first()).toBeVisible();
-  await overview.getByRole("button", { name: "Select source lines 1 through 1", exact: true }).click();
-  await expect(editor).toBeFocused();
+  const citation = overview.getByRole("button", { name: "View source lines 1 through 1", exact: true });
+  await citation.click();
+  const evidence = page.getByRole("dialog", { name: "Source reference" });
+  await expect(evidence.locator("mark code")).toHaveText(["const value = 42;"]);
+  await expect(evidence.locator("div.source-evidence-line code")).toHaveText(["console.log(value);"]);
+  await expect(evidence.getByRole("button", { name: "Close source" })).toBeFocused();
+  const panelBox = (await evidence.boundingBox())!;
+  const resultBox = (await page.locator(".result-card").boundingBox())!;
+  if (testInfo.project.name === "mobile") {
+    expect(panelBox.y + panelBox.height).toBeCloseTo(844, 0);
+    expect(await evidence.evaluate((element) => element.matches(":modal"))).toBe(true);
+  } else {
+    expect(panelBox.x).toBeGreaterThan(resultBox.x + resultBox.width);
+    expect(await evidence.evaluate((element) => element.matches(":modal"))).toBe(false);
+  }
+  await page.keyboard.press("Escape");
+  await expect(evidence).toHaveCount(0);
+  await expect(citation).toBeFocused();
   const outline = page.getByRole("navigation", { name: "Explanation chapters", exact: true });
   await outline.getByRole("button", { name: /Assignment/ }).click();
   const assignment = page.getByRole("region", { name: "Customize Assignment", exact: true });

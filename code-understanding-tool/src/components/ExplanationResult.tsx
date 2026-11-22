@@ -1,17 +1,17 @@
-import { useId, useImperativeHandle, useRef, useState, type FormEvent, type KeyboardEvent, type Ref } from "react";
+import { useId, useImperativeHandle, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type Ref } from "react";
 import type { Explanation, FollowUpMessage, Mode } from "../domain/explanation-types";
-import type { SourceRange } from "../domain/source-ranges";
+import { isValidRange, type SourceRange } from "../domain/source-ranges";
 import type { ThemeMode } from "../domain/theme";
 import { formatMathText } from "../domain/format-math-text";
 import { GraphView } from "./GraphView";
-import { SpeechReader } from "./SpeechReader";
+import { ReadingTools } from "./ReadingTools";
 import { SourceRanges } from "./SourceRanges";
+import { SourceEvidence } from "./SourceEvidence";
 import { UnderstandingCheck } from "./UnderstandingCheck";
 import { ChapterPage, ChapterReader, type ChapterReaderHandle } from "./ChapterReader";
-import { DocumentExport, type ExportContext } from "./DocumentExport";
+import type { ExportContext } from "./DocumentExport";
 import { VisualBriefPanel, type VisualBriefPanelHandle } from "./VisualBriefPanel";
 import { InlineIllustration } from "./InlineIllustration";
-import { StudyPdfExport } from "./StudyPdfExport";
 import type { ResultReadingState } from "../domain/saved-study";
 
 export type TextSelection = { text: string; top: number; left: number; wasTruncated: boolean };
@@ -24,6 +24,7 @@ type Props = {
   exportContext?: ExportContext;
   allowChapterArtwork?: boolean;
   materialMode?: Mode;
+  refinementTarget?: string;
   explanation: Explanation;
   source: string;
   theme: ThemeMode;
@@ -37,7 +38,6 @@ type Props = {
   followUpError: string;
   textSelection: TextSelection | null;
   onCopy: () => void;
-  onSelectRange: (range: SourceRange) => void;
   onFollowUpQuestionChange: (value: string) => void;
   onAskFollowUp: (event: FormEvent<HTMLFormElement>) => void;
   onClearSelectedTextContext: () => void;
@@ -53,13 +53,34 @@ function Result({
   initialReading, onSaveStudy, savingStudy, ref,
   exportContext = { scope: "Original explanation only (not adapted section variants)", provenance: "Generation preferences not recorded in this export." },
   allowChapterArtwork = true,
-  materialMode = "code",
+  materialMode = "code", refinementTarget = "explanation-preferences",
   explanation, source, theme, lineCount, isAskingFollowUp, isRegenerating = false, copyStatus, followUpQuestion,
-  selectedTextForQuestion, followUpMessages, followUpError, textSelection, onCopy, onSelectRange,
+  selectedTextForQuestion, followUpMessages, followUpError, textSelection, onCopy,
   onFollowUpQuestionChange, onAskFollowUp, onClearSelectedTextContext, onAskAboutSelectedText,
 }: Props) {
   const [activeVisualIndex, setActiveVisualIndex] = useState(0);
   const [illustration, setIllustration] = useState(() => initialReading?.illustration);
+  const [citation, setCitation] = useState<{ range: SourceRange; trigger: HTMLButtonElement }>();
+  const readingAnchor = useRef<{ trigger: HTMLButtonElement; top: number; restoreFocus: boolean } | null>(null);
+  useLayoutEffect(() => {
+    const anchor = readingAnchor.current;
+    readingAnchor.current = null;
+    if (!anchor?.trigger.isConnected) return;
+    const delta = anchor.trigger.getBoundingClientRect().top - anchor.top;
+    if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: "instant" });
+    if (anchor.restoreFocus) anchor.trigger.focus({ preventScroll: true });
+  }, [citation]);
+  function onSelectRange(range: SourceRange, trigger: HTMLButtonElement) {
+    if (!isValidRange(range, lineCount)) return;
+    readingAnchor.current = { trigger, top: trigger.getBoundingClientRect().top, restoreFocus: false };
+    setCitation({ range, trigger });
+  }
+  function dismissCitation() {
+    if (!citation) return;
+    const { trigger } = citation;
+    readingAnchor.current = { trigger, top: trigger.getBoundingClientRect().top, restoreFocus: true };
+    setCitation(undefined);
+  }
   const reader = useRef<ChapterReaderHandle>(null);
   const snapshot = () => ({ chapter: reader.current?.snapshot(), illustration });
   useImperativeHandle(ref, () => ({ snapshot }));
@@ -79,22 +100,21 @@ function Result({
     document.getElementById(`diagram-tab-${nextIndex}`)?.focus();
   };
   return <>
+    <div className={citation ? "result-with-evidence" : undefined}>
     <section className="result-card" aria-labelledby="explanation-title" aria-busy={isAskingFollowUp}>
       <div className="result-topline"><span className="result-label"><span className="result-spark">✳</span> YOUR EXPLANATION</span><div className="result-actions"><button className="copy-explanation" type="button" onClick={onCopy}>{copyStatus || "Copy explanation"}</button><span className="preview-badge">EXPLANATION</span></div></div>
       <div className="explanation-content">
         <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
         {isRegenerating && <p role="status">Showing the last completed explanation while the new one generates.</p>}
-        <div className="reading-tools" role="group" aria-label="Explanation tools">
-          <div className="section-caption">EXPLANATION TOOLS</div>
-          <VisualBriefPanel ref={visualDesigner} explanation={explanation} source={source} scope={exportContext.scope}
-            placement={{ id: illustrationId, onRender: setIllustration }} />
-          <details className="speech-tools"><summary>Read aloud</summary><SpeechReader explanation={explanation} /></details>
-          <DocumentExport explanation={explanation} source={source} context={exportContext} />
-          <StudyPdfExport explanation={explanation} source={source} context={exportContext}
-            collectImages={() => ({ overview: illustration, chapters: reader.current?.snapshot().images })} />
+        <ReadingTools label={materialMode === "pull_request" ? "PR chapter tools" : "Explanation tools"}
+          scope={materialMode === "pull_request" ? "This PR chapter" : "Whole explanation"} explanation={explanation} source={source} context={exportContext}
+          refine={<a href={`#${refinementTarget}`}>{materialMode === "pull_request" ? "Refine PR chapter" : "Refine explanation"}</a>}
+          visual={<VisualBriefPanel ref={visualDesigner} explanation={explanation} source={source} scope={exportContext.scope}
+            placement={{ id: illustrationId, current: illustration, onRender: setIllustration }} />}
+          collectImages={() => ({ overview: illustration, chapters: reader.current?.snapshot().images })}>
           {onSaveStudy && <button type="button" disabled={savingStudy} aria-describedby={`${illustrationId}-save-note`}
             onClick={() => onSaveStudy(snapshot())}>Save study locally</button>}
-        </div>
+        </ReadingTools>
         {onSaveStudy && <p className="saved-study-note" id={`${illustrationId}-save-note`}>Saving keeps the source text, explanations, adapted variants, chapter position, and rendered illustrations in this browser. Nothing is saved automatically.</p>}
         {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
           <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
@@ -161,6 +181,8 @@ function Result({
       </section>
       <div className="result-bottom"><span>✳ Keep exploring</span><span>Ask another question above <b>↑</b></span></div>
     </section>
+      {citation && <SourceEvidence source={source} range={citation.range} isPatch={materialMode === "pull_request"} onDismiss={dismissCitation} />}
+    </div>
 
     {textSelection && <div className="selection-action" role="toolbar" aria-label="Ask about selected text" style={{ top: textSelection.top, left: textSelection.left }}>
       <span>{textSelection.wasTruncated ? "Selection shortened to 2,000 characters" : `“${textSelection.text.slice(0, 72)}${textSelection.text.length > 72 ? "…" : ""}”`}</span>

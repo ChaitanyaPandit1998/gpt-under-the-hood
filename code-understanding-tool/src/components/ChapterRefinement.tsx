@@ -14,7 +14,7 @@ import { StudyPdfExport } from "./StudyPdfExport";
 import type { AdaptedStudy } from "../domain/saved-study";
 import { generationPhaseCopy } from "../domain/generation-progress";
 
-export type ChapterRefinementContext = { source: string; mode: Mode; theme: ThemeMode; onSelectRange: (range: SourceRange) => void };
+export type ChapterRefinementContext = { source: string; mode: Mode; theme: ThemeMode; onSelectRange: (range: SourceRange, trigger: HTMLButtonElement) => void };
 
 export type ChapterRefinementHandle = { snapshot: () => AdaptedStudy };
 
@@ -70,7 +70,7 @@ export function ChapterRefinement({ id, context, title, section, active, initial
           collectImages={() => ({ overview: image })} />
       </div>
       {active && <VisualBriefPanel ref={visualDesigner} explanation={result} source={context.source} scope={`Adapted section: ${title}`}
-        placement={{ id: illustrationId, onRender: (rendered) => setImages((current) => ({ ...current, [variantKey]: { explanation: result, illustration: rendered } })) }} />}
+        placement={{ id: illustrationId, current: image, onRender: (rendered) => setImages((current) => ({ ...current, [variantKey]: { explanation: result, illustration: rendered } })) }} />}
       {image && <InlineIllustration id={illustrationId} image={image} />}
       <p className="quality-review-note" role="status">{result.quality_review_note || "Check this variant against the source; more detail does not establish correctness."}</p>
       {result.incomplete_items?.map((item, index) => <div key={index}><p><strong>{item.title}</strong> {item.explanation}</p><SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} /></div>)}

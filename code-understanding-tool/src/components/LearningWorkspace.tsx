@@ -1,7 +1,8 @@
-import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
+import { useRef, type ChangeEvent, type KeyboardEvent, type RefObject } from "react";
 import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "../domain/explanation-types";
 import { ExplanationPreferenceCards } from "./ExplanationPreferenceCards";
 import { generationPhaseCopy, type GenerationPhase } from "../domain/generation-progress";
+import { starterExamples, type StarterExample } from "../domain/starter-examples";
 
 type Props = {
   mode: Mode;
@@ -25,7 +26,7 @@ type Props = {
   onPullRequestUrlChange: (url: string) => void;
   onLoadPullRequest: () => void;
   onSourceChange: (source: string) => void;
-  onExample: () => void;
+  onExample: (example: StarterExample) => void;
   onClear: () => void;
   onScreenshotSelected: (file: File) => void;
   onApproveTranscription: () => void;
@@ -43,6 +44,16 @@ export function LearningWorkspace({
   onDepthChange, onLearnerLevelChange, onExplain, onCancelExplanation, onRetry,
 }: Props) {
   const inputModes: Mode[] = ["code", "docs", "pull_request"];
+  const pullRequestInput = useRef<HTMLInputElement>(null);
+  const exampleDisabled = isTranscribing || isGenerating || isLoadingPullRequest;
+
+  function chooseExample(example: StarterExample) {
+    if ((source || screenshotPreview || pullRequestUrl) && !window.confirm("Replace the current workspace input with this example?")) return;
+    onExample(example);
+    requestAnimationFrame(() => {
+      (example.mode === "pull_request" ? pullRequestInput.current : sourceEditor.current)?.focus();
+    });
+  }
 
   function handleModeTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, currentMode: Mode) {
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
@@ -60,8 +71,21 @@ export function LearningWorkspace({
           <div className="step-label"><span>01</span> START WITH SOMETHING</div>
           <h2>What would you like to understand?</h2>
         </div>
-        <button className="example-link" onClick={onExample}>Try an example <span>↗</span></button>
       </div>
+
+      <section className="starter-examples" aria-labelledby="starter-examples-title">
+        <h3 id="starter-examples-title">Try an example</h3>
+        <p>Load a sample to review before you start.</p>
+        <div className="starter-examples-grid">
+          {starterExamples.map((example) => <button className="starter-example" type="button" key={example.mode}
+            disabled={exampleDisabled} onClick={() => chooseExample(example)}>
+            <span className="starter-example-icon" aria-hidden="true">{example.icon}</span>
+            <span className="starter-example-category">{example.category}</span>
+            <strong>{example.title}</strong>
+            <span className="starter-example-description">{example.description}</span>
+          </button>)}
+        </div>
+      </section>
 
       <div className="input-card">
         <div className="input-toolbar">
@@ -75,7 +99,7 @@ export function LearningWorkspace({
 
         {mode === "pull_request" && <form className="pull-request-import" onSubmit={(event) => { event.preventDefault(); onLoadPullRequest(); }}>
           <label htmlFor="pull-request-url">GitHub pull request URL</label>
-          <div><input id="pull-request-url" type="url" value={pullRequestUrl} onChange={(event) => onPullRequestUrlChange(event.target.value)} placeholder="https://github.com/owner/repo/pull/123" disabled={isLoadingPullRequest || isGenerating} /><button type="submit" disabled={!pullRequestUrl.trim() || isLoadingPullRequest || isGenerating}>{isLoadingPullRequest ? "Loading…" : "Load PR"}</button></div>
+          <div><input ref={pullRequestInput} id="pull-request-url" type="url" value={pullRequestUrl} onChange={(event) => onPullRequestUrlChange(event.target.value)} placeholder="https://github.com/owner/repo/pull/123" disabled={isLoadingPullRequest || isGenerating} /><button type="submit" disabled={!pullRequestUrl.trim() || isLoadingPullRequest || isGenerating}>{isLoadingPullRequest ? "Loading…" : "Load PR"}</button></div>
           <span>Public GitHub pull requests only. Review the fetched description and diff below before asking for an explanation.</span>
         </form>}
 

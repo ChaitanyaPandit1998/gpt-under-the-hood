@@ -3,6 +3,85 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-22 - Release walkthrough
+
+- Imported the existing public FastAPI starter: 274 files and 29 chapters.
+  Chapter navigation worked; a repeat import timed out.
+- A temporary public math pilot generated a live explanation in 27.7 s.
+  Verified citation highlighting and focus restoration. The first drawing
+  took 85.0 s to plan and about 0.6 s to rasterize; the second planning
+  request was cancelled before a usable result returned.
+- Completed the browser walkthrough using captured public-pilot responses
+  and an alternate palette with real VectorCraft rendering. Verified side-by-side
+  selection, local save and restore, and a two-page Chromium PDF with one
+  embedded 1920 x 1080 illustration. Inspected both printed pages. No pilot
+  inputs or outputs were added to the repository.
+- Lint, build, and 201 unit/API tests passed again; the latest browser suite
+  passed all 52 tests. Next: check branch CI and review before merging.
+
+## 2026-11-22 - Scoped reading toolbars
+
+- Reused one toolbar for whole explanations, individual chapters, and
+  generated PR chapters. Refinement links lead to the right preferences.
+  Individual chapters now have their own read-aloud and PDF preview; the
+  chapter preview keeps citations, review notes, and the chapter illustration
+  without including other chapters or the full-source appendix.
+- Starting another reader or leaving the speaking chapter stops the prior
+  playback. Document export and combined PR study PDF remain separate.
+- Passed lint, build, 201 unit/API tests, and 52 desktop/mobile browser tests.
+  Speech used a browser mock; tests verified scope, playback handoff,
+  navigation cleanup, and chapter PDF inclusion and exclusion.
+- Next: do an end-to-end walkthrough on real material before publishing the
+  remaining local changes.
+
+## 2026-11-22 - Sticky chapter outlines
+
+- Shared the contents outline between explanations and PR studies. It stays
+  visible while scrolling through a chapter on wide screens. Long lists scroll
+  independently and bring the active chapter into view. On narrow screens the
+  outline stays in the page flow above the chapter.
+- Passed lint, build, 201 unit/API tests, and 50 desktop/mobile browser tests.
+  The new browser cases use mocked outlines and explanations to verify actual
+  scroll placement, list overflow, active selection, and heading focus.
+- Next: unify chapter and whole-explanation toolbars and clarify their scope.
+
+## 2026-11-22 - Workspace starter cards
+
+- Added selectable code, long PR, and technical concept examples. Each card
+  fills and focuses the relevant input without fetching or generating. Replacing
+  existing input requires confirmation; cards are disabled during active work.
+- Passed lint, build, 201 unit/API tests, and 46 desktop/mobile browser tests.
+  The new test uses mocked PR import to verify keyboard selection, cancellation,
+  mobile layout, and that only the explicit Load PR action requests an import.
+  The public FastAPI example uses the PR from the earlier live import; no live
+  import was repeated for this change.
+- Next: keep chapter outlines visible while scrolling on wide screens.
+
+## 2026-11-22 - Inspect citations beside the reader
+
+- Citations open a local, read-only excerpt beside the explanation on wide
+  screens and in a modal bottom sheet on narrow screens. Highlighted lines
+  include nearby context, and closing returns keyboard focus to the citation.
+- PR citations use the imported chapter text and its line numbers, not original
+  repository file coordinates. Opening a citation does not fetch new evidence.
+- Passed lint, build, 201 unit/API tests, and 44 desktop/mobile browser tests.
+  Browser tests verified highlighted code, documentation and mocked PR evidence,
+  responsive placement and focus restoration.
+- Next: add starter cards for code, a long PR, and a technical concept.
+
+## 2026-11-22 - Compare illustration versions
+
+- New drawings can be compared against the current illustration at equal
+  display sizes, stacked on narrow screens. Keep the current image or accept
+  the new one for inline reading, local saves, and PDF previews. Unselected
+  drafts are not saved. Resizing the accepted drawing still reuses its plan
+  and updates the image without requiring another choice.
+- Passed lint, build, 201 unit/API tests, and 44 desktop/mobile browser tests.
+  The new browser test uses mocked generation to verify layout, both choices,
+  drawing reuse, and PDF selection before and after acceptance.
+- Next: open citation evidence alongside the reader on desktop and in a
+  bottom sheet on mobile.
+
 ## 2026-11-21 - Selectable illustrated PDF preview
 
 - Added a browser-local PDF preview for the current explanation, generated
@@ -16,6 +95,19 @@ dated entry for future work; never record secrets or private source material.
   that the workspace UI and unselected source appendix were excluded.
 - Next: verify the browser's print dialog on additional engines and consider
   a cross-chapter PDF for a whole saved PR workspace.
+
+### Combined PR study PDF
+
+- Added one browser-local PDF for selected completed PR chapters in active
+  or resumed studies. It uses each chapter's selected settings, cached
+  illustrations, and chapter-local citations. The pinned head/base and scope
+  warnings are retained; missing and deselected results are distinguished.
+- Passed lint, build, 201 unit/API tests, and 42 desktop/mobile browser tests.
+  Printed and visually inspected a four-page Chromium sample from a synthetic
+  saved PR workspace, with two embedded Full HD illustrations. No GitHub
+  fetch or model call was made to create the sample.
+- Next: add side-by-side illustration comparison without replacing the
+  current inline image until the reader chooses a version.
 
 ## 2026-11-21 - Compact visual scene planning
 

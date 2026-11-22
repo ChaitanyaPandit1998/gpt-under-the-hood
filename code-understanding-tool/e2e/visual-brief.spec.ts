@@ -1,5 +1,77 @@
 import { expect, test } from "@playwright/test";
 
+test("compares a new illustration without publishing it until selected", async ({ page }, testInfo) => {
+  let briefs = 0;
+  let plans = 0;
+  const resolutions: string[] = [];
+  await page.route("**/api/explain", (route) => route.fulfill({ json: {
+    title: "Grouping items", summary: "Group items by color.", concepts: [], walkthrough: [], assumptions: [], visuals: [], visual_note: "",
+  } }));
+  await page.route("**/api/visual-brief", (route) => {
+    const caption = ++briefs === 1 ? "Items in two baskets" : "Items on a color wheel";
+    return route.fulfill({ json: { brief: {
+      disposition: "render", visualType: "comparison", takeaway: "Both forms show the same groups.", composition: caption,
+      content: [{ label: "Items", role: "illustrative", statement: "Color distinguishes each group.", chapterLines: [] }],
+      guardrails: [], caption, altText: caption,
+    } } });
+  });
+  await page.route("**/api/visual-plan", (route) => {
+    plans += 1;
+    return route.fulfill({ json: { scene: { background: "#ffffff", items: [
+      { kind: "text", text: route.request().postDataJSON().caption, x: 50, y: 80, size: 24, color: "#202033", align: "left" },
+    ] } } });
+  });
+  await page.route("**/api/visual-render", (route) => {
+    resolutions.push(route.request().postDataJSON().resolution);
+    return route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=", "base64") });
+  });
+  await page.goto("/");
+  await page.getByRole("textbox", { name: "Code input", exact: true }).fill("groupBy(items, color);");
+  await page.getByRole("button", { name: "Help me understand" }).click();
+  await page.getByText("Design a visual", { exact: false }).click();
+  await page.getByRole("button", { name: "Generate visual brief", exact: true }).click();
+  await page.getByRole("radio", { name: "HD", exact: true }).check();
+  const render = page.getByRole("button", { name: "Render image", exact: true });
+  await render.click();
+  const inline = page.locator("figure.inline-illustration");
+  await expect(inline.getByRole("img")).toHaveAccessibleName("Items in two baskets");
+
+  await page.getByRole("button", { name: "Regenerate visual brief", exact: true }).click();
+  const step = page.getByRole("region", { name: "Render the image", exact: true });
+  await expect(step.getByRole("radio", { name: "HD", exact: true })).toBeChecked();
+  await render.click();
+  const comparison = page.getByRole("group", { name: "Compare illustrations" });
+  const current = comparison.getByRole("figure", { name: "Current illustration" }).getByRole("img");
+  const candidate = comparison.getByRole("figure", { name: "New illustration" }).getByRole("img");
+  await expect(current).toHaveAccessibleName("Items in two baskets");
+  await expect(candidate).toHaveAccessibleName("Items on a color wheel");
+  const currentBox = (await current.boundingBox())!;
+  const candidateBox = (await candidate.boundingBox())!;
+  expect(candidateBox.width).toBeCloseTo(currentBox.width, 0);
+  if (testInfo.project.name === "mobile") expect(candidateBox.y).toBeGreaterThan(currentBox.y + currentBox.height);
+  else expect(candidateBox.x).toBeGreaterThan(currentBox.x + currentBox.width);
+  await expect(inline.getByRole("img")).toHaveAccessibleName("Items in two baskets");
+  await page.getByRole("button", { name: "PDF preview", exact: true }).click();
+  const pdf = page.getByRole("dialog", { name: "PDF preview" });
+  const pdfImage = pdf.getByRole("article", { name: "Selected PDF content" }).getByRole("img");
+  await expect(pdfImage).toHaveAccessibleName("Items in two baskets");
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "Keep current illustration" }).click();
+  await expect(comparison).toHaveCount(0);
+  await expect(render).toBeFocused();
+  await expect(inline.getByRole("img")).toHaveAccessibleName("Items in two baskets");
+  await render.click();
+  await expect(candidate).toBeVisible();
+  await page.getByRole("button", { name: "Use new illustration" }).click();
+  await expect(comparison).toHaveCount(0);
+  await expect(inline.getByRole("img")).toHaveAccessibleName("Items on a color wheel");
+  await page.getByRole("button", { name: "PDF preview", exact: true }).click();
+  await expect(pdfImage).toHaveAccessibleName("Items on a color wheel");
+  expect(plans).toBe(2);
+  expect(resolutions).toEqual(["hd", "hd", "hd"]);
+});
+
 test("reuses the explanation, sends only selected preferences and opts in to source", async ({ page }, testInfo) => {
   const requests: Record<string, unknown>[] = [];
   const renders: Record<string, unknown>[] = [];
@@ -135,6 +207,16 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await reader.getByRole("button", { name: "Render image", exact: true }).click();
   await expect(reader.getByRole("img", { name: "An operation branches to retry." })).toBeVisible();
   expect(JSON.parse(requests[3].context as string)).toMatchObject({ scope: "Chapter: Overview", summary: "Retry after rejection." });
+  await reader.getByRole("button", { name: "Chapter PDF preview", exact: true }).click();
+  const singleChapter = page.getByRole("dialog", { name: "PDF preview" });
+  const singleChapterPaper = singleChapter.getByRole("article", { name: "Selected PDF content" });
+  await expect(singleChapterPaper.getByText("Chapter: Overview", { exact: false })).toBeVisible();
+  await expect(singleChapterPaper.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  await expect(singleChapterPaper.getByRole("heading", { name: "Assumptions and limits", exact: true })).toHaveCount(0);
+  await expect(singleChapterPaper.getByRole("img")).toHaveCount(1);
+  await expect(singleChapter.getByRole("checkbox", { name: "Whole-explanation illustration", exact: true })).toHaveCount(0);
+  await expect(singleChapter.getByRole("checkbox", { name: "Include original source appendix", exact: true })).toHaveCount(0);
+  await singleChapter.getByRole("button", { name: "Close PDF preview" }).click();
   await reader.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByRole("region", { name: "Limits and understanding check" }).getByRole("img", { name: "An operation branches to retry." })).toHaveCount(0);
   await page.getByRole("button", { name: "Previous", exact: true }).click();

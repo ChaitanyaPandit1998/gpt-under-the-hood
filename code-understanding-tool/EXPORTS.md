@@ -62,6 +62,19 @@ notes and valid citations. The original source appendix is opt-in. Follow-up
 threads, quizzes, decorative covers, and interactive diagram images are not
 included. The separate **Export document** and diagram options are unchanged.
 
+In Chapters mode, **Chapter PDF preview** under **This chapter** includes
+only the current chapter, its inline illustration if available, citations,
+and review or coverage notes. To include other chapters or the original
+source appendix, use **PDF preview** under **Whole explanation**.
+
+In a PR workspace, **PR study PDF preview** combines completed results for
+each chapter's selected settings into one PDF. It keeps the pinned revision
+and initial coverage notes, and lists which chapters were unavailable or
+excluded. Illustrations can be excluded by chapter. Source appendices are
+optional and apply only to selected chapters; citation lines are local to
+each chapter's imported source. This works in an active or resumed study,
+without refreshing the PR or generating missing chapters.
+
 ## Local setup
 
 This integration is off by default. Set these server-only variables in
