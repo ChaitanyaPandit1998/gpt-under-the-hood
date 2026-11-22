@@ -17,6 +17,22 @@ The app loads a task-specific provider-neutral skill for explanation, screenshot
 
 If a request reports that Codex CLI cannot reach its service, check network access for the terminal running `npm run dev`. Restricted or offline development environments may block the CLI connection even when Codex is signed in; start the local server from a terminal with network access and retry.
 
+## Automated checks
+
+GitHub Actions runs **App checks** on pull requests targeting `main` and on
+pushes to `main`. The job runs lint, unit/API tests, the production build,
+and the desktop and mobile Playwright projects in Chromium. Provider calls
+are mocked; no API keys or Craft installations are required. Download
+`playwright-failures` from a failed run to inspect browser traces or screenshots.
+
+Run the same app checks locally with Node.js 26:
+
+```sh
+npm ci
+./node_modules/.bin/playwright install chromium
+npm run check:all
+```
+
 ## Security and privacy boundary
 
 This is a local-only prototype. Both Vite development and preview servers bind to `127.0.0.1`; the API accepts loopback-host requests and rejects cross-origin browser requests. Do not expose it with `--host`, a reverse proxy, a tunnel, or a public deployment. The host/origin check is a browser-request guard, not user authentication or protection for a shared server.
