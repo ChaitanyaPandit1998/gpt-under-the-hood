@@ -1,5 +1,5 @@
 import { useEffect, useId, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
-import { buildVisualPrompt, defaultVisualPreferences, validateVisualBrief, visualForms, visualInputLimits, type VisualBrief } from "../domain/visual-brief";
+import { buildVisualPrompt, defaultVisualPreferences, sceneVisualGuidance, validateVisualBrief, visualForms, visualInputLimits, type SceneVisualPurpose, type VisualBrief, type VisualPreferences } from "../domain/visual-brief";
 import type { Explanation } from "../domain/explanation-types";
 import { VisualPreferenceFields } from "./VisualPreferenceFields";
 import { VisualBriefImage, type IllustrationPlacement } from "./VisualBriefImage";
@@ -7,14 +7,15 @@ import { combineVisualPresets, type VisualPresetSelection } from "../domain/visu
 import { VisualDesignerStep } from "./VisualDesignerStep";
 
 export type VisualBriefPanelHandle = { openForDiagram: (index: number) => void };
-type Props = { explanation: Explanation; source: string; scope: string; label?: string; placement?: IllustrationPlacement; ref?: Ref<VisualBriefPanelHandle> };
+type Props = { explanation: Explanation; source: string; scope: string; label?: string; placement?: IllustrationPlacement; ref?: Ref<VisualBriefPanelHandle>;
+  purpose?: SceneVisualPurpose; initialPreferences?: VisualPreferences; embedded?: boolean };
 
 export function VisualBriefPanel(props: Props) {
-  return <BriefForm key={JSON.stringify([props.explanation, props.source, props.scope])} {...props} />;
+  return <BriefForm key={JSON.stringify([props.explanation, props.source, props.scope, props.purpose, props.initialPreferences])} {...props} />;
 }
 
-function BriefForm({ explanation, source, scope, label = "Design a visual", placement, ref }: Props) {
-  const [preferences, setPreferences] = useState(defaultVisualPreferences);
+function BriefForm({ explanation, source, scope, label = "Design a visual", placement, ref, purpose, initialPreferences = defaultVisualPreferences, embedded }: Props) {
+  const [preferences, setPreferences] = useState(initialPreferences);
   const [presets, setPresets] = useState<VisualPresetSelection>({ direction: [], additionalContext: [] });
   const [brief, setBrief] = useState<VisualBrief | null>(null);
   const [briefRevision, setBriefRevision] = useState(0);
@@ -85,7 +86,7 @@ function BriefForm({ explanation, source, scope, label = "Design a visual", plac
           preferences: { ...preferences, direction: promptOverride === null ? direction : "",
             additionalContext: promptOverride === null ? additionalContext : "", includeSource: submittedSource !== undefined },
           designPrompt: promptOverride ?? undefined,
-          source: submittedSource,
+          source: submittedSource, purpose,
         }),
       });
       const data = await response.json() as { brief?: unknown; error?: string };
@@ -118,9 +119,8 @@ function BriefForm({ explanation, source, scope, label = "Design a visual", plac
     }
   }
 
-  return <details ref={panel} className="visual-brief-panel" onToggle={(event) => { if (!event.currentTarget.open) cancel(); }}>
-    <summary ref={summary}>{label} <small>New illustration</small></summary>
-    <p>Create a new illustration without changing the existing diagram. Keep the defaults for a quick start, or tailor the design before generating.</p>
+  const builder = <>
+    <p>{purpose ? sceneVisualGuidance[purpose] : "Create a new illustration without changing the existing diagram. Keep the defaults for a quick start, or tailor the design before generating."}</p>
     <form className="visual-designer-flow" onSubmit={(event) => void submit(event)}>
       {diagram && <div className="chapter-toolbar">
         <span><strong>Illustrate this diagram:</strong> {diagram.title}</span>
@@ -155,7 +155,7 @@ function BriefForm({ explanation, source, scope, label = "Design a visual", plac
         <div className="visual-context-summary">
           <strong>What the model receives</strong>
           <ul>
-            <li>The explanation for this scope, which may quote the original input.</li>
+            <li>{purpose === "factual-diagram" ? "This scene's factual mapping, not its narrative. The mapping may quote the original input." : purpose ? "This scene's narrative and factual mapping, which may quote the original input." : "The explanation for this scope, which may quote the original input."}</li>
             <li>{promptOverride === null ? "Your design selections and any extra details you entered." : "Your edited prompt, instead of the current design selections and notes."}</li>
             <li>{includeSource ? "Original source: included with numbered lines." : "Original source: not attached."}</li>
           </ul>
@@ -173,6 +173,11 @@ function BriefForm({ explanation, source, scope, label = "Design a visual", plac
     <VisualDesignerStep number="05" title="Render the image" id={renderId}>
       {brief ? <BriefResult key={briefRevision} brief={brief} placement={placement} disabled={busy} /> : <p>Generate a brief to unlock image rendering.</p>}
     </VisualDesignerStep>
+  </>;
+  if (embedded) return <section className="visual-brief-panel scene-visual-builder" aria-label={label}>{builder}</section>;
+  return <details ref={panel} className="visual-brief-panel" onToggle={(event) => { if (!event.currentTarget.open) cancel(); }}>
+    <summary ref={summary}>{label} <small>New illustration</small></summary>
+    {builder}
   </details>;
 }
 

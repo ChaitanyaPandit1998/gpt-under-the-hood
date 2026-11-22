@@ -24,6 +24,7 @@ import type { CloudflareImageCredentials } from "./cloudflare-image-client.ts";
 import { readJsonRequest, sendJson } from "./local-api-http.ts";
 import type { ModelRequestResult } from "./model-request.ts";
 import { registerVisualApi } from "./visual-api.ts";
+import { registerChapterStoryApi } from "./chapter-story-api.ts";
 
 export type { CodexRunner } from "./explanation-service.ts";
 
@@ -391,6 +392,10 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
       });
 
       const diagrams = options.diagramExporter ?? createVectorcraftExporter();
+      registerChapterStoryApi(server.middlewares, {
+        executeCodex, runModelRequest, maxSourceCharacters: MAX_EXPLANATION_SOURCE_CHARACTERS,
+        timeoutMs: limits.explanationTimeoutMs,
+      });
       server.middlewares.use("/api/document-export", documentExportApi(options.documentExporter ?? createWordcraftExporter(), diagrams));
       registerVisualApi(server.middlewares, {
         root,

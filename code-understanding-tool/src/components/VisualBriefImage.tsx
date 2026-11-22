@@ -11,7 +11,7 @@ const sizes = (Object.keys(visualResolutions) as VisualResolution[]).map((value)
   return { value, title, description: `${width} × ${height} px` };
 });
 
-export type IllustrationPlacement = { id: string; current?: RenderedIllustration; onRender: (image: RenderedIllustration) => void };
+export type IllustrationPlacement = { id: string; current?: RenderedIllustration; onRender: (image: RenderedIllustration) => void; location?: "scene" };
 
 export function VisualBriefImage({ brief, placement, disabled = false }: { brief: VisualBrief; placement?: IllustrationPlacement; disabled?: boolean }) {
   const [preview, setPreview] = useState<RenderedIllustration>();
@@ -78,14 +78,14 @@ export function VisualBriefImage({ brief, placement, disabled = false }: { brief
     {phase && <p role="status">{phase === "planning" ? "Planning the drawing..." : "Rendering the PNG..."}</p>}
     {error && <p role="alert">{error}</p>}
     {candidate && current && placement && <>
-      <p role="status">New version ready to compare. The current illustration stays in the explanation and PDF until you choose.</p>
+      <p role="status">New version ready to compare. {placement.location === "scene" ? "The current image stays in the scene until you choose." : "The current illustration stays in the explanation and PDF until you choose."}</p>
       <IllustrationComparison current={current} candidate={candidate} />
       <div className="chapter-toolbar">
         <button type="button" disabled={busy || disabled} onClick={() => { setPreview(undefined); setError(""); renderButton.current?.focus(); }}>Keep current illustration</button>
         <button className="visual-primary-action" type="button" disabled={busy || disabled} onClick={() => { placement.onRender(candidate); setError(""); renderButton.current?.focus(); }}>Use new illustration</button>
       </div>
     </>}
-    {preview && placement && !candidate && <p role="status">Illustration ready in the explanation.</p>}
+    {preview && placement && !candidate && <p role="status">{placement.location === "scene" ? "Image ready in the scene." : "Illustration ready in the explanation."}</p>}
     {preview && !placement && <InlineIllustration image={preview} />}
   </>;
 }

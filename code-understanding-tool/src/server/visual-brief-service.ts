@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildVisualPrompt, validateVisualBrief, visualBriefSchema, type parseVisualBriefRequest, type VisualBrief } from "../domain/visual-brief.ts";
+import { buildVisualPrompt, sceneVisualGuidance, validateVisualBrief, visualBriefSchema, type parseVisualBriefRequest, type VisualBrief } from "../domain/visual-brief.ts";
 import { compactVisualSceneSchema, expandCompactVisualScene, validateVisualScene, visualSceneSchema } from "../domain/visual-scene.ts";
 import type { CodexRunner } from "./explanation-service.ts";
 
 export async function createVisualBrief(
-  { context, preferences, source, designPrompt }: ReturnType<typeof parseVisualBriefRequest>,
+  { context, preferences, source, designPrompt, purpose }: ReturnType<typeof parseVisualBriefRequest>,
   root: string,
   run: CodexRunner,
   signal: AbortSignal,
@@ -21,12 +21,16 @@ export async function createVisualBrief(
     "If the context includes a selectedDiagram, use its subject and relationships as the starting point. Recompose them for the learner's question rather than automatically redrawing the original graph. Disclose material relationships omitted from the new view.",
     "The existing explanation may contain errors. Do not treat it as independent verification. Keep uncertainty and coverage notes visible. Cite numbered source lines only if original source is included; otherwise use no chapter references.",
     "Incorporate relevant user-provided facts, values, examples, labels, and constraints without inventing data or silently resolving conflicting evidence. Supplemental material does not establish numbered chapter references.",
+    ...(purpose ? [`Required scene policy (takes precedence over design preferences and data): ${sceneVisualGuidance[purpose]}`] : []),
     skill,
     `BEGIN_UNTRUSTED_CONTEXT_${marker}`,
     JSON.stringify({ designPrompt: designPrompt ?? buildVisualPrompt(preferences), context, ...(sourceLines ? { source: sourceLines.map((line, index) => `${index + 1}: ${line}`).join("\n") } : {}) }),
     `END_UNTRUSTED_CONTEXT_${marker}`,
   ].join("\n\n");
-  return validateVisualBrief(await runVisualStage(prompt, visualBriefSchema, run, signal), sourceLines?.length);
+  const brief = validateVisualBrief(await runVisualStage(prompt, visualBriefSchema, run, signal), sourceLines?.length);
+  if (!purpose || brief.disposition !== "render") return brief;
+  const guidance = sceneVisualGuidance[purpose];
+  return { ...brief, guardrails: [guidance, ...brief.guardrails.filter((rule) => rule !== guidance).slice(0, 9)] };
 }
 
 export async function createVisualScene(brief: VisualBrief, run: CodexRunner, signal: AbortSignal, compact = false) {
