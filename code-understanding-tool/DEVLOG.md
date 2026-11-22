@@ -3,6 +3,17 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-22 - Visual API route extraction
+
+- Moved visual brief, scene planning, PNG rendering, and chapter cover routes
+  into their own module. Kept the same endpoint contracts and shared model
+  request limiter, cancellation, phase diagnostics, and timeout handling.
+- Passed lint, build, 202 unit/API tests, and 56 desktop/mobile browser tests.
+  The new API regression verifies that an active visual render uses the same
+  concurrency slot as an explanation and releases it on completion.
+  No live image providers were called.
+- Next: extract shared model request lifecycle handling from the local API.
+
 ## 2026-11-22 - Automated app checks
 
 - Added a GitHub Actions job for PRs targeting main and pushes to main.
