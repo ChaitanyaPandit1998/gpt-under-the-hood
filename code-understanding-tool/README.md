@@ -17,6 +17,19 @@ The app loads a task-specific provider-neutral skill for explanation, screenshot
 
 If a request reports that Codex CLI cannot reach its service, check network access for the terminal running `npm run dev`. Restricted or offline development environments may block the CLI connection even when Codex is signed in; start the local server from a terminal with network access and retry.
 
+## Story Mode
+
+After generating an explanation, open **Chapters**, then select **Story**.
+Each story scene separates the fictional analogy from its factual meaning and
+links to supporting source lines when available. Generating a story sends the
+selected chapter context and original source to the configured Codex CLI.
+Switch back to **Direct** at any time. Open **Illustrate this scene** to
+choose a fictional **Story illustration** or a **Factual diagram** based on
+the scene's factual mapping. Preview the design prompt, generate a brief, and
+render with the configured VectorCraft CLI. No image is generated automatically.
+Stories and their scene images are cached in the current reader, not saved or
+included in document/PDF exports. Individual images can be downloaded.
+
 ## Automated checks
 
 GitHub Actions runs **App checks** on pull requests targeting `main` and on

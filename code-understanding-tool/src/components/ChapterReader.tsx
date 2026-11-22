@@ -9,6 +9,9 @@ import { VisualBriefPanel } from "./VisualBriefPanel";
 import { InlineIllustration } from "./InlineIllustration";
 import { ReadingTools } from "./ReadingTools";
 import type { ReadingState, RenderedIllustration } from "../domain/saved-study";
+import type { ChapterStory as Story } from "../domain/chapter-story";
+import { ChapterStory, type ChapterStoryContext } from "./ChapterStory";
+import type { StorySceneImages } from "./StorySceneVisual";
 
 const ChapterContext = createContext<{
   active: string | null; imagePrefix: string; images: Record<string, RenderedIllustration>;
@@ -42,31 +45,41 @@ function chapterMaterial(explanation: Explanation, chapter: ExplanationChapter):
 }
 
 export type ChapterReaderHandle = { snapshot: () => ReadingState };
-type ReaderProps = { explanation: Explanation; children: ReactNode; artworkEnabled?: boolean; refinementContext?: ChapterRefinementContext; initialReading?: ReadingState; ref?: Ref<ChapterReaderHandle> };
+type ReaderProps = { explanation: Explanation; children: ReactNode; artworkEnabled?: boolean; refinementContext?: ChapterRefinementContext; storyContext?: ChapterStoryContext; initialReading?: ReadingState; ref?: Ref<ChapterReaderHandle> };
 
 export function ChapterReader({ explanation, ...props }: ReaderProps) {
   // A new result starts a new reading session, even when the result component stays mounted.
   return <Reader key={JSON.stringify(explanation)} explanation={explanation} {...props} />;
 }
 
-function Reader({ explanation, children, artworkEnabled = true, refinementContext, initialReading, ref }: ReaderProps) {
+function Reader({ explanation, children, artworkEnabled = true, refinementContext, storyContext, initialReading, ref }: ReaderProps) {
   const chapters = explanationChapters(explanation);
   const [chapterMode, setChapterMode] = useState(() => initialReading?.chapterMode ?? prefersChapters(explanation));
   const [index, setIndex] = useState(() => Math.max(0, chapters.findIndex((chapter) => chapter.id === initialReading?.chapterId)));
   const [covers, setCovers] = useState<Record<string, ChapterArtwork>>(() => initialReading?.covers ?? {});
   const [images, setImages] = useState<Record<string, RenderedIllustration>>(() => initialReading?.images ?? {});
+  const [stories, setStories] = useState<Record<string, Story>>({});
+  const [storyImages, setStoryImages] = useState<Record<string, Record<number, StorySceneImages>>>({});
+  const [selectedStory, setSelectedStory] = useState<string>();
   const heading = useRef<HTMLHeadingElement>(null);
   const refinementReaders = useRef(new Map<string, ChapterRefinementHandle>());
   const headingId = useId();
   const imagePrefix = useId();
   const chapter = chapters[index];
-  const chapterContext = chapterMode && refinementContext ? chapterMaterial(explanation, chapter) : undefined;
+  const chapterContext = chapterMode && (refinementContext || storyContext) ? chapterMaterial(explanation, chapter) : undefined;
+  const storyKey = JSON.stringify([chapter.id, storyContext?.preferences]);
+  const storySelected = selectedStory === storyKey;
+  const storyVisible = chapterMode && storySelected && !!stories[storyKey];
   useImperativeHandle(ref, () => ({ snapshot: () => ({
     chapterMode, chapterId: chapter.id, images, covers,
     adapted: Object.fromEntries([...refinementReaders.current].map(([id, refinement]) => [id, refinement.snapshot()])),
   }) }), [chapterMode, chapter.id, images, covers]);
 
   function navigate(next: number) {
+    if (next !== index && storySelected) {
+      setSelectedStory(undefined);
+      storyContext?.onClearCitation();
+    }
     setIndex(Math.max(0, Math.min(next, chapters.length - 1)));
     heading.current?.focus();
     heading.current?.scrollIntoView({ block: "nearest" });
@@ -76,7 +89,11 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
     <div className="chapter-toolbar" role="group" aria-label="Explanation reading mode">
       <span>Read at your pace</span>
       <button type="button" aria-pressed={chapterMode} onClick={() => setChapterMode(true)}>Chapters</button>
-      <button type="button" aria-pressed={!chapterMode} onClick={() => setChapterMode(false)}>Full explanation</button>
+      <button type="button" aria-pressed={!chapterMode} onClick={() => {
+        if (storySelected) storyContext?.onClearCitation();
+        setSelectedStory(undefined);
+        setChapterMode(false);
+      }}>Full explanation</button>
     </div>
     <div className={chapterMode ? "chapter-layout" : ""}>
       {chapterMode && <ChapterOutline label="Explanation chapters" chapters={chapters} index={index} onSelect={navigate} />}
@@ -85,6 +102,17 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
           <p aria-live="polite" aria-atomic="true">Chapter {index + 1} of {chapters.length}</p>
           <h3 id={headingId} ref={heading} tabIndex={-1}>{chapter.title}</h3>
         </header>}
+        {chapterContext && storyContext?.source.trim() && <ChapterStory key={storyKey} context={storyContext} chapter={JSON.stringify(chapterContext)}
+          selected={storySelected} story={stories[storyKey]} images={storyImages[storyKey]} onSelect={(selected) => {
+            if (!selected && storyVisible) storyContext.onClearCitation();
+            setSelectedStory(selected ? storyKey : undefined);
+          }} onReady={(story) => {
+            storyContext.onClearCitation();
+            setStories((current) => ({ ...current, [storyKey]: story }));
+          }} onRender={(sceneIndex, purpose, image) => setStoryImages((current) => ({
+            ...current, [storyKey]: { ...current[storyKey], [sceneIndex]: { ...current[storyKey]?.[sceneIndex], [purpose]: image } },
+          }))} />}
+        <div className="chapter-direct-content" hidden={storyVisible}>
         {chapterContext && refinementContext && <ReadingTools key={`tools-${chapter.id}`} label="Chapter tools" scope={`This chapter: ${chapter.title}`}
           explanation={explanation} source={refinementContext.source} context={{ scope: `Chapter: ${chapter.title}`, provenance: "" }}
           refine={<a href={`#${imagePrefix}-refine-${chapter.id}`}>Refine chapter</a>}
@@ -107,6 +135,7 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
           }}
           section={item.id === "overview" ? explanation.summary : item.id === "concepts" ? explanation.concepts : item.id.startsWith("step-") ? explanation.walkthrough[Number(item.id.slice(5))] : item.id === "visuals" ? { visuals: explanation.visuals, note: explanation.visual_note } : explanation.assumptions} />)}
         <ChapterContext value={{ active: chapterMode ? chapter.id : null, imagePrefix, images }}>{children}</ChapterContext>
+        </div>
         {chapterMode && <nav className="chapter-pagination" aria-label="Chapter navigation">
           <button type="button" disabled={index === 0} onClick={() => navigate(index - 1)}>Previous</button>
           <span>{index + 1} / {chapters.length}</span>

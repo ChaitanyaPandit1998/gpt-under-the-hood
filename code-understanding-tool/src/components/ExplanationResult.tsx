@@ -13,6 +13,7 @@ import type { ExportContext } from "./DocumentExport";
 import { VisualBriefPanel, type VisualBriefPanelHandle } from "./VisualBriefPanel";
 import { InlineIllustration } from "./InlineIllustration";
 import type { ResultReadingState } from "../domain/saved-study";
+import { defaultStoryPreferences, type StoryPreferences } from "../domain/chapter-story";
 
 export type TextSelection = { text: string; top: number; left: number; wasTruncated: boolean };
 
@@ -24,6 +25,7 @@ type Props = {
   exportContext?: ExportContext;
   allowChapterArtwork?: boolean;
   materialMode?: Mode;
+  storyPreferences?: StoryPreferences;
   refinementTarget?: string;
   explanation: Explanation;
   source: string;
@@ -53,7 +55,7 @@ function Result({
   initialReading, onSaveStudy, savingStudy, ref,
   exportContext = { scope: "Original explanation only (not adapted section variants)", provenance: "Generation preferences not recorded in this export." },
   allowChapterArtwork = true,
-  materialMode = "code", refinementTarget = "explanation-preferences",
+  materialMode = "code", storyPreferences = defaultStoryPreferences, refinementTarget = "explanation-preferences",
   explanation, source, theme, lineCount, isAskingFollowUp, isRegenerating = false, copyStatus, followUpQuestion,
   selectedTextForQuestion, followUpMessages, followUpError, textSelection, onCopy,
   onFollowUpQuestionChange, onAskFollowUp, onClearSelectedTextContext, onAskAboutSelectedText,
@@ -128,7 +130,9 @@ function Result({
           <strong>Second-pass review · {explanation.quality_review_status === "passed" ? "passed" : explanation.quality_review_status === "revised" ? "revised · final check passed" : "not fully verified"}</strong>
           <span>{explanation.quality_review_note}</span>
         </aside>}
-        <ChapterReader ref={reader} initialReading={initialReading?.chapter} explanation={explanation} artworkEnabled={allowChapterArtwork} refinementContext={allowChapterArtwork ? { source, mode: materialMode, theme, onSelectRange } : undefined}>
+        <ChapterReader ref={reader} initialReading={initialReading?.chapter} explanation={explanation} artworkEnabled={allowChapterArtwork}
+          storyContext={{ source, mode: materialMode, preferences: storyPreferences, onSelectRange, onClearCitation: () => setCitation(undefined) }}
+          refinementContext={allowChapterArtwork ? { source, mode: materialMode, theme, onSelectRange } : undefined}>
         <ChapterPage id="overview"><p className="result-summary">{explanation.summary}</p></ChapterPage>
         <ChapterPage id="concepts">
         {explanation.concepts.length > 0 && <div className="result-section"><div className="section-caption">KEY IDEAS</div><div className="concept-grid">{explanation.concepts.map((concept, index) => <article className="concept-card" key={`${concept.term}-${index}`}><h3>{concept.term}</h3><p>{concept.explanation}</p><SourceRanges ranges={concept.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article>)}</div></div>}

@@ -29,13 +29,13 @@ export function IllustrationComparison({ current, candidate }: { current: Render
   </div>;
 }
 
-export function InlineIllustration({ image, id }: { image: RenderedIllustration; id?: string }) {
+export function InlineIllustration({ image, id, label = "GENERATED ILLUSTRATION" }: { image: RenderedIllustration; id?: string; label?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const url = usePngUrl(image.png);
   if (!url) return null;
   const { width, height } = visualResolutions[image.resolution];
-  return <figure className="visual-brief-preview inline-illustration" id={id} tabIndex={-1}>
-    <div className="section-caption">GENERATED ILLUSTRATION</div>
+  return <figure className="visual-brief-preview inline-illustration" id={id} tabIndex={-1} aria-label={label}>
+    <div className="section-caption">{label}</div>
     <button className="illustration-zoom" type="button" aria-label="Enlarge illustration" onClick={() => dialog.current?.showModal()}>
       <img src={url} alt={image.alt} width={width} height={height} />
     </button>

@@ -3,6 +3,37 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-22 - Chapter Story Mode
+
+- Added an opt-in Direct / Story view. Each scene separates narrative from
+  factual meaning and links to the original source where it supports a claim.
+  Story requests use the selected audience and depth, share the local model
+  limit, and keep the direct view available during generation or failure.
+- Validated story structure and citation bounds, with a fidelity review and
+  at most one repair. Only reviewed stories are shown. Completed variants are
+  cached in the current reader; they are not saved, narrated, or exported.
+- Passed lint, build, 204 unit/API tests, and 60 desktop/mobile browser tests.
+  A separate live public-math pilot initially failed review. The retry passed
+  in 24.1 s and kept the distinction between known facts and the conjecture.
+- Rendered and inspected two Full HD VectorCraft pilot images from curated
+  briefs: editorial illustration (57.3 s planning) and coordinate schematic
+  (46.6 s planning). Rasterization took about 0.6 s each. The coordinate
+  version labeled the midpoint and did not plot invented data.
+  Pilot inputs and outputs are outside the repository.
+- Added an on-demand scene image action with separate fictional illustration
+  and factual diagram modes. Both reuse the visual builder and VectorCraft.
+  Approved images stay separate by scene and mode in the current reader;
+  downloads work, but the images are not persisted or included in exports.
+- The live scene pilot produced both modes at Full HD. The first factual
+  render marked a hypothetical point, so the mode now asks for hypothetical
+  outcomes to stay in text unless supplied as schematic examples. The revised
+  render had no point markers. Generation remains model-guided; review
+  factual images before sharing.
+- Passed lint, build, 205 unit/API tests, and 64 desktop/mobile browser tests
+  in CI mode. Two earlier browser runs had intermittent failures in existing
+  desktop reading tests; the new scene tests passed in each run.
+- Next: open a PR for the complete chapter story and illustration flow.
+
 ## 2026-11-22 - Visual API route extraction
 
 - Moved visual brief, scene planning, PNG rendering, and chapter cover routes

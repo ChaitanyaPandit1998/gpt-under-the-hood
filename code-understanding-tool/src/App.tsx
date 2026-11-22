@@ -368,6 +368,7 @@ function App() {
             onSaveStudy={mode === "pull_request" ? undefined : saveSourceStudy}
             savingStudy={storageBusy || isGenerating}
             materialMode={mode}
+            storyPreferences={{ depth: explanationDepth, learnerLevel }}
             explanation={explanation}
             source={source}
             theme={pageTheme}

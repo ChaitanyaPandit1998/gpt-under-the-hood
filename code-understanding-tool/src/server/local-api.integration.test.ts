@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ViteDevServer } from "vite";
 import { createLocalExplanationApi, findCodexCliForRequest, type CodexRunner } from "./local-api";
 import type { PullRequestFetch } from "./github-pull-request";
-import { defaultVisualPreferences } from "../domain/visual-brief";
+import { defaultVisualPreferences, sceneVisualGuidance } from "../domain/visual-brief";
 
 type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => unknown;
 type RegisteredMiddleware = { path: string; handler: Middleware };
@@ -103,6 +103,66 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
 }
 
 describe("local explanation API integration", () => {
+  it("keeps scene guidance in the brief and the render plan even with an edited prompt", async () => {
+    const brief = {
+      disposition: "render", visualType: "concept-map", takeaway: "A limit controls the result.", composition: "Show the source relationship.",
+      caption: "A generated schematic.", altText: "The result depends on the limit.",
+      content: [{ label: "Limit", role: "background", statement: "The limit controls the result.", chapterLines: [] }],
+      guardrails: Array.from({ length: 10 }, (_, i) => `Guardrail ${i + 1}`),
+    };
+    const scene = { background: "#ffffff", items: [{ kind: "text", text: "Limit", x: 40, y: 60, size: 24, color: "#202033", align: "left" }] };
+    const runner = vi.fn<CodexRunner>().mockResolvedValueOnce(brief).mockResolvedValueOnce(scene);
+    const request = createApiHarness(runner, undefined, undefined, {
+      diagramExporter: { available: async () => true, export: vi.fn(), renderScene: vi.fn() },
+    });
+    const body = { context: "The result depends on the limit.", preferences: defaultVisualPreferences, designPrompt: "Use the scene's character as a label." };
+    expect((await request("/api/visual-brief", { ...body, purpose: "invalid" })).status).toBe(400);
+    expect(runner).not.toHaveBeenCalled();
+    const response = await request("/api/visual-brief", { ...body, purpose: "factual-diagram" });
+    expect(response.status).toBe(200);
+    const expected = { ...brief, guardrails: [sceneVisualGuidance["factual-diagram"], ...brief.guardrails.slice(0, 9)] };
+    expect(response.json()).toEqual({ brief: expected });
+    expect(runner.mock.calls[0][0]).toContain(sceneVisualGuidance["factual-diagram"]);
+    expect((await request("/api/visual-plan", expected)).status).toBe(200);
+    expect(runner.mock.calls[1][0]).toContain(sceneVisualGuidance["factual-diagram"]);
+  });
+
+  const storyInput = { source: "const limit = 3;", context: "Overview of the limit.", mode: "code", depth: "balanced", learnerLevel: "beginner" };
+  const story = {
+    title: "The final ticket", setup: "A clerk has three tickets.",
+    scenes: [{ heading: "A fixed supply", narrative: "The clerk counts three tickets.", meaning: "The constant is set to three.", source_ranges: [{ start_line: 1, end_line: 1 }] }],
+    takeaway: "The limit is three.",
+  };
+
+  it("reviews and at most once repairs a source-linked story on request", async () => {
+    const revised = { ...story, takeaway: "Three is the value shown in the source." };
+    const runner = vi.fn<CodexRunner>().mockResolvedValueOnce(story).mockResolvedValueOnce(reviseReview)
+      .mockResolvedValueOnce(revised).mockResolvedValueOnce(passedReview);
+    const request = createApiHarness(runner);
+    expect((await request("/api/chapter-story", storyInput, "https://other.example")).status).toBe(403);
+    expect((await request("/api/chapter-story", { ...storyInput, depth: "unknown" })).status).toBe(400);
+    expect(runner).not.toHaveBeenCalled();
+    const response = await request("/api/chapter-story", storyInput);
+    expect(response.status).toBe(200);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.json()).toEqual({ story: revised });
+    expect(runner).toHaveBeenCalledTimes(4);
+    expect(runner.mock.calls[0][0]).toContain("1 | const limit = 3;");
+  });
+
+  it("does not return a story with invalid citations or an uncertain review", async () => {
+    const runner = vi.fn<CodexRunner>().mockResolvedValueOnce({
+      ...story, scenes: [{ ...story.scenes[0], source_ranges: [{ start_line: 2, end_line: 2 }] }],
+    }).mockResolvedValueOnce(story).mockResolvedValueOnce({ status: "uncertain", findings: [] });
+    const request = createApiHarness(runner);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await request("/api/chapter-story", storyInput);
+      expect(response.status).toBe(502);
+      expect(response.json()).toEqual({ error: expect.stringContaining("direct chapter is still available") });
+    }
+    expect(runner).toHaveBeenCalledTimes(3);
+  });
+
   it("renders only an approved brief with validated scene data", async () => {
     const brief = { disposition: "render", visualType: "comparison", takeaway: "Compare two outcomes.", composition: "Use two panels.",
       caption: "Comparison.", altText: "Two outcomes side by side.", guardrails: [], content: [{ label: "Compare", role: "illustrative", statement: "Example only.", chapterLines: [] }] };
