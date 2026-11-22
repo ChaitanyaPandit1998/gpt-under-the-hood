@@ -1,6 +1,8 @@
-import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
+import { useRef, type ChangeEvent, type KeyboardEvent, type RefObject } from "react";
 import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "../domain/explanation-types";
+import { ExplanationPreferenceCards } from "./ExplanationPreferenceCards";
 import { generationPhaseCopy, type GenerationPhase } from "../domain/generation-progress";
+import { starterExamples, type StarterExample } from "../domain/starter-examples";
 
 type Props = {
   mode: Mode;
@@ -24,13 +26,14 @@ type Props = {
   onPullRequestUrlChange: (url: string) => void;
   onLoadPullRequest: () => void;
   onSourceChange: (source: string) => void;
-  onExample: () => void;
+  onExample: (example: StarterExample) => void;
   onClear: () => void;
   onScreenshotSelected: (file: File) => void;
   onApproveTranscription: () => void;
   onDepthChange: (depth: ExplanationDepth) => void;
   onLearnerLevelChange: (level: LearnerLevel) => void;
   onExplain: () => void;
+  onCancelExplanation: () => void;
   onRetry: () => void;
 };
 
@@ -38,9 +41,19 @@ export function LearningWorkspace({
   mode, source, lineCount, sourceEditor, screenshotInput, isTranscribing, isGenerating, generationPhase, pullRequestUrl, isLoadingPullRequest,
   screenshotPreview, transcription, needsApproval, approved, explanationDepth, learnerLevel, error,
   onModeChange, onPullRequestUrlChange, onLoadPullRequest, onSourceChange, onExample, onClear, onScreenshotSelected, onApproveTranscription,
-  onDepthChange, onLearnerLevelChange, onExplain, onRetry,
+  onDepthChange, onLearnerLevelChange, onExplain, onCancelExplanation, onRetry,
 }: Props) {
   const inputModes: Mode[] = ["code", "docs", "pull_request"];
+  const pullRequestInput = useRef<HTMLInputElement>(null);
+  const exampleDisabled = isTranscribing || isGenerating || isLoadingPullRequest;
+
+  function chooseExample(example: StarterExample) {
+    if ((source || screenshotPreview || pullRequestUrl) && !window.confirm("Replace the current workspace input with this example?")) return;
+    onExample(example);
+    requestAnimationFrame(() => {
+      (example.mode === "pull_request" ? pullRequestInput.current : sourceEditor.current)?.focus();
+    });
+  }
 
   function handleModeTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, currentMode: Mode) {
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
@@ -58,8 +71,21 @@ export function LearningWorkspace({
           <div className="step-label"><span>01</span> START WITH SOMETHING</div>
           <h2>What would you like to understand?</h2>
         </div>
-        <button className="example-link" onClick={onExample}>Try an example <span>↗</span></button>
       </div>
+
+      <section className="starter-examples" aria-labelledby="starter-examples-title">
+        <h3 id="starter-examples-title">Try an example</h3>
+        <p>Load a sample to review before you start.</p>
+        <div className="starter-examples-grid">
+          {starterExamples.map((example) => <button className="starter-example" type="button" key={example.mode}
+            disabled={exampleDisabled} onClick={() => chooseExample(example)}>
+            <span className="starter-example-icon" aria-hidden="true">{example.icon}</span>
+            <span className="starter-example-category">{example.category}</span>
+            <strong>{example.title}</strong>
+            <span className="starter-example-description">{example.description}</span>
+          </button>)}
+        </div>
+      </section>
 
       <div className="input-card">
         <div className="input-toolbar">
@@ -73,7 +99,7 @@ export function LearningWorkspace({
 
         {mode === "pull_request" && <form className="pull-request-import" onSubmit={(event) => { event.preventDefault(); onLoadPullRequest(); }}>
           <label htmlFor="pull-request-url">GitHub pull request URL</label>
-          <div><input id="pull-request-url" type="url" value={pullRequestUrl} onChange={(event) => onPullRequestUrlChange(event.target.value)} placeholder="https://github.com/owner/repo/pull/123" disabled={isLoadingPullRequest || isGenerating} /><button type="submit" disabled={!pullRequestUrl.trim() || isLoadingPullRequest || isGenerating}>{isLoadingPullRequest ? "Loading…" : "Load PR"}</button></div>
+          <div><input ref={pullRequestInput} id="pull-request-url" type="url" value={pullRequestUrl} onChange={(event) => onPullRequestUrlChange(event.target.value)} placeholder="https://github.com/owner/repo/pull/123" disabled={isLoadingPullRequest || isGenerating} /><button type="submit" disabled={!pullRequestUrl.trim() || isLoadingPullRequest || isGenerating}>{isLoadingPullRequest ? "Loading…" : "Load PR"}</button></div>
           <span>Public GitHub pull requests only. Review the fetched description and diff below before asking for an explanation.</span>
         </form>}
 
@@ -107,22 +133,7 @@ export function LearningWorkspace({
         {needsApproval && !isTranscribing && <button className="approve-transcription" onClick={onApproveTranscription} disabled={approved || !source.trim()}>{approved ? "Text reviewed ✓" : transcription ? "I reviewed this text" : "Use the text I entered"}</button>}
       </div>}
 
-      <div className="explanation-preferences" aria-label="Explanation preferences">
-        <label>Depth
-          <select value={explanationDepth} onChange={(event) => onDepthChange(event.target.value as ExplanationDepth)}>
-            <option value="overview">Quick overview</option>
-            <option value="balanced">Balanced</option>
-            <option value="detailed">Detailed walkthrough</option>
-          </select>
-        </label>
-        <label>Explain for
-          <select value={learnerLevel} onChange={(event) => onLearnerLevelChange(event.target.value as LearnerLevel)}>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </label>
-      </div>
+      <ExplanationPreferenceCards depth={explanationDepth} audience={learnerLevel} onDepthChange={onDepthChange} onAudienceChange={onLearnerLevelChange} />
 
       <div className="action-row">
         <span className="privacy-note"><span>◈</span> Nothing is saved automatically</span>
@@ -131,7 +142,8 @@ export function LearningWorkspace({
       {isGenerating && generationPhase && <div className="generation-progress" role="status" aria-live="polite" aria-atomic="true">
         <span className="generation-progress-spinner" aria-hidden="true" />
         <span><strong>{generationPhaseCopy[generationPhase].button}</strong> {generationPhaseCopy[generationPhase].detail}</span>
+        <button className="cancel-explanation" type="button" onClick={onCancelExplanation}>Cancel generation</button>
       </div>}
-      {error && <div className="error-message" role="alert"><span>!</span><p>{error}</p><button onClick={onRetry} disabled={isGenerating || isTranscribing}>Try again</button></div>}
+      {error && <div className="error-message" role="alert"><span>!</span><p>{error}</p><button onClick={onRetry} disabled={isGenerating || isTranscribing || isLoadingPullRequest || (mode === "pull_request" && !pullRequestUrl.trim())}>Try again</button></div>}
   </section>;
 }

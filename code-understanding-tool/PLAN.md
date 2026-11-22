@@ -131,6 +131,19 @@ Milestones 1–4 are implemented. The local app supports pasted code/documentati
 
 ## Craft export integration plan
 
+### Current implementation
+
+Opt-in WordCraft DOCX/PDF and VectorCraft PNG adapters with explicit
+original/adapted/PR-result export controls are implemented. See `EXPORTS.md`
+for setup, bounded PNG layout limits, local activation, and exact scope.
+This first slice uses a cancellable direct download request instead of retained
+jobs: one selected result, no artifact store, and cleanup before responding.
+The job API below remains a proposal for larger asynchronous exports. Editable
+SVG/native VectorCraft downloads, DOCX image embedding, DeckCraft
+integration, multi-chapter bundles, and hosted deployment isolation remain
+deferred. Pilot findings below are historical feasibility data,
+not a claim that these deferred features shipped.
+
 ### Decision and evidence
 
 Use Craft apps as optional local export backends, not explanation engines or
@@ -235,7 +248,9 @@ are required. Do not enable arbitrary SVG editing or tool execution in the app.
   native Microsoft Word/PowerPoint opening and editing, and target OS coverage.
   Keep untested combinations experimental; do not treat one pilot as a pass.
 
-Recommended next implementation slice: a validated one-chapter snapshot, an
-injected WordCraft adapter, and a cancellable local job service behind a disabled
-feature flag. Add the user-facing action only after adapter/security tests pass.
-MCP orchestration, additional apps, cloud rendering, and video remain deferred.
+Completed slice: a validated selected-result snapshot, injected WordCraft and
+VectorCraft PNG adapters, cancellable direct downloads, and explicit controls.
+PDF now optionally embeds one selected server-generated diagram PNG. Next:
+assess multi-diagram and multi-chapter exports and DeckCraft. Editable SVG needs a real
+sanitization boundary before release. MCP orchestration, cloud rendering, video,
+and hosted-service isolation remain deferred.

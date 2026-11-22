@@ -3,8 +3,15 @@ import type { Explanation } from "../domain/explanation-types";
 
 type ReadSection = "summary" | "walkthrough" | "diagram" | "full";
 type PlaybackState = "idle" | "speaking" | "paused";
+let activePlayback: { utterance: SpeechSynthesisUtterance; stop: () => void } | undefined;
 
-export function SpeechReader({ explanation }: { explanation: Explanation }) {
+function releasePlayback(utterance: SpeechSynthesisUtterance | null) {
+  if (!utterance || activePlayback?.utterance !== utterance) return false;
+  activePlayback = undefined;
+  return true;
+}
+
+export function SpeechReader({ explanation, chapterOnly = false }: { explanation: Explanation; chapterOnly?: boolean }) {
   const [readSection, setReadSection] = useState<ReadSection>("full");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voiceURI, setVoiceURI] = useState("");
@@ -68,14 +75,16 @@ export function SpeechReader({ explanation }: { explanation: Explanation }) {
     speechSynthesis.addEventListener("voiceschanged", updateVoices);
     return () => {
       speechSynthesis.removeEventListener("voiceschanged", updateVoices);
+      const owned = utteranceRef.current;
       utteranceRef.current = null;
-      speechSynthesis.cancel();
+      if (releasePlayback(owned)) speechSynthesis.cancel();
     };
   }, [speechSynthesis]);
 
   const stop = useCallback(() => {
+    const owned = utteranceRef.current;
     utteranceRef.current = null;
-    speechSynthesis?.cancel();
+    if (releasePlayback(owned)) speechSynthesis?.cancel();
     setPlaybackState("idle");
   }, [speechSynthesis]);
 
@@ -90,7 +99,7 @@ export function SpeechReader({ explanation }: { explanation: Explanation }) {
 
   function startReading() {
     if (!speechSynthesis || !text.trim()) return;
-    speechSynthesis.cancel();
+    activePlayback?.stop();
     setError("");
     const utterance = new SpeechSynthesisUtterance(text);
     if (selectedVoice) {
@@ -105,18 +114,21 @@ export function SpeechReader({ explanation }: { explanation: Explanation }) {
     utterance.onend = () => {
       if (utteranceRef.current === utterance) {
         utteranceRef.current = null;
+        releasePlayback(utterance);
         setPlaybackState("idle");
       }
     };
     utterance.onerror = (event) => {
       if (utteranceRef.current !== utterance) return;
       utteranceRef.current = null;
+      releasePlayback(utterance);
       setPlaybackState("idle");
       if (event.error !== "canceled" && event.error !== "interrupted") {
         setError("The selected voice could not read this content. Try another voice.");
       }
     };
     utteranceRef.current = utterance;
+    activePlayback = { utterance, stop };
     setPlaybackState("speaking");
     speechSynthesis.speak(utterance);
   }
@@ -134,15 +146,15 @@ export function SpeechReader({ explanation }: { explanation: Explanation }) {
     }
   }
 
-  return <div className="speech-reader" role="group" aria-label="Read explanation or diagram aloud">
-    <label className="speech-reader-select">Read
+  return <div className="speech-reader" role="group" aria-label={chapterOnly ? "Read this chapter aloud" : "Read explanation or diagram aloud"}>
+    {!chapterOnly && <label className="speech-reader-select">Read
       <select value={activeReadSection} onChange={(event) => setReadSection(event.target.value as ReadSection)}>
         <option value="summary">Summary</option>
         <option value="walkthrough" disabled={!textBySection.walkthrough}>Walkthrough</option>
         <option value="diagram" disabled={!textBySection.diagram}>Diagram</option>
         <option value="full">Full explanation</option>
       </select>
-    </label>
+    </label>}
     <label className="speech-reader-select">Voice
       <select value={voiceURI} onChange={(event) => setVoiceURI(event.target.value)} disabled={voices.length === 0 || playbackState !== "idle"}>
         <option value="">System default</option>
@@ -153,7 +165,7 @@ export function SpeechReader({ explanation }: { explanation: Explanation }) {
       className="speech-reader-button speech-reader-icon-button"
       type="button"
       onClick={togglePlayback}
-      aria-label={playbackState === "speaking" ? "Pause reading" : playbackState === "paused" ? "Resume reading" : `Read ${activeReadSection === "diagram" ? "diagram" : "explanation"} aloud`}
+      aria-label={playbackState === "speaking" ? "Pause reading" : playbackState === "paused" ? "Resume reading" : `Read ${chapterOnly ? "chapter" : activeReadSection === "diagram" ? "diagram" : "explanation"} aloud`}
       title={playbackState === "speaking" ? "Pause reading" : playbackState === "paused" ? "Resume reading" : "Read aloud"}
     >
       {playbackState === "speaking" ? <PauseIcon /> : playbackState === "paused" ? <PlayIcon /> : <SpeakerIcon />}
@@ -162,7 +174,7 @@ export function SpeechReader({ explanation }: { explanation: Explanation }) {
       <StopIcon />
     </button>
     <span className="visually-hidden" role="status" aria-live="polite">
-      {playbackState === "speaking" ? `Reading ${activeReadSection === "full" ? "the full explanation" : `the ${activeReadSection}`}.` : playbackState === "paused" ? "Reading paused." : "Reading stopped."}
+      {playbackState === "speaking" ? `Reading ${chapterOnly ? "this chapter" : activeReadSection === "full" ? "the full explanation" : `the ${activeReadSection}`}.` : playbackState === "paused" ? "Reading paused." : "Reading stopped."}
     </span>
     {error && <span className="speech-reader-error" role="alert">{error}</span>}
   </div>;

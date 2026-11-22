@@ -19,6 +19,13 @@ import { loadPullRequestPlan } from "./pull-request-plan.ts";
 import { loadPullRequestEvidence } from "./pull-request-evidence.ts";
 import { chapterArtworkPrompt, parseArtworkRequest } from "../domain/chapter-illustrations.ts";
 import { generateCloudflareImage, CLOUDFLARE_IMAGE_MODEL, type CloudflareImageCredentials } from "./cloudflare-image-client.ts";
+import { createWordcraftExporter, type DocumentExporter } from "./wordcraft-export.ts";
+import { documentExportApi, artifactExportApi } from "./document-export-api.ts";
+import { createVectorcraftExporter, parseDiagramExport, type DiagramExporter } from "./vectorcraft-export.ts";
+import { parseVisualBriefRequest, validateVisualBrief } from "../domain/visual-brief.ts";
+import { createVisualBrief, createVisualScene } from "./visual-brief-service.ts";
+import { parseVisualResolution, type VisualResolution } from "../domain/visual-resolution.ts";
+import { validateVisualScene, type VisualScene } from "../domain/visual-scene.ts";
 
 export type { CodexRunner } from "./explanation-service.ts";
 
@@ -260,7 +267,7 @@ function imageMatchesMime(image: Buffer, mimeType: string) {
   return false;
 }
 
-export function createLocalExplanationApi(options: { runCodex?: CodexRunner; limits?: Partial<ApiLimits>; fetchPullRequest?: PullRequestFetch; imageCredentials?: CloudflareImageCredentials; fetchImages?: typeof fetch } = {}): Plugin {
+export function createLocalExplanationApi(options: { runCodex?: CodexRunner; limits?: Partial<ApiLimits>; fetchPullRequest?: PullRequestFetch; imageCredentials?: CloudflareImageCredentials; fetchImages?: typeof fetch; documentExporter?: DocumentExporter; diagramExporter?: DiagramExporter; compactVisualPlanning?: boolean } = {}): Plugin {
   const executeCodex = options.runCodex ?? runCodex;
   const fetchPullRequest = options.fetchPullRequest ?? fetch;
   const limits = { ...defaultApiLimits, ...options.limits };
@@ -404,6 +411,98 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
         }
         next();
       });
+
+      const diagrams = options.diagramExporter ?? createVectorcraftExporter();
+      server.middlewares.use("/api/document-export", documentExportApi(options.documentExporter ?? createWordcraftExporter(), diagrams));
+      server.middlewares.use("/api/visual-brief", async (request, response) => {
+        response.setHeader("Cache-Control", "no-store");
+        if (request.method !== "POST") { response.setHeader("Allow", "POST"); sendJson(response, 405, { error: "Method not allowed." }); return; }
+        let input: ReturnType<typeof parseVisualBriefRequest>;
+        try { input = parseVisualBriefRequest(await readJsonRequest(request, 1_000_000)); }
+        catch (error) {
+          const oversized = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
+          sendJson(response, oversized ? 413 : 400, { error: oversized ? "Visual brief request is too large." : "Invalid visual brief preferences or context." });
+          return;
+        }
+        try {
+          const result = await runModelRequest(request, response, "visual-brief", (signal, markPhase) => {
+            markPhase("designing_visual");
+            return createVisualBrief(input, root, executeCodex, signal);
+          });
+          if (result.status === "completed") sendJson(response, 200, { brief: result.value });
+        } catch {
+          if (!response.destroyed && !response.headersSent) sendJson(response, 502, { error: "Could not prepare a visual brief. Try again or narrow the question." });
+        }
+      });
+      server.middlewares.use("/api/visual-plan", async (request, response) => {
+        response.setHeader("Cache-Control", "no-store");
+        if (request.method !== "POST") { response.setHeader("Allow", "POST"); sendJson(response, 405, { error: "Method not allowed." }); return; }
+        let brief: ReturnType<typeof validateVisualBrief>;
+        try {
+          brief = validateVisualBrief(await readJsonRequest(request, 120_000), MAX_EXPLANATION_SOURCE_CHARACTERS + 1);
+          if (brief.disposition !== "render") throw new Error("Text-only brief.");
+        } catch { sendJson(response, 400, { error: "A renderable visual brief is required." }); return; }
+        if (!diagrams.renderScene || !await diagrams.available()) {
+          sendJson(response, 503, { error: "VectorCraft is unavailable. Enable the approved local CLI to render the image." });
+          return;
+        }
+        try {
+          const result = await runModelRequest(request, response, "visual-plan", (signal, markPhase) => {
+            markPhase("planning_scene");
+            return createVisualScene(brief, executeCodex, signal, options.compactVisualPlanning);
+          });
+          if (result.status === "completed") sendJson(response, 200, { scene: result.value });
+        } catch {
+          if (!response.destroyed && !response.headersSent) sendJson(response, 502, { error: "Could not plan the drawing. Try again or simplify the brief." });
+        }
+      });
+      server.middlewares.use("/api/visual-render", async (request, response) => {
+        response.setHeader("Cache-Control", "no-store");
+        if (request.method !== "POST") { response.setHeader("Allow", "POST"); sendJson(response, 405, { error: "Method not allowed." }); return; }
+        let brief: ReturnType<typeof validateVisualBrief> | undefined;
+        let scene: VisualScene | undefined;
+        let resolution: VisualResolution = "standard";
+        try {
+          const data = await readJsonRequest(request, 500_000);
+          if (data && typeof data === "object" && "scene" in data) {
+            scene = validateVisualScene(data.scene);
+            resolution = parseVisualResolution("resolution" in data ? data.resolution : undefined);
+          } else if (data && typeof data === "object" && "brief" in data) {
+            brief = validateVisualBrief(data.brief, MAX_EXPLANATION_SOURCE_CHARACTERS + 1);
+            resolution = parseVisualResolution("resolution" in data ? data.resolution : undefined);
+          } else {
+            brief = validateVisualBrief(data, MAX_EXPLANATION_SOURCE_CHARACTERS + 1);
+          }
+          if (brief && brief.disposition !== "render") throw new Error("Text-only brief.");
+        } catch { sendJson(response, 400, { error: "A valid drawing or renderable brief and a supported image size are required." }); return; }
+        const renderScene = diagrams.renderScene;
+        if (!renderScene || !await diagrams.available()) {
+          sendJson(response, 503, { error: "VectorCraft is unavailable. Enable the approved local CLI to render the image." });
+          return;
+        }
+        try {
+          const result = await runModelRequest(request, response, "visual-render", async (signal, markPhase) => {
+            if (brief) {
+              markPhase("planning_scene");
+              scene = await createVisualScene(brief, executeCodex, signal, options.compactVisualPlanning);
+            }
+            if (!scene) throw new Error("Missing validated drawing.");
+            markPhase("rendering_scene");
+            return renderScene(scene, signal, resolution);
+          });
+          if (result.status === "completed") {
+            response.setHeader("Content-Type", "image/png");
+            response.setHeader("X-Content-Type-Options", "nosniff");
+            response.end(result.value);
+          }
+        } catch {
+          if (!response.destroyed && !response.headersSent) sendJson(response, 502, { error: "Could not render a complete image. Try again or simplify the brief." });
+        }
+      });
+      server.middlewares.use("/api/diagram-export", artifactExportApi({
+        available: diagrams.available, formats: ["png"], parse: parseDiagramExport,
+        async render(snapshot, signal) { return { bytes: await diagrams.export(snapshot, signal), filename: "chapter-diagram.png", contentType: "image/png" }; },
+      }));
 
       server.middlewares.use("/api/transcribe", async (request, response) => {
         if (request.method !== "POST") {

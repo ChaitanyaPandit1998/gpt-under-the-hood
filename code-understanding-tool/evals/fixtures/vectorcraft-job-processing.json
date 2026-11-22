@@ -1,0 +1,49 @@
+{
+  "lineLabel": "synthetic job-processing pseudocode",
+  "chapter": {
+    "sourceText": "Load the queued job\nIf the job uses local storage:\n  Read the cache index\n  If the cache entry is fresh:\n    Use the cached result\n  Else:\n    Recompute the result\n  Normalize the local result\nElse:\n  Load provider configuration\n  If the primary is healthy:\n    Send to the primary\n  Else:\n    Send to the backup\n  Normalize the remote result\nPersist the result\nRecord an audit event\nPublish completion\nAcknowledge the queued job"
+  },
+  "explanation": {
+    "visuals": [{
+      "title": "Background job processing",
+      "nodes": [
+        { "id": "load", "label": "Load the queued job", "source_ranges": [{ "start_line": 1, "end_line": 1 }] },
+        { "id": "storage", "label": "Use local storage?", "source_ranges": [{ "start_line": 2, "end_line": 2 }] },
+        { "id": "index", "label": "Read the cache index", "source_ranges": [{ "start_line": 3, "end_line": 3 }] },
+        { "id": "cache", "label": "Is the cache fresh?", "source_ranges": [{ "start_line": 4, "end_line": 4 }] },
+        { "id": "reuse", "label": "Use the cached result", "source_ranges": [{ "start_line": 5, "end_line": 5 }] },
+        { "id": "compute", "label": "Recompute the result", "source_ranges": [{ "start_line": 7, "end_line": 7 }] },
+        { "id": "local", "label": "Normalize local result", "source_ranges": [{ "start_line": 8, "end_line": 8 }] },
+        { "id": "config", "label": "Load provider configuration", "source_ranges": [{ "start_line": 10, "end_line": 10 }] },
+        { "id": "provider", "label": "Is the primary healthy?", "source_ranges": [{ "start_line": 11, "end_line": 11 }] },
+        { "id": "primary", "label": "Send to the primary", "source_ranges": [{ "start_line": 12, "end_line": 12 }] },
+        { "id": "backup", "label": "Send to the backup", "source_ranges": [{ "start_line": 14, "end_line": 14 }] },
+        { "id": "remote", "label": "Normalize remote result", "source_ranges": [{ "start_line": 15, "end_line": 15 }] },
+        { "id": "save", "label": "Persist the result", "source_ranges": [{ "start_line": 16, "end_line": 16 }] },
+        { "id": "audit", "label": "Record an audit event", "source_ranges": [{ "start_line": 17, "end_line": 17 }] },
+        { "id": "publish", "label": "Publish completion", "source_ranges": [{ "start_line": 18, "end_line": 18 }] },
+        { "id": "ack", "label": "Acknowledge the queued job", "source_ranges": [{ "start_line": 19, "end_line": 19 }] }
+      ],
+      "edges": [
+        { "from": "load", "to": "storage", "label": "" },
+        { "from": "storage", "to": "index", "label": "Local" },
+        { "from": "storage", "to": "config", "label": "Remote" },
+        { "from": "index", "to": "cache", "label": "" },
+        { "from": "cache", "to": "reuse", "label": "Fresh" },
+        { "from": "cache", "to": "compute", "label": "Missing or stale" },
+        { "from": "reuse", "to": "local", "label": "" },
+        { "from": "compute", "to": "local", "label": "" },
+        { "from": "config", "to": "provider", "label": "" },
+        { "from": "provider", "to": "primary", "label": "Healthy" },
+        { "from": "provider", "to": "backup", "label": "Unhealthy" },
+        { "from": "primary", "to": "remote", "label": "" },
+        { "from": "backup", "to": "remote", "label": "Result available" },
+        { "from": "local", "to": "save", "label": "" },
+        { "from": "remote", "to": "save", "label": "" },
+        { "from": "save", "to": "audit", "label": "" },
+        { "from": "audit", "to": "publish", "label": "" },
+        { "from": "publish", "to": "ack", "label": "" }
+      ]
+    }]
+  }
+}

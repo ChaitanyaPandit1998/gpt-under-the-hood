@@ -1,0 +1,23 @@
+{
+  "url": "https://github.com/fastapi/fastapi/pull/15813",
+  "lineLabel": "PR diff in fastapi/routing.py",
+  "explanation": {
+    "visuals": [{
+      "title": "JSONL proxy buffering header",
+      "nodes": [
+        { "id": "extend", "label": "Copy dependency headers", "source_ranges": [{ "start_line": 721, "end_line": 721 }] },
+        { "id": "check", "label": "Buffering header present?", "source_ranges": [{ "start_line": 727, "end_line": 727 }] },
+        { "id": "keep", "label": "Keep the supplied value", "source_ranges": [{ "start_line": 727, "end_line": 727 }] },
+        { "id": "default", "label": "Add no as the default", "source_ranges": [{ "start_line": 727, "end_line": 727 }] },
+        { "id": "done", "label": "Header selection complete", "source_ranges": [{ "start_line": 727, "end_line": 727 }] }
+      ],
+      "edges": [
+        { "from": "extend", "to": "check", "label": "After copying" },
+        { "from": "check", "to": "keep", "label": "Present" },
+        { "from": "check", "to": "default", "label": "Missing" },
+        { "from": "keep", "to": "done", "label": "" },
+        { "from": "default", "to": "done", "label": "" }
+      ]
+    }]
+  }
+}
