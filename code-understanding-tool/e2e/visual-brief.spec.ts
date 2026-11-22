@@ -258,6 +258,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await expect(page.getByRole("button", { name: "Resume saved study" })).toHaveCount(0);
   await page.getByRole("button", { name: "Save study locally" }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
   await page.reload();
   await expect(page.getByRole("heading", { name: "A retry example", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Resume saved study" }).click();

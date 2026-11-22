@@ -45,7 +45,7 @@ type Props = {
   onClearSelectedTextContext: () => void;
   onAskAboutSelectedText: () => void;
 };
-export type ExplanationResultHandle = { snapshot: () => ResultReadingState };
+export type ExplanationResultHandle = { snapshot: () => ResultReadingState; activeChapterId: () => string | undefined };
 
 export function ExplanationResult(props: Props) {
   return <Result key={JSON.stringify([props.explanation, props.source, props.exportContext?.scope])} {...props} />;
@@ -85,7 +85,7 @@ function Result({
   }
   const reader = useRef<ChapterReaderHandle>(null);
   const snapshot = () => ({ chapter: reader.current?.snapshot(), illustration });
-  useImperativeHandle(ref, () => ({ snapshot }));
+  useImperativeHandle(ref, () => ({ snapshot, activeChapterId: () => reader.current?.activeChapterId() }));
   const illustrationId = useId();
   const visualDesigner = useRef<VisualBriefPanelHandle>(null);
   const activeVisual = explanation.visuals[activeVisualIndex] ?? explanation.visuals[0];
@@ -117,7 +117,7 @@ function Result({
           {onSaveStudy && <button type="button" disabled={savingStudy} aria-describedby={`${illustrationId}-save-note`}
             onClick={() => onSaveStudy(snapshot())}>Save study locally</button>}
         </ReadingTools>
-        {onSaveStudy && <p className="saved-study-note" id={`${illustrationId}-save-note`}>Saving keeps the source text, explanations and adapted variants, chapter position, completed stories, and accepted illustrations in this browser. Nothing is saved automatically.</p>}
+        {onSaveStudy && <p className="saved-study-note" id={`${illustrationId}-save-note`}>Save locally to keep this study beyond the current tab, including variants, stories and accepted images.</p>}
         {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
           <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
           <p>The source contains unfinished work. Its intended behavior is not specified, so the explanation does not infer it.</p>

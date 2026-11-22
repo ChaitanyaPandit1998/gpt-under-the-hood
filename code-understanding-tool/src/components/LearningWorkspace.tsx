@@ -21,6 +21,9 @@ type Props = {
   isLoadingPullRequest: boolean;
   explanationDepth: ExplanationDepth;
   learnerLevel: LearnerLevel;
+  keepTemporary: boolean;
+  temporaryError: boolean;
+  onKeepTemporaryChange: (keep: boolean) => void;
   error: string;
   onModeChange: (mode: Mode) => void;
   onPullRequestUrlChange: (url: string) => void;
@@ -39,7 +42,7 @@ type Props = {
 
 export function LearningWorkspace({
   mode, source, lineCount, sourceEditor, screenshotInput, isTranscribing, isGenerating, generationPhase, pullRequestUrl, isLoadingPullRequest,
-  screenshotPreview, transcription, needsApproval, approved, explanationDepth, learnerLevel, error,
+  screenshotPreview, transcription, needsApproval, approved, explanationDepth, learnerLevel, keepTemporary, temporaryError, onKeepTemporaryChange, error,
   onModeChange, onPullRequestUrlChange, onLoadPullRequest, onSourceChange, onExample, onClear, onScreenshotSelected, onApproveTranscription,
   onDepthChange, onLearnerLevelChange, onExplain, onCancelExplanation, onRetry,
 }: Props) {
@@ -136,9 +139,13 @@ export function LearningWorkspace({
       <ExplanationPreferenceCards depth={explanationDepth} audience={learnerLevel} onDepthChange={onDepthChange} onAudienceChange={onLearnerLevelChange} />
 
       <div className="action-row">
-        <span className="privacy-note"><span>◈</span> Nothing is saved automatically</span>
+        <label className="privacy-note">
+          <input type="checkbox" checked={keepTemporary} onChange={event => onKeepTemporaryChange(event.target.checked)} />
+          Keep source and completed explanation after refresh in this tab
+        </label>
       <button className="generate-button" disabled={!source.trim() || isGenerating || isTranscribing || isLoadingPullRequest || (needsApproval && !approved)} onClick={onExplain}>{isTranscribing ? "Reading screenshot…" : isGenerating && generationPhase ? generationPhaseCopy[generationPhase].button : "Help me understand"} <span>{isGenerating || isTranscribing || isLoadingPullRequest ? "◌" : "→"}</span></button>
       </div>
+      {temporaryError && <p className="privacy-note" role="status">Temporary storage is unavailable. Use Save study locally to keep your work.</p>}
       {isGenerating && generationPhase && <div className="generation-progress" role="status" aria-live="polite" aria-atomic="true">
         <span className="generation-progress-spinner" aria-hidden="true" />
         <span><strong>{generationPhaseCopy[generationPhase].button}</strong> {generationPhaseCopy[generationPhase].detail}</span>

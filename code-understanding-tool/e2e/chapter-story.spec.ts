@@ -163,6 +163,7 @@ test("saves accepted scene images separately and resumes without generating them
   await expect(page.getByRole("button", { name: "Resume saved study", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
   await page.reload();
   await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
   await expect(page.getByRole("button", { name: "Story", exact: true })).toHaveAttribute("aria-pressed", "true");

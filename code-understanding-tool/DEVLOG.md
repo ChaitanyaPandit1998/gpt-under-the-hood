@@ -3,6 +3,20 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-22 - Temporary explanation recovery
+
+- Completed Code and Documentation explanations now recover in the same
+  tab after refresh, with their source, preferences, and active chapter.
+  Recovery uses session storage and does not make a model request.
+- Clearing the input or turning recovery off removes the temporary copy.
+  Draft inputs, PR studies, follow-ups, variants, stories, and images
+  are outside recovery. The explicit local study save remains separate.
+- Validation: lint, build, 345 unit/API tests and 92 mocked browser tests
+  passed. The new checks cover refresh without regeneration, independent
+  tabs, clearing the input, and resuming a manual save with recovery off.
+- Next: try the refresh flow with an existing study before deciding
+  whether to include completed PR chapters.
+
 ## 2026-11-22 - Portable code and document studies
 
 - Added local JSON export of explicit saved studies and validated import before

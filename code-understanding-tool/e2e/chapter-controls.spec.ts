@@ -99,6 +99,7 @@ test(`${mode}: adapts just one section, retains original warnings and restores c
   await expect(illustration).toBeVisible();
   await page.getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
   await page.reload();
   await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
   await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toBeVisible();

@@ -43,7 +43,7 @@ function chapterMaterial(explanation: Explanation, chapter: ExplanationChapter):
   };
 }
 
-export type ChapterReaderHandle = { snapshot: () => ReadingState };
+export type ChapterReaderHandle = { snapshot: () => ReadingState; activeChapterId: () => string | undefined };
 type ReaderProps = { explanation: Explanation; children: ReactNode; artworkEnabled?: boolean; refinementContext?: ChapterRefinementContext; storyContext?: ChapterStoryContext; initialReading?: ReadingState; ref?: Ref<ChapterReaderHandle> };
 
 export function ChapterReader({ explanation, ...props }: ReaderProps) {
@@ -69,7 +69,7 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
   const activeStory = storyKey ? stories[storyKey] : undefined;
   const storySelected = !!storyKey && selectedStory === storyKey;
   const storyVisible = chapterMode && storySelected && !!activeStory;
-  useImperativeHandle(ref, () => ({ snapshot: () => ({
+  useImperativeHandle(ref, () => ({ activeChapterId: () => chapterMode ? chapter.id : undefined, snapshot: () => ({
     chapterMode, chapterId: chapter.id, images, covers,
     adapted: Object.fromEntries([...refinementReaders.current].map(([id, refinement]) => [id, refinement.snapshot()])),
     ...(Object.keys(stories).length > 0 ? { stories } : {}),
