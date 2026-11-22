@@ -3,6 +3,17 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-22 - Reading workflow review fixes
+
+- Isolated visual drafts by adapted chapter settings and result identity.
+  Switching cached variants or regenerating identical text cannot retain
+  the previous result's draft. Saved illustrations stay variant-specific.
+- Citation excerpts scroll locally to the first highlighted line, so long
+  wrapped context cannot push it out of view.
+- Passed lint, build, 201 unit/API tests, and 56 desktop/mobile browser tests.
+  New browser cases use mocked model responses to cover both regressions.
+- Next: review the fresh PR and its checks before merging.
+
 ## 2026-11-22 - Release walkthrough
 
 - Imported the existing public FastAPI starter: 274 files and 29 chapters.

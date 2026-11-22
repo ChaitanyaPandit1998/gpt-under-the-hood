@@ -3,6 +3,13 @@ import type { SourceRange } from "../domain/source-ranges";
 
 const sheetMedia = "(max-width: 900px)";
 
+function revealCitation(excerpt: HTMLDivElement | null) {
+  const first = excerpt?.querySelector("mark");
+  if (!excerpt || !first) return;
+  const offset = first.getBoundingClientRect().top - excerpt.getBoundingClientRect().top + excerpt.scrollTop;
+  excerpt.scrollTo({ top: Math.max(0, offset - excerpt.clientHeight / 4), left: 0, behavior: "instant" });
+}
+
 export function SourceEvidence({ source, range, isPatch, onDismiss }: {
   source: string; range: SourceRange; isPatch: boolean; onDismiss: () => void;
 }) {
@@ -23,6 +30,7 @@ export function SourceEvidence({ source, range, isPatch, onDismiss }: {
       if (panel.open) panel.close();
       if (media.matches) panel.showModal();
       else panel.show();
+      revealCitation(excerpt.current);
     }
     open();
     media.addEventListener("change", open);
@@ -30,7 +38,7 @@ export function SourceEvidence({ source, range, isPatch, onDismiss }: {
   }, []);
 
   useLayoutEffect(() => {
-    excerpt.current?.scrollTo(0, 0);
+    revealCitation(excerpt.current);
     dialog.current?.querySelector("button")?.focus({ preventScroll: true });
   }, [range]);
 
