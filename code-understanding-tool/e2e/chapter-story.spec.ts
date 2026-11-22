@@ -90,16 +90,20 @@ test("stops chapter read-aloud when the story replaces the direct chapter", asyn
   await expect(page.locator("body")).not.toHaveAttribute("data-spoken");
 });
 
-test("illustrates a single scene on demand and keeps the factual diagram separate", async ({ page }) => {
+test("saves accepted scene images separately and resumes without generating them again", async ({ page }) => {
   const briefs: Record<string, unknown>[] = [];
   const renders: Record<string, unknown>[] = [];
-  await page.route("**/api/chapter-story", (route) => route.fulfill({ json: { story: {
-    ...story, scenes: [...story.scenes, { heading: "Another scene", narrative: "A second clerk walks past.", meaning: "There is no other action.", source_ranges: [] }],
-  } } }));
+  let stories = 0;
+  await page.route("**/api/chapter-story", (route) => {
+    stories += 1;
+    return route.fulfill({ json: { story: {
+      ...story, scenes: [...story.scenes, { heading: "Another scene", narrative: "A second clerk walks past.", meaning: "There is no other action.", source_ranges: [] }],
+    } } });
+  });
   await page.route("**/api/visual-brief", (route) => {
     const body = route.request().postDataJSON();
     briefs.push(body);
-    const caption = body.purpose === "factual-diagram" ? "A factual limit schematic." : "A drawing of the fictional clerk.";
+    const caption = briefs.length === 3 ? "An unaccepted alternative." : body.purpose === "factual-diagram" ? "A factual limit schematic." : "A drawing of the fictional clerk.";
     return route.fulfill({ json: { brief: {
       disposition: "render", visualType: "concept-map", takeaway: caption, composition: caption,
       content: [{ label: "Limit", role: "background", statement: "The constant is set to three.", chapterLines: [] }],
@@ -149,6 +153,24 @@ test("illustrates a single scene on demand and keeps the factual diagram separat
   await expect(fictionalImage).toBeVisible();
   await expect(diagram).toBeVisible();
   expect(renders).toHaveLength(2);
+
+  await first.getByText("Illustrate this scene", { exact: true }).click();
+  await storyChoice.click();
+  await generate.click();
+  await render.click();
+  const candidate = first.getByRole("group", { name: "Compare illustrations" }).getByRole("img", { name: "An unaccepted alternative." });
+  await expect(candidate).toBeVisible();
+  await expect(page.getByRole("button", { name: "Resume saved study", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Story", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(fictionalImage).toHaveAccessibleName("A drawing of the fictional clerk.");
+  await expect(diagram).toHaveAccessibleName("A factual limit schematic.");
+  await expect(candidate).toHaveCount(0);
+  expect(stories).toBe(1);
+  expect(renders).toHaveLength(3);
 });
 
 test("does not publish an image that finishes after leaving its scene", async ({ page }) => {

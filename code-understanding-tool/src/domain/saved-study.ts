@@ -3,8 +3,12 @@ import type { VisualResolution } from "./visual-resolution";
 import type { ChapterSettings } from "./chapter-settings";
 import type { PullRequestChapter, PullRequestPlan } from "./pull-request-plan";
 import type { ChapterArtwork } from "./chapter-illustrations";
+import type { ChapterStory } from "./chapter-story";
+import type { SceneVisualPurpose } from "./visual-brief";
 
 export type RenderedIllustration = { png: Blob; alt: string; caption: string; resolution: VisualResolution };
+export type StorySceneImages = Partial<Record<SceneVisualPurpose, RenderedIllustration>>;
+export type SavedChapterStory = { story: ChapterStory; images?: Record<number, StorySceneImages> };
 export type AdaptedStudy = {
   settings: ChapterSettings; visible: boolean; variants: Record<string, Explanation>;
   images?: Record<string, { explanation: Explanation; illustration: RenderedIllustration }>;
@@ -12,6 +16,7 @@ export type AdaptedStudy = {
 export type ReadingState = {
   chapterMode: boolean; chapterId: string; images: Record<string, RenderedIllustration>;
   adapted?: Record<string, AdaptedStudy>; covers?: Record<string, ChapterArtwork>;
+  stories?: Record<string, SavedChapterStory>; activeStoryKey?: string;
 };
 export type ResultReadingState = { chapter?: ReadingState; illustration?: RenderedIllustration };
 type SavedSourceStudy = {

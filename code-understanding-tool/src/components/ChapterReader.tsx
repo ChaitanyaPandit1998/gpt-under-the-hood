@@ -8,10 +8,9 @@ import { ChapterRefinement, type ChapterRefinementContext, type ChapterRefinemen
 import { VisualBriefPanel } from "./VisualBriefPanel";
 import { InlineIllustration } from "./InlineIllustration";
 import { ReadingTools } from "./ReadingTools";
-import type { ReadingState, RenderedIllustration } from "../domain/saved-study";
-import type { ChapterStory as Story } from "../domain/chapter-story";
+import type { ReadingState, RenderedIllustration, SavedChapterStory } from "../domain/saved-study";
+import { chapterStoryKey } from "../domain/chapter-story";
 import { ChapterStory, type ChapterStoryContext } from "./ChapterStory";
-import type { StorySceneImages } from "./StorySceneVisual";
 
 const ChapterContext = createContext<{
   active: string | null; imagePrefix: string; images: Record<string, RenderedIllustration>;
@@ -58,22 +57,24 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
   const [index, setIndex] = useState(() => Math.max(0, chapters.findIndex((chapter) => chapter.id === initialReading?.chapterId)));
   const [covers, setCovers] = useState<Record<string, ChapterArtwork>>(() => initialReading?.covers ?? {});
   const [images, setImages] = useState<Record<string, RenderedIllustration>>(() => initialReading?.images ?? {});
-  const [stories, setStories] = useState<Record<string, Story>>({});
-  const [storyImages, setStoryImages] = useState<Record<string, Record<number, StorySceneImages>>>({});
-  const [selectedStory, setSelectedStory] = useState<string>();
+  const [stories, setStories] = useState<Record<string, SavedChapterStory>>(() => initialReading?.stories ?? {});
+  const [selectedStory, setSelectedStory] = useState(() => initialReading?.activeStoryKey);
   const heading = useRef<HTMLHeadingElement>(null);
   const refinementReaders = useRef(new Map<string, ChapterRefinementHandle>());
   const headingId = useId();
   const imagePrefix = useId();
   const chapter = chapters[index];
   const chapterContext = chapterMode && (refinementContext || storyContext) ? chapterMaterial(explanation, chapter) : undefined;
-  const storyKey = JSON.stringify([chapter.id, storyContext?.preferences]);
-  const storySelected = selectedStory === storyKey;
-  const storyVisible = chapterMode && storySelected && !!stories[storyKey];
+  const storyKey = storyContext && chapterStoryKey(chapter.id, storyContext.preferences);
+  const activeStory = storyKey ? stories[storyKey] : undefined;
+  const storySelected = !!storyKey && selectedStory === storyKey;
+  const storyVisible = chapterMode && storySelected && !!activeStory;
   useImperativeHandle(ref, () => ({ snapshot: () => ({
     chapterMode, chapterId: chapter.id, images, covers,
     adapted: Object.fromEntries([...refinementReaders.current].map(([id, refinement]) => [id, refinement.snapshot()])),
-  }) }), [chapterMode, chapter.id, images, covers]);
+    ...(Object.keys(stories).length > 0 ? { stories } : {}),
+    ...(storyVisible ? { activeStoryKey: storyKey } : {}),
+  }) }), [chapterMode, chapter.id, images, covers, stories, storyVisible, storyKey]);
 
   function navigate(next: number) {
     if (next !== index && storySelected) {
@@ -102,16 +103,22 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
           <p aria-live="polite" aria-atomic="true">Chapter {index + 1} of {chapters.length}</p>
           <h3 id={headingId} ref={heading} tabIndex={-1}>{chapter.title}</h3>
         </header>}
-        {chapterContext && storyContext?.source.trim() && <ChapterStory key={storyKey} context={storyContext} chapter={JSON.stringify(chapterContext)}
-          selected={storySelected} story={stories[storyKey]} images={storyImages[storyKey]} onSelect={(selected) => {
+        {chapterContext && storyKey && storyContext?.source.trim() && <ChapterStory key={storyKey} context={storyContext} chapter={JSON.stringify(chapterContext)}
+          selected={storySelected} story={activeStory?.story} images={activeStory?.images} onSelect={(selected) => {
             if (!selected && storyVisible) storyContext.onClearCitation();
             setSelectedStory(selected ? storyKey : undefined);
           }} onReady={(story) => {
             storyContext.onClearCitation();
-            setStories((current) => ({ ...current, [storyKey]: story }));
-          }} onRender={(sceneIndex, purpose, image) => setStoryImages((current) => ({
-            ...current, [storyKey]: { ...current[storyKey], [sceneIndex]: { ...current[storyKey]?.[sceneIndex], [purpose]: image } },
-          }))} />}
+            setStories((current) => ({ ...current, [storyKey]: { story } }));
+          }} onRender={(sceneIndex, purpose, image) => setStories((current) => {
+            const variant = current[storyKey];
+            if (!variant || variant.story !== activeStory?.story || !variant.story.scenes[sceneIndex]) return current;
+            return {
+              ...current, [storyKey]: { ...variant, images: {
+                ...variant.images, [sceneIndex]: { ...variant.images?.[sceneIndex], [purpose]: image },
+              } },
+            };
+          })} />}
         <div className="chapter-direct-content" hidden={storyVisible}>
         {!storyVisible && chapterContext && refinementContext && <ReadingTools key={`tools-${chapter.id}`} label="Chapter tools" scope={`This chapter: ${chapter.title}`}
           explanation={explanation} source={refinementContext.source} context={{ scope: `Chapter: ${chapter.title}`, provenance: "" }}

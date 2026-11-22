@@ -10,6 +10,7 @@ import { PullRequestStudy } from "./components/PullRequestStudy";
 import type { PullRequestPlan } from "./domain/pull-request-plan";
 import { accessSavedStudy, type ResultReadingState, type SavedStudy } from "./domain/saved-study";
 import type { StarterExample } from "./domain/starter-examples";
+import { PortableStudyTools } from "./components/PortableStudyTools";
 
 function App() {
   const [pageZoom, setPageZoom] = useState(100);
@@ -318,6 +319,7 @@ function App() {
             <p>Bring a piece of code or documentation. Get an explanation that helps you build a mental model, not just skim the surface.</p>
           </section>
 
+          <PortableStudyTools study={savedStudy} disabled={storageBusy} onImport={saveStudy} />
           {(savedStudy || storageMessage) && <section className="saved-study-tools" aria-label="Local saved study">
             {savedStudy && <div className="chapter-toolbar">
               <span><strong>Saved on this browser:</strong> {savedStudy.mode === "pull_request" ? savedStudy.plan.title : savedStudy.explanation.title}</span>

@@ -3,6 +3,58 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-22 - Portable code and document studies
+
+- Added local JSON export of explicit saved studies and validated import before
+  storage replacement. Transfers preserve source, explanation, chapter state,
+  adapted variants, completed stories and accepted PNGs. Export warns about
+  source disclosure; importing does not automatically replace the workspace.
+- Files are versioned and limited to 40 MB. Import checks reading structure,
+  explanations, story citations, PNG signatures and dimensions, and rejects
+  dangerous object keys. PR studies and decorative covers remain explicitly
+  unsupported rather than being silently dropped.
+- Passed lint, build, 219 unit/API tests, and all 70 desktop/mobile browser
+  tests. Transfer regressions use mocked providers and real browser storage.
+- A separate pilot replayed previously generated public-math assets to export
+  a three-scene study. Its JSON imported into a fresh browser context with all
+  three Full HD images decoded and no model POST requests. This verification
+  did not regenerate content; topic-specific files stay outside the repository.
+- Retested that exact pilot file through the Import button's file chooser in
+  fresh desktop and mobile browser contexts. Verified three scene images after
+  reload, exported JSON equality with the original file, retained save after a
+  malformed import and declined replacement, no model POSTs, and no page errors.
+- Next: open the portable pilot in the user's browser; review PR-study and cover
+  validation before extending transfer support.
+
+## 2026-11-22 - Bounded drawing repair and story-image validation
+
+- Drawing planning now makes at most one simpler replacement after structural
+  validation fails. The original brief and qualifiers remain in the prompt.
+  Provider errors and cancellation do not automatically retry; invalid repairs
+  still fail without rendering. This does not establish factual accuracy or
+  guarantee recovery from the earlier live planning failure.
+- Passed lint, build, 210 unit/API tests and 32 desktop/mobile story and PR
+  browser tests. Tests cover ordinary and compact repair, bounded failure,
+  provider errors, and cancellation.
+- A separate browser pilot replayed saved responses and the actual generated
+  Full HD public-math story PNG. Verified inline decoding at 1920 x 1080,
+  IndexedDB save/reload, and restoration without additional generation calls.
+  This storage check made no live provider requests. Pilot artifacts and
+  topic-specific inputs remain outside the repository.
+- Next: validate repair effectiveness with live providers and review the changes.
+
+## 2026-11-22 - Resume saved chapter stories
+
+- Explicit local saves now keep completed stories and accepted scene images
+  by chapter and reading preferences. Resume restores the saved Story view
+  without regenerating it, including in cached PR chapter variants.
+- Existing snapshots without stories remain supported. Drafts, in-flight
+  work, and unaccepted comparison images are not saved. Document and
+  PDF export are unchanged.
+- Passed lint, build, 205 unit/API tests, and 68 desktop/mobile browser
+  tests. The storage round trips used mocked providers and real IndexedDB.
+- Next: open a PR for Story Mode persistence.
+
 ## 2026-11-22 - Chapter Story Mode
 
 - Added an opt-in Direct / Story view. Each scene separates narrative from

@@ -3,6 +3,10 @@ import type { ExplanationDepth, LearnerLevel, Mode } from "./explanation-types.t
 
 export type StoryPreferences = { depth: ExplanationDepth; learnerLevel: LearnerLevel };
 export const defaultStoryPreferences: StoryPreferences = { depth: "balanced", learnerLevel: "beginner" };
+export function chapterStoryKey(chapterId: string, preferences: StoryPreferences): string {
+  return JSON.stringify([chapterId, preferences.depth, preferences.learnerLevel]);
+}
+
 export type ChapterStory = {
   title: string;
   setup: string;

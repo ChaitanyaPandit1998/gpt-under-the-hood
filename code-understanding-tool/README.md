@@ -27,8 +27,23 @@ Switch back to **Direct** at any time. Open **Illustrate this scene** to
 choose a fictional **Story illustration** or a **Factual diagram** based on
 the scene's factual mapping. Preview the design prompt, generate a brief, and
 render with the configured VectorCraft CLI. No image is generated automatically.
-Stories and their scene images are cached in the current reader, not saved or
-included in document/PDF exports. Individual images can be downloaded.
+Saving a local study keeps completed stories and accepted scene images. If
+the saved chapter was showing a completed story, it reopens in Story Mode.
+Stories and their images are not included in document/PDF exports. Individual
+images can be downloaded.
+
+## Portable Studies
+
+Save a code or document study locally, then use **Export saved study** to
+download a JSON file containing the saved source, explanation, reading state,
+completed stories, and accepted PNGs. Unsaved changes are not included.
+Use **Import study file**, then **Resume saved study** on another browser.
+Transfer and resume do not generate new content or upload the file.
+Import validates the file before saving and asks before replacing an existing
+save. Treat exported files as sensitive: they contain the original source.
+The transfer limit is 40 MB. PR studies and decorative chapter covers are not
+supported in this first version; studies with covers are rejected rather than
+silently losing them. Story scene images are supported.
 
 ## Automated checks
 
@@ -72,10 +87,12 @@ Use **Start a quick check** below an explanation to generate three multiple-choi
 
 Use **Save study locally** or **Save PR study locally** to keep one study in
 this browser. The saved copy includes the source or pinned PR evidence,
-chapter position, completed explanations and variants, and illustrations.
+chapter position, completed explanations and variants, completed stories,
+and accepted illustrations.
 Resume or delete it above the workspace. This is opt-in, not encrypted
 storage or a backup. Follow-up conversations, quizzes, and in-progress work
-are not saved. To keep recent changes, save again explicitly.
+are not saved, including unaccepted images in comparison. To keep recent
+changes, save again explicitly.
 
 Before generating an explanation, set **Depth** to Quick overview, Balanced, or Detailed walkthrough, and choose the learner level (Beginner, Intermediate, or Advanced). The model adapts detail and terminology while keeping the same structured response format.
 

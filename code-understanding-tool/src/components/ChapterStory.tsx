@@ -4,8 +4,8 @@ import type { Mode } from "../domain/explanation-types";
 import { formatMathText } from "../domain/format-math-text";
 import type { SourceRange } from "../domain/source-ranges";
 import { SourceRanges } from "./SourceRanges";
-import { StorySceneVisual, type StorySceneImages } from "./StorySceneVisual";
-import type { RenderedIllustration } from "../domain/saved-study";
+import { StorySceneVisual } from "./StorySceneVisual";
+import type { RenderedIllustration, StorySceneImages } from "../domain/saved-study";
 import type { SceneVisualPurpose } from "../domain/visual-brief";
 
 export type ChapterStoryContext = {

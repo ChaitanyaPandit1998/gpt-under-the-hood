@@ -18,7 +18,7 @@ const plan: PullRequestPlan = {
 
 async function workspace(page: Page) {
   const state = {
-    generations: [] as Record<string, unknown>[], evidence: [] as Record<string, unknown>[], imports: 0, visualRequests: 0,
+    generations: [] as Record<string, unknown>[], evidence: [] as Record<string, unknown>[], imports: 0, visualRequests: 0, stories: 0,
     covers: [] as Record<string, unknown>[], holdCover: false, releaseCover: () => {},
     holdGeneration: false, holdEvidence: false, evidenceError: "",
     releaseGeneration: () => {}, releaseEvidence: () => {},
@@ -29,6 +29,13 @@ async function workspace(page: Page) {
     if (endpoint === "/api/document-export") return route.fulfill({ json: { available: false } });
     if (endpoint === "/api/pull-request-plan") { state.imports += 1; return route.fulfill({ json: { plan } }); }
     if (endpoint === "/api/explain-progress") return route.fulfill({ json: { phase: "drafting" } });
+    if (endpoint === "/api/chapter-story") {
+      state.stories++;
+      return route.fulfill({ json: { story: {
+        title: "A checkpoint in the patch", setup: "A clerk receives a form.", takeaway: "Read the patch for actual behavior.",
+        scenes: [{ heading: "The checkpoint", narrative: "The clerk checks the form.", meaning: "The change validates the request.", source_ranges: [{ start_line: 2, end_line: 2 }] }],
+      } } });
+    }
     if (endpoint === "/api/visual-brief") {
       state.visualRequests++;
       return route.fulfill({ json: { brief: { disposition: "render", visualType: "comparison", takeaway: "Compare two cases.",
@@ -97,6 +104,33 @@ test("imports an outline without generation and navigates its boundaries", async
   await page.getByRole("button", { name: "Previous chapter", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Overview and change inventory", exact: true })).toBeVisible();
   expect(state.generations).toHaveLength(0);
+});
+
+test("resumes a cached PR chapter variant with its story and illustration", async ({ page }) => {
+  const state = await workspace(page);
+  await page.getByRole("button", { name: "Next chapter", exact: true }).click();
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  const storyButton = page.getByRole("button", { name: "Story", exact: true });
+  await storyButton.click();
+  const story = page.getByRole("article", { name: "A checkpoint in the patch" });
+  await story.getByText("Illustrate this scene", { exact: true }).click();
+  await story.getByRole("button", { name: "Factual diagram", exact: true }).click();
+  await story.getByRole("button", { name: "Generate visual brief", exact: true }).click();
+  await story.getByRole("button", { name: "Render image", exact: true }).click();
+  const image = story.getByRole("figure", { name: "Factual diagram: generated schematic" }).getByRole("img");
+  await expect(image).toBeVisible();
+  await page.getByRole("button", { name: "Previous chapter", exact: true }).click();
+  await page.getByRole("button", { name: "Save PR study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await page.getByRole("button", { name: "Next chapter", exact: true }).click();
+  await expect(storyButton).toHaveAttribute("aria-pressed", "true");
+  await expect(image).toHaveAccessibleName("Chapter illustration.");
+  expect(state.generations).toHaveLength(1);
+  expect(state.stories).toBe(1);
+  expect(state.visualRequests).toBe(3);
 });
 
 test("saves, resumes and exports a pinned PR with cached variants and patch evidence", async ({ page }, testInfo) => {

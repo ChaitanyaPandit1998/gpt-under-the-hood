@@ -1,12 +1,11 @@
 import { useId, useState } from "react";
 import type { ChapterStory } from "../domain/chapter-story";
 import type { Explanation, LearnerLevel } from "../domain/explanation-types";
-import type { RenderedIllustration } from "../domain/saved-study";
+import type { RenderedIllustration, StorySceneImages } from "../domain/saved-study";
 import { defaultVisualPreferences, type SceneVisualPurpose } from "../domain/visual-brief";
 import { InlineIllustration } from "./InlineIllustration";
 import { VisualBriefPanel } from "./VisualBriefPanel";
 
-export type StorySceneImages = Partial<Record<SceneVisualPurpose, RenderedIllustration>>;
 const purposes = ["story-illustration", "factual-diagram"] as const;
 const labels = { "story-illustration": "Story illustration", "factual-diagram": "Factual diagram" };
 const figureLabels = { "story-illustration": "Story illustration: fictional analogy", "factual-diagram": "Factual diagram: generated schematic" };

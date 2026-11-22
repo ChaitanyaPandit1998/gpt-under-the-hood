@@ -187,7 +187,7 @@ describe("local explanation API integration", () => {
     expect((await request("/api/visual-render", { scene, resolution: "hd" })).status).toBe(200);
     expect((await request("/api/visual-render", { scene, resolution: "full-hd" })).status).toBe(200);
     expect((await request("/api/visual-render", { scene: { ...scene, items: [] } })).status).toBe(400);
-    expect(runner).toHaveBeenCalledTimes(3);
+    expect(runner).toHaveBeenCalledTimes(4);
     expect(renderScene).toHaveBeenCalledTimes(3);
   });
   it("only expands compact drawings in opted-in planning, not in client render requests", async () => {
@@ -204,7 +204,7 @@ describe("local explanation API integration", () => {
     expect((await defaultRequest("/api/visual-plan", brief)).status).toBe(502);
     const result = await enabledRequest("/api/visual-plan", brief);
     expect(result.status).toBe(200);
-    expect(runner.mock.calls[1][0]).toContain("Use compact items when practical");
+    expect(runner.mock.calls[2][0]).toContain("Use compact items when practical");
     const scene = { background: "#ffffff", items: ["One", "Two"].map((text, index) => ({
       kind: "text", text, x: 50 + index * 100, y: 70, size: 24, color: "#123456", align: "left",
     })) };

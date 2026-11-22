@@ -124,7 +124,7 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
     <p className="pr-revision">Snapshot: {plan.headSha}. Chapters are generated only when requested. A saved study restores this snapshot, not the latest PR revision.</p>
     <div className="chapter-toolbar"><button type="button" disabled={saving || !!loadingFile || session.isGenerating} aria-describedby="pr-study-save-note" onClick={save}>Save PR study locally</button>
       <PullRequestPdfExport plan={plan} available={completedCount > 0} collect={collectPdfChapters} />
-      <span id="pr-study-save-note">Stores the imported patches, completed explanations, and illustrations in this browser only when you save.</span></div>
+      <span id="pr-study-save-note">Stores the imported patches, completed explanations and stories, and accepted illustrations in this browser only when you save.</span></div>
     <p aria-live="polite">{completedCount} / {chapters.length} chapters generated for their selected preferences.</p>
     <aside className="incomplete-code-note" aria-label="PR coverage limits"><strong>Initial import coverage limits</strong><ul>{plan.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul><p>Load additional sections below for excluded or excerpted files. Retrieved sections remain separate evidence chapters; no chapter automatically sees all other sections.</p></aside>
     <details className="pr-manifest"><summary>File manifest and evidence coverage</summary><ul>{plan.files.map((file) => <li key={file.path}><code>{file.path}</code> · {file.status} · +{file.additions}/-{file.deletions} · <strong>Initial: {file.coverage.replaceAll("_", " ")}</strong>

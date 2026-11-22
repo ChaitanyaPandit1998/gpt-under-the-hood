@@ -48,8 +48,17 @@ export async function createVisualScene(brief: VisualBrief, run: CodexRunner, si
     ] : []),
     `BEGIN_UNTRUSTED_BRIEF_${marker}`, JSON.stringify(brief), `END_UNTRUSTED_BRIEF_${marker}`,
   ].join("\n\n");
-  const raw = await runVisualStage(prompt, compact ? compactVisualSceneSchema : visualSceneSchema, run, signal);
-  return compact ? expandCompactVisualScene(raw) : validateVisualScene(raw);
+  const schema = compact ? compactVisualSceneSchema : visualSceneSchema;
+  const validate = compact ? expandCompactVisualScene : validateVisualScene;
+  const raw = await runVisualStage(prompt, schema, run, signal);
+  try {
+    return validate(raw);
+  } catch {
+    signal.throwIfAborted();
+    // Retry only invalid output, not provider failures or cancelled requests.
+    const repair = `${prompt}\n\nThe previous drawing failed structural validation. Produce a simpler replacement from the same brief. Keep all qualifications. Use fewer items, text of at most 120 characters per item, coordinates within the canvas, and open paths with fill none. Do not add evidence or change the teaching claim.`;
+    return validate(await runVisualStage(repair, schema, run, signal));
+  }
 }
 
 async function runVisualStage(prompt: string, schema: object, run: CodexRunner, signal: AbortSignal) {
