@@ -4,7 +4,7 @@ An interactive workspace that helps people understand code and documentation thr
 
 See [PLAN.md](PLAN.md) for the implementation plan, milestones, and current decisions.
 
-See [docs/architecture.md](docs/architecture.md) for the application architecture diagram and the main runtime boundaries.
+See the [architecture guide](docs/architecture.md) for the VectorCraft system diagram, runtime flows, and local/external boundaries.
 
 ## Run locally
 
@@ -13,13 +13,13 @@ npm install
 npm run dev
 ```
 
-The app loads a task-specific provider-neutral skill for explanation, screenshot transcription, follow-up answers, or knowledge checks, then sends requests to Codex CLI through the local Vite development server. The model chooses an explanation style that fits the material; the interface currently has one “Help me understand” action. You can paste source/docs or load a public GitHub pull request URL; PR title, description, and changed-file patches are fetched and shown in the editable source area before explanation. Private PRs are not supported yet. Codex CLI must be installed and signed in. The server looks for `codex` on its `PATH`, checks the packaged macOS Codex CLI location, and supports `CODEX_CLI_PATH` when it is installed elsewhere. The one-shot request ignores personal Codex configuration and disables shell/code execution and extension tools. Screenshot text is read by the model, shown for editing, and requires explicit approval before explanation; image files are temporary.
+The app loads a task-specific skill and sends generation requests to Codex CLI through the local Vite server. Paste code or documentation and select **Help me understand**, or load a public GitHub PR to see its chapter outline and generate explanations on demand. Private PRs are not supported. Codex CLI must be installed and signed in. The server looks for `codex` on its `PATH`, checks the packaged macOS Codex CLI location, and supports `CODEX_CLI_PATH` for other installations. One-shot requests ignore personal Codex configuration and disable shell/code execution and extension tools. Screenshot text is shown for editing and requires explicit approval before explanation; image files are temporary.
 
 If a request reports that Codex CLI cannot reach its service, check network access for the terminal running `npm run dev`. Restricted or offline development environments may block the CLI connection even when Codex is signed in; start the local server from a terminal with network access and retry.
 
 ## Story Mode
 
-After generating an explanation, open **Chapters**, then select **Story**.
+After generating an explanation, select **Story** in the chapter reader.
 Each story scene separates the fictional analogy from its factual meaning and
 links to supporting source lines when available. Generating a story sends the
 selected chapter context and original source to the configured Codex CLI.
@@ -67,7 +67,7 @@ This is a local-only prototype. Both Vite development and preview servers bind t
 
 The app passes submitted source text, follow-up questions, quiz context, and screenshot images to the Codex CLI signed in on the same machine. The CLI may send that content to its configured service. When loading a PR, the local server makes outbound requests to the GitHub API for public PR metadata and file patches; that content is then passed to Codex when you request an explanation.
 
-Completed Code and Documentation explanations, their source, and current chapter are recoverable after refreshing the same tab via browser session storage. Uncheck **Keep source and completed explanation after refresh in this tab** or clear the input to remove the temporary copy. Unsubmitted drafts, PR studies, stories, illustrations, and follow-ups are not part of that copy. **Save study locally** is separate and stores a study in this browser for later use.
+Completed Code and Documentation explanations, their source, and current chapter are recoverable after refreshing the same tab via browser session storage. Uncheck **Keep source and completed explanation after refresh in this tab** or clear the input to remove the temporary copy. Invalid recovery data is discarded. Unsubmitted drafts, PR studies, stories, illustrations, and follow-ups are not part of that copy. **Save study locally** is separate and stores a study in this browser's IndexedDB for later use.
 
 On the server, temporary request files are created while processing and removed afterward. Operational diagnostics include random request IDs, endpoint names, phase durations, outcomes, and broad failure categories; they must not include source text, prompts, screenshots, or raw provider errors.
 

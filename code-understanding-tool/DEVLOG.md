@@ -3,6 +3,18 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-23 - Application architecture documentation
+
+- Rendered a VectorCraft system diagram and added the SVG to the
+  architecture guide. It distinguishes browser storage, the loopback API,
+  local rendering tools, and requests to external services.
+- Updated the README and implementation plan to point readers to current
+  flows. The guide distinguishes refresh recovery from explicit saves.
+  No runtime code changed.
+- Validation: visually inspected the VectorCraft PNG and checked SVG XML,
+  Markdown link targets, and the SVG's lack of active references.
+- Next: review the diagram with the architecture docs before publishing.
+
 ## 2026-11-23 - Temporary explanation recovery follow-up
 
 - Validate incomplete-code findings, source ranges, and review metadata
