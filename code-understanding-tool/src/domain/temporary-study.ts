@@ -1,4 +1,4 @@
-import { validateExplanation } from "../server/response-validation";
+import { validateCompletedExplanation } from "../server/response-validation";
 import type { Explanation, ExplanationDepth, LearnerLevel } from "./explanation-types";
 
 const key = "understand-temporary-explanation";
@@ -26,8 +26,8 @@ export function readTemporaryStudy(): { enabled: boolean; study?: TemporaryStudy
       !["overview", "balanced", "detailed"].includes(item.depth ?? "") ||
       !["beginner", "intermediate", "advanced"].includes(item.level ?? "") ||
       (item.chapterId !== undefined && (typeof item.chapterId !== "string" || item.chapterId.length > 120))) return { enabled: true };
-    validateExplanation(item.explanation, item.source);
-    return { enabled: true, study: item as TemporaryStudy };
+    const explanation = validateCompletedExplanation(item.explanation, item.source);
+    return { enabled: true, study: { ...item, explanation } as TemporaryStudy };
   } catch {
     return { enabled: true };
   }

@@ -8,6 +8,7 @@ const explanation = {
     heading: `Step ${index + 1}`, explanation: "Check the default setting.", source_ranges: [{ start_line: 1, end_line: 1 }],
   })),
   assumptions: [], visuals: [], visual_note: "",
+  quality_review_status: "passed", quality_review_note: "Checked against the input.",
 };
 const source = "The default limit is 42.";
 const recoveryLabel = "Keep source and completed explanation after refresh in this tab";
@@ -67,3 +68,27 @@ test("turning recovery off removes the temporary result without deleting a manua
   await expect(title(page)).toBeVisible();
   expect(calls()).toBe(1);
 });
+
+for (const [name, metadata] of [
+  ["incomplete-code entry", { incomplete_items: [null] }],
+  ["incomplete-code citation", { incomplete_items: [{ kind: "empty_branch", title: "Empty", explanation: "No statements.", source_ranges: [{ start_line: 2, end_line: 2 }] }] }],
+  ["review note", { quality_review_note: { text: "Not a string." } }],
+] as const) {
+  test(`discards a snapshot with a malformed ${name}`, async ({ page }) => {
+    const key = "understand-temporary-explanation";
+    await page.addInitScript(({ key, snapshot }) => {
+      sessionStorage.setItem(key, JSON.stringify(snapshot));
+    }, { key, snapshot: {
+      version: 1, mode: "docs", source, depth: "balanced", level: "beginner",
+      explanation: { ...explanation, ...metadata },
+    } });
+
+    await page.goto("/");
+    const input = page.getByRole("textbox", { name: "Code input" });
+    await expect(input).toHaveValue("");
+    await expect(title(page)).toHaveCount(0);
+    await expect.poll(() => page.evaluate(key => sessionStorage.getItem(key), key)).toBeNull();
+    await input.fill("const limit = 42;");
+    await expect(page.getByRole("button", { name: "Help me understand" })).toBeEnabled();
+  });
+}

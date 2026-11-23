@@ -3,6 +3,16 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-23 - Temporary explanation recovery follow-up
+
+- Validate incomplete-code findings, source ranges, and review metadata
+  before restoring a completed explanation. Invalid snapshots are discarded
+  so the editor remains usable instead of crashing on refresh.
+- Validation: lint, build, 345 unit/API tests, and all 10 targeted mocked
+  browser tests passed. The browser tests cover malformed findings, invalid
+  citations, and non-text review notes on both desktop and mobile.
+- Next: push the follow-up fix for review before merging.
+
 ## 2026-11-22 - Temporary explanation recovery
 
 - Completed Code and Documentation explanations now recover in the same

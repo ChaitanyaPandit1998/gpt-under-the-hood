@@ -73,6 +73,21 @@ export function validateExplanation(value: unknown, sourceText: string): Explana
   return value;
 }
 
+export function validateCompletedExplanation(value: unknown, sourceText: string): Explanation {
+  const explanation = validateExplanation(value, sourceText);
+  const { incomplete_items, quality_review_note, quality_review_status } = explanation;
+  const lineCount = sourceText.split(/\r\n|\r|\n/).length;
+  if ((quality_review_note !== undefined && typeof quality_review_note !== "string") ||
+    (quality_review_status !== undefined && !["passed", "revised", "incomplete"].includes(quality_review_status)) ||
+    (incomplete_items !== undefined && !isArray(incomplete_items, 100, (item) => isRecord(item)
+      && (item.kind === "unfinished_marker" || item.kind === "empty_branch")
+      && typeof item.title === "string" && typeof item.explanation === "string"
+      && isSourceRanges(item.source_ranges, lineCount)))) {
+    throw new ExplanationValidationError("explanation_metadata_invalid");
+  }
+  return explanation;
+}
+
 /** Safe failure labels for logs: never include model text, prompts, or source content. */
 export class ExplanationValidationError extends Error {
   readonly failureCategory: string;
