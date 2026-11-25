@@ -2,7 +2,7 @@
 
 Status: Priorities 1-6 are implemented. Priority 7 is in progress.
 
-Integrated validation: lint, build, 345 unit/API tests and 88 mocked desktop/
+Integrated validation: lint, build, 345 unit/API tests and 98 mocked desktop/
 mobile browser tests passed. Coverage includes legacy restore, scoped tools,
 the three-stage builder, review consent, lineage, saved-image re-review and
 out-of-order review completion. Re-review uses recorded context; old images
@@ -10,7 +10,10 @@ without provenance cannot reconstruct missing data.
 
 The external Intermediate and Advanced Balanced pilot passed live story
 generation, VectorCraft illustration rendering and save/restore. Mobile
-now shows readable labels and a full-screen preview. Drawing planning
+now shows readable labels and a full-screen preview. A subsequent two-case
+live API pilot covered Beginner/Overview and Advanced/Detailed on new topics
+and produced both a correct branch diagram and an exact-scale figure.
+Drawing planning
 still dominates latency. Compact encoding gave mixed results and remains
 opt-in. A separate bounded-complexity pilot was faster on repeated runs
 for one technical diagram and one story scene without apparent loss of

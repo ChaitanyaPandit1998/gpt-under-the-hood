@@ -3,6 +3,26 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-26 - Integrated checks and two live evaluation cases
+
+- On revision `45f4f23`, lint, the production build, 345 unit/API tests
+  and 98 mocked Chromium tests across desktop and mobile passed. The
+  existing ResizeObserver warning still appeared in diagram workflows.
+- Ran two new synthetic fixtures through the actual local API with Codex
+  and VectorCraft: Beginner/Overview queue priority, and Advanced/Detailed
+  slope versus intercept. Both explanation reviews passed; both stories
+  returned three scenes. Both briefs and plans returned skill lineage
+  and rendered as 1920 x 1080 PNGs.
+- Manual PNG inspection confirmed the urgent/regular/empty branches and
+  the three supplied coordinates without extrapolation. Plan inspection
+  confirmed equal adjacent intervals on each axis and aligned endpoints.
+  Planning took 30.11s and 68.28s; rendering took 0.66s and 0.59s.
+- This is a two-case API pilot, not a full live browser matrix, independent
+  reviewer calibration, bounded-planner comparison, or cost benchmark.
+  Raw outputs and the pilot harness stayed outside the repository.
+- Next: compare default and bounded planning on unseen multi-panel and
+  exact-scale cases; continue the audience/depth and reviewer evaluations.
+
 ## 2026-11-24 - Architecture diagram refinement
 
 - Reworked the VectorCraft layout into a numbered generation path, with
