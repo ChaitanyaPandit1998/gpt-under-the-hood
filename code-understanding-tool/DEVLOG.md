@@ -3,6 +3,21 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-24 - Architecture diagram refinement
+
+- Reworked the VectorCraft layout into a numbered generation path, with
+  browser storage, local output adapters, and outbound requests on separate
+  branches. Updated the architecture guide's reading order and alt text.
+- Set the headline in Georgia and the labels in Avenir Next. Shortened
+  several labels to fit the wider lettering without moving the request paths.
+- Labeled the browser-facing return and external payloads, and added a
+  companion VectorCraft diagram for explanation review and PNG generation.
+- Added three pull quotes highlighting limits of model review, the
+  distinction between recovery and saves, and external model requests.
+- Validation: inspected the rendered PNG for label fit and arrow routing,
+  and checked both SVGs and their documentation links. No runtime code changed.
+- Next: review the updated SVG in the rendered GitHub documentation.
+
 ## 2026-11-23 - Application architecture documentation
 
 - Rendered a VectorCraft system diagram and added the SVG to the

@@ -3,13 +3,24 @@
 Understand is a local prototype. React runs in the browser and talks to Vite
 middleware over loopback HTTP. There is no separate backend or database server.
 
-![System diagram showing the React workspace and browser storage, the loopback Vite API, local Codex, VectorCraft and WordCraft tools, and the three external service calls.](understand-architecture.svg)
+![Architecture map: React sends a request to the loopback Vite API and receives progress and the result. The API coordinates Codex tasks and optional local exports. Browser storage stays in the workspace. Separate outbound arrows lead to the model service, Cloudflare, and GitHub.](understand-architecture.svg)
 
-[Open the full-size SVG](understand-architecture.svg). The arrows show the main
-request paths, not an execution trace. Only the browser/API and browser/storage
-links show both directions.
+[Open the full-size architecture SVG](understand-architecture.svg). Read the numbered
+generation path left to right. The branches below it show browser storage,
+on-demand file outputs, and other outbound calls. The browser polls the
+local API for progress and gets the completed result in the explanation
+response. The overview omits upstream service responses.
 
 ## Runtime Flows
+
+![Generation workflows: validate and review an explanation draft, with an optional single repair and final review, or turn design choices into a brief and a validated VectorCraft drawing plan for PNG preview.](understand-generation-workflows.svg)
+
+[Open the full-size workflow SVG](understand-generation-workflows.svg). If
+explanation review cannot finish, the app keeps the latest structurally valid
+result and discloses the gap. A text-only visual brief stops before drawing;
+Cloudflare chapter covers use a separate path.
+
+> **A valid response can still be wrong.** Schema checks verify the structure; a second model pass checks the explanation against the source.
 
 | Flow | What happens |
 | --- | --- |
@@ -21,6 +32,8 @@ links show both directions.
 | Generate a chapter cover | The optional Cloudflare Workers AI route sends a preset theme prompt, not the chapter source. The result is a conceptual cover, not a diagram of code behavior. |
 
 ## Browser Storage
+
+> **Refresh recovery is temporary. Keeping a study is an explicit choice.**
 
 - **Session storage** checkpoints completed Code and Documentation explanations,
   their input, preferences, and reading position. Refresh restores the same tab
@@ -52,7 +65,8 @@ links show both directions.
 
 ## Trust and deployment boundary
 
-The app is intended to run locally, but generation is not necessarily offline.
+> **The workspace runs locally. Model requests can still leave your machine.**
+
 Submitted text, follow-up context, and screenshot images are passed to the
 configured Codex CLI, which may send them to its model service. Screenshots and
 intermediate request files use temporary storage and are removed after processing.

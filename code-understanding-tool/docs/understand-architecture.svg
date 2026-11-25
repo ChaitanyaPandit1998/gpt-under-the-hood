@@ -1,142 +1,128 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1560" height="900" viewBox="0 0 1560 900">
-  <title>Understand - Application architecture</title>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1440" height="900" viewBox="0 0 1440 900">
+  <title>Understand / From input to explanation</title>
   <g id="Layer_1" data-name="Layer 1">
-    <rect x="0" y="0" width="1560" height="900" fill="#f6f3e9"/>
-    <rect x="0" y="0" width="1560" height="9" fill="#15675c"/>
-    <text transform="matrix(1 0 0 1 54 53)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="20" fill="#15675c"><tspan x="0" y="0">UNDERSTAND  /  ENGINEERING MAP</tspan></text>
-    <text transform="matrix(1 0 0 1 51 124)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="65" fill="#162b27"><tspan x="0" y="0">Application architecture</tspan></text>
-    <text transform="matrix(1 0 0 1 55 162)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="27" fill="#425951"><tspan x="0" y="0">From source material to reviewed explanations, visuals, and exports.</tspan></text>
-    <text transform="matrix(1 0 0 1 1505 53)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="17" fill="#425951" text-anchor="end"><tspan x="0" y="0">SYSTEM OVERVIEW</tspan></text>
-    <rect x="52" y="204" width="1119" height="620" fill="#eeeee3" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="72" y="191" width="210" height="34" fill="#15675c"/>
-    <text transform="matrix(1 0 0 1 177 215)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="17" fill="#ffffff" text-anchor="middle"><tspan x="0" y="0">ON YOUR MACHINE</tspan></text>
-    <text transform="matrix(1 0 0 1 81 263)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="18" fill="#15675c"><tspan x="0" y="0">01</tspan></text>
-    <text transform="matrix(1 0 0 1 120 263)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="21" fill="#162b27"><tspan x="0" y="0">React workspace</tspan></text>
-    <text transform="matrix(1 0 0 1 427 263)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="18" fill="#15675c"><tspan x="0" y="0">02</tspan></text>
-    <text transform="matrix(1 0 0 1 466 263)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="21" fill="#162b27"><tspan x="0" y="0">Vite local API</tspan></text>
-    <text transform="matrix(1 0 0 1 832 263)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="18" fill="#15675c"><tspan x="0" y="0">03</tspan></text>
-    <text transform="matrix(1 0 0 1 871 263)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="21" fill="#162b27"><tspan x="0" y="0">Local tools</tspan></text>
-    <text transform="matrix(1 0 0 1 1219 263)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="18" fill="#8c461e"><tspan x="0" y="0">04</tspan></text>
-    <text transform="matrix(1 0 0 1 1258 263)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="21" fill="#162b27"><tspan x="0" y="0">External services</tspan></text>
+    <rect x="0" y="0" width="1440" height="900" fill="#f8f5ed"/>
+    <rect x="46" y="43" width="38" height="5" fill="#176653"/>
+    <text transform="matrix(1 0 0 1 96 52)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#176653"><tspan x="0" y="0">UNDERSTAND  /  ARCHITECTURE</tspan></text>
+    <text transform="matrix(1 0 0 1 1393 52)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#405a50" text-anchor="end"><tspan x="0" y="0">SYSTEM MAP</tspan></text>
+    <text transform="matrix(1 0 0 1 44 120)" x="0" y="0" xml:space="preserve" font-family="Georgia, serif" font-size="61" fill="#172d27"><tspan x="0" y="0">From input to explanation</tspan></text>
+    <text transform="matrix(1 0 0 1 48 160)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="25" fill="#405a50"><tspan x="0" y="0">The browser reads and saves. The local API coordinates generation.</tspan></text>
+    <rect x="46" y="203" width="996" height="595" fill="#eaf0e8" stroke="#b9c9bb" stroke-width="1.25" stroke-miterlimit="10"/>
+    <rect x="1063" y="203" width="331" height="595" fill="#f9eee2" stroke="#d5b9a3" stroke-width="1.25" stroke-miterlimit="10"/>
+    <rect x="46" y="203" width="996" height="43" fill="#d8e9de"/>
+    <rect x="1063" y="203" width="331" height="43" fill="#f4e4d5"/>
+    <text transform="matrix(1 0 0 1 67 232)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="19" fill="#15473c"><tspan x="0" y="0">ON YOUR MACHINE</tspan></text>
+    <text transform="matrix(1 0 0 1 1083 232)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="19" fill="#96451e"><tspan x="0" y="0">EXTERNAL SERVICES</tspan></text>
     <g>
       <g>
-        <path d="M360 328 L423 328 L423 330 L360 330 Z" fill="#15675c"/>
-        <path d="M356 329 L364 325 L364 333 Z" fill="#15675c"/>
-        <path d="M427 329 L419 333 L419 325 Z" fill="#15675c"/>
+        <path d="M309 339.5 L381 339.5 L381 342.5 L309 342.5 Z" fill="#176653"/>
+        <path d="M387 341 L375 347 L375 335 Z" fill="#176653"/>
       </g>
     </g>
     <g>
       <g>
-        <path d="M753 329 L828 329 L828 331 L753 331 Z" fill="#3e536e"/>
-        <path d="M832 330 L824 334 L824 326 Z" fill="#3e536e"/>
+        <path d="M412 421 L412 461 L412 462 L411 462 L272 462 L271 462 L271 461 L271 425 L273 425 L273 461 L272 461 L272 460 L411 460 L411 461 L410 461 L410 421 Z" fill="#176653"/>
+        <path d="M272 421 L276 429 L268 429 Z" fill="#176653"/>
       </g>
     </g>
     <g>
       <g>
-        <path d="M753 488 L828 488 L828 490 L753 490 Z" fill="#15675c"/>
-        <path d="M832 489 L824 493 L824 485 Z" fill="#15675c"/>
+        <path d="M647 339.5 L746 339.5 L746 342.5 L647 342.5 Z" fill="#176653"/>
+        <path d="M752 341 L740 347 L740 335 Z" fill="#176653"/>
       </g>
     </g>
     <g>
       <g>
-        <path d="M753 622 L828 622 L828 624 L753 624 Z" fill="#15675c"/>
-        <path d="M832 623 L824 627 L824 619 Z" fill="#15675c"/>
+        <path d="M1008 339.5 L1084 339.5 L1084 342.5 L1008 342.5 Z" fill="#96451e"/>
+        <path d="M1090 341 L1078 347 L1078 335 Z" fill="#96451e"/>
+      </g>
+    </g>
+    <text transform="matrix(1 0 0 1 348 325)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#176653" text-anchor="middle"><tspan x="0" y="0">HTTP</tspan></text>
+    <text transform="matrix(1 0 0 1 700 325)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#176653" text-anchor="middle"><tspan x="0" y="0">Tasks</tspan></text>
+    <text transform="matrix(1 0 0 1 342 485)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="16" fill="#176653" text-anchor="middle"><tspan x="0" y="0">Progress and result</tspan></text>
+    <g>
+      <g>
+        <path d="M190 425 L190 505 L188 505 L188 425 Z" fill="#176653"/>
+        <path d="M189 421 L193 429 L185 429 Z" fill="#176653"/>
+        <path d="M189 509 L185 501 L193 501 Z" fill="#176653"/>
+      </g>
+    </g>
+    <polyline points="647,400 686,400 686,632" fill="none" stroke="#176653" stroke-width="2" stroke-miterlimit="10"/>
+    <g>
+      <g>
+        <path d="M686 540 L748 540 L748 542 L686 542 Z" fill="#176653"/>
+        <path d="M752 541 L744 545 L744 537 Z" fill="#176653"/>
       </g>
     </g>
     <g>
       <g>
-        <path d="M1141 329 L1215 329 L1215 331 L1141 331 Z" fill="#8c461e"/>
-        <path d="M1219 330 L1211 334 L1211 326 Z" fill="#8c461e"/>
+        <path d="M686 631 L748 631 L748 633 L686 633 Z" fill="#176653"/>
+        <path d="M752 632 L744 636 L744 628 Z" fill="#176653"/>
       </g>
     </g>
     <g>
       <g>
-        <path d="M753 698 L1215 698 L1215 700 L753 700 Z" fill="#8c461e"/>
-        <path d="M1219 699 L1211 703 L1211 695 Z" fill="#8c461e"/>
+        <path d="M564 421 L564 716 L563 716 L563 715 L1086 715 L1086 717 L563 717 L562 717 L562 716 L562 421 Z" fill="#96451e"/>
+        <path d="M1090 716 L1082 720 L1082 712 Z" fill="#96451e"/>
       </g>
     </g>
     <g>
       <g>
-        <path d="M643 732 L643 773 L642 773 L642 772 L1215 772 L1215 774 L642 774 L641 774 L641 773 L641 732 Z" fill="#8c461e"/>
-        <path d="M1219 773 L1211 777 L1211 769 Z" fill="#8c461e"/>
+        <path d="M483 421 L483 763 L482 763 L482 762 L1086 762 L1086 764 L482 764 L481 764 L481 763 L481 421 Z" fill="#96451e"/>
+        <path d="M1090 763 L1082 767 L1082 759 Z" fill="#96451e"/>
       </g>
     </g>
+    <rect x="70" y="268" width="239" height="153" fill="#fffdf8" stroke="#b9c9bb" stroke-width="1.25" stroke-miterlimit="10"/>
+    <text transform="matrix(1 0 0 1 88 296)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#176653"><tspan x="0" y="0">01  /  READ</tspan></text>
+    <text transform="matrix(1 0 0 1 88 332)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="26" fill="#172d27"><tspan x="0" y="0">React workspace</tspan></text>
+    <text transform="matrix(1 0 0 1 88 366)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#405a50"><tspan x="0" y="0">Code, docs, PRs, images</tspan></text>
+    <text transform="matrix(1 0 0 1 88 391)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#405a50"><tspan x="0" y="0">Chapters and stories</tspan></text>
+    <rect x="387" y="268" width="260" height="153" fill="#15473c"/>
+    <text transform="matrix(1 0 0 1 405 296)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#cee5d7"><tspan x="0" y="0">02  /  COORDINATE</tspan></text>
+    <text transform="matrix(1 0 0 1 405 332)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="26" fill="#f7f7e9"><tspan x="0" y="0">Vite API</tspan></text>
+    <text transform="matrix(1 0 0 1 405 366)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#cee5d7"><tspan x="0" y="0">Loopback guard and limits</tspan></text>
+    <text transform="matrix(1 0 0 1 405 391)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#cee5d7"><tspan x="0" y="0">Draft, review, one repair max</tspan></text>
+    <rect x="752" y="268" width="256" height="153" fill="#fffdf8" stroke="#b9c9bb" stroke-width="1.25" stroke-miterlimit="10"/>
+    <text transform="matrix(1 0 0 1 770 296)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#176653"><tspan x="0" y="0">03  /  GENERATE</tspan></text>
+    <text transform="matrix(1 0 0 1 770 332)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="26" fill="#172d27"><tspan x="0" y="0">Codex CLI</tspan></text>
+    <text transform="matrix(1 0 0 1 770 366)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#405a50"><tspan x="0" y="0">Runs task-specific prompts</tspan></text>
+    <text transform="matrix(1 0 0 1 770 391)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#405a50"><tspan x="0" y="0">Returns structured output</tspan></text>
+    <rect x="1090" y="268" width="277" height="153" fill="#fffdf8" stroke="#d5b9a3" stroke-width="1.25" stroke-miterlimit="10"/>
+    <text transform="matrix(1 0 0 1 1108 296)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#96451e"><tspan x="0" y="0">MODEL PROVIDER</tspan></text>
+    <text transform="matrix(1 0 0 1 1108 332)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="26" fill="#172d27"><tspan x="0" y="0">Model service</tspan></text>
+    <text transform="matrix(1 0 0 1 1108 366)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#405a50"><tspan x="0" y="0">May receive submitted text</tspan></text>
+    <text transform="matrix(1 0 0 1 1108 391)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="18" fill="#405a50"><tspan x="0" y="0">and screenshots via Codex</tspan></text>
+    <rect x="70" y="509" width="239" height="156" fill="#fffdf8" stroke="#b9c9bb" stroke-width="1.25" stroke-miterlimit="10"/>
+    <text transform="matrix(1 0 0 1 88 537)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#176653"><tspan x="0" y="0">BROWSER STORAGE</tspan></text>
+    <text transform="matrix(1 0 0 1 88 571)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="21" fill="#172d27"><tspan x="0" y="0">Session storage</tspan></text>
+    <text transform="matrix(1 0 0 1 88 594)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="17" fill="#405a50"><tspan x="0" y="0">Recover after refresh</tspan></text>
+    <text transform="matrix(1 0 0 1 88 628)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="21" fill="#172d27"><tspan x="0" y="0">IndexedDB</tspan></text>
+    <text transform="matrix(1 0 0 1 88 650)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="16" fill="#405a50"><tspan x="0" y="0">Keep manually saved studies</tspan></text>
+    <text transform="matrix(1 0 0 1 752 482)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#176653"><tspan x="0" y="0">ON-DEMAND FILE OUTPUTS</tspan></text>
+    <rect x="752" y="508" width="256" height="66" fill="#fffdf8" stroke="#b9c9bb" stroke-width="1.25" stroke-miterlimit="10"/>
+    <rect x="752" y="508" width="4" height="66" fill="#176653"/>
+    <text transform="matrix(1 0 0 1 769 535)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="23" fill="#172d27"><tspan x="0" y="0">VectorCraft</tspan></text>
+    <text transform="matrix(1 0 0 1 769 558)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="17" fill="#405a50"><tspan x="0" y="0">Validated plan to PNG</tspan></text>
+    <rect x="752" y="599" width="256" height="66" fill="#fffdf8" stroke="#b9c9bb" stroke-width="1.25" stroke-miterlimit="10"/>
+    <rect x="752" y="599" width="4" height="66" fill="#176653"/>
+    <text transform="matrix(1 0 0 1 769 626)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="23" fill="#172d27"><tspan x="0" y="0">WordCraft</tspan></text>
+    <text transform="matrix(1 0 0 1 769 649)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="17" fill="#405a50"><tspan x="0" y="0">Export DOCX or PDF</tspan></text>
+    <text transform="matrix(1 0 0 1 842 705)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="17" fill="#96451e" text-anchor="middle"><tspan x="0" y="0">Optional covers: theme prompt only</tspan></text>
+    <text transform="matrix(1 0 0 1 814 752)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="17" fill="#96451e" text-anchor="middle"><tspan x="0" y="0">Fetch public PR metadata and patches</tspan></text>
+    <text transform="matrix(1 0 0 1 1090 665)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="15" fill="#96451e"><tspan x="0" y="0">OTHER OUTBOUND CALLS</tspan></text>
+    <rect x="1090" y="695" width="277" height="40" fill="#fffdf8" stroke="#d5b9a3" stroke-width="1.25" stroke-miterlimit="10"/>
+    <rect x="1090" y="742" width="277" height="40" fill="#fffdf8" stroke="#d5b9a3" stroke-width="1.25" stroke-miterlimit="10"/>
+    <text transform="matrix(1 0 0 1 1108 722)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="21" fill="#172d27"><tspan x="0" y="0">Cloudflare Workers AI</tspan></text>
+    <text transform="matrix(1 0 0 1 1108 769)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="21" fill="#172d27"><tspan x="0" y="0">GitHub public REST API</tspan></text>
+    <line x1="46" y1="829" x2="1394" y2="829" fill="none" stroke="#b9c9bb" stroke-miterlimit="10"/>
+    <text transform="matrix(1 0 0 1 46 867)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="20" fill="#405a50"><tspan x="0" y="0">Local prototype. No separate backend or database server.</tspan></text>
     <g>
       <g>
-        <path d="M219 554 L219 581 L217 581 L217 554 Z" fill="#15675c"/>
-        <path d="M218 550 L222 558 L214 558 Z" fill="#15675c"/>
-        <path d="M218 585 L214 577 L222 577 Z" fill="#15675c"/>
+        <path d="M1047 860 L1076 860 L1076 862 L1047 862 Z" fill="#96451e"/>
+        <path d="M1080 861 L1072 865 L1072 857 Z" fill="#96451e"/>
       </g>
     </g>
-    <rect x="81" y="280" width="275" height="270" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="81" y="280" width="275" height="50" fill="#dbece3"/>
-    <text transform="matrix(1 0 0 1 101 313)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="25" fill="#162b27"><tspan x="0" y="0">Learning workspace</tspan></text>
-    <text transform="matrix(1 0 0 1 101 371)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="21" fill="#425951"><tspan x="0" y="0">Code, docs, screenshots</tspan></text>
-    <text transform="matrix(1 0 0 1 101 399)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="21" fill="#425951"><tspan x="0" y="0">or a public GitHub PR</tspan></text>
-    <line x1="101" y1="423" x2="335" y2="423" fill="none" stroke="#b9c6b9" stroke-miterlimit="10"/>
-    <text transform="matrix(1 0 0 1 101 459)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Chapter reader and story mode</tspan></text>
-    <text transform="matrix(1 0 0 1 101 487)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Citations, diagrams and quiz</tspan></text>
-    <text transform="matrix(1 0 0 1 101 515)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Refinements and follow-ups</tspan></text>
-    <text transform="matrix(1 0 0 1 391 314)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="17" fill="#15675c" text-anchor="middle"><tspan x="0" y="0">HTTP</tspan></text>
-    <rect x="81" y="585" width="275" height="210" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="81" y="585" width="275" height="46" fill="#dbece3"/>
-    <text transform="matrix(1 0 0 1 101 616)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="25" fill="#162b27"><tspan x="0" y="0">Browser storage</tspan></text>
-    <text transform="matrix(1 0 0 1 101 659)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="20" fill="#162b27"><tspan x="0" y="0">Session storage</tspan></text>
-    <text transform="matrix(1 0 0 1 101 682)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="18" fill="#425951"><tspan x="0" y="0">Same-tab refresh recovery</tspan></text>
-    <text transform="matrix(1 0 0 1 101 726)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="20" fill="#162b27"><tspan x="0" y="0">IndexedDB</tspan></text>
-    <text transform="matrix(1 0 0 1 101 749)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="18" fill="#425951"><tspan x="0" y="0">Explicit study saves</tspan></text>
-    <rect x="427" y="280" width="326" height="452" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="427" y="280" width="326" height="50" fill="#dbece3"/>
-    <text transform="matrix(1 0 0 1 448 313)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="25" fill="#162b27"><tspan x="0" y="0">Loopback middleware</tspan></text>
-    <text transform="matrix(1 0 0 1 448 369)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="20" fill="#425951"><tspan x="0" y="0">Host / origin checks</tspan></text>
-    <text transform="matrix(1 0 0 1 448 397)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="20" fill="#425951"><tspan x="0" y="0">Limits, progress and cancel</tspan></text>
-    <line x1="448" y1="417" x2="731" y2="417" fill="none" stroke="#b9c6b9" stroke-miterlimit="10"/>
-    <text transform="matrix(1 0 0 1 448 451)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="23" fill="#162b27"><tspan x="0" y="0">Explanation and story</tspan></text>
-    <text transform="matrix(1 0 0 1 448 481)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Draft, review, bounded repair</tspan></text>
-    <text transform="matrix(1 0 0 1 448 506)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Schemas and cited evidence</tspan></text>
-    <text transform="matrix(1 0 0 1 448 551)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="23" fill="#162b27"><tspan x="0" y="0">Visual design and export</tspan></text>
-    <text transform="matrix(1 0 0 1 448 581)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Brief, drawing plan, PNG</tspan></text>
-    <text transform="matrix(1 0 0 1 448 606)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Optional document export</tspan></text>
-    <text transform="matrix(1 0 0 1 448 662)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="23" fill="#162b27"><tspan x="0" y="0">External lookups</tspan></text>
-    <text transform="matrix(1 0 0 1 448 690)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Public PR evidence</tspan></text>
-    <text transform="matrix(1 0 0 1 448 715)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Optional chapter cover</tspan></text>
-    <rect x="832" y="280" width="309" height="110" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="832" y="280" width="6" height="110" fill="#3e536e"/>
-    <rect x="854" y="296" width="33" height="5" fill="#e4eaf0"/>
-    <text transform="matrix(1 0 0 1 854 328)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="27" fill="#162b27"><tspan x="0" y="0">Codex CLI</tspan></text>
-    <text transform="matrix(1 0 0 1 854 354)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Structured model tasks</tspan></text>
-    <rect x="832" y="437" width="309" height="109" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="832" y="437" width="6" height="109" fill="#15675c"/>
-    <rect x="854" y="453" width="33" height="5" fill="#dbece3"/>
-    <text transform="matrix(1 0 0 1 854 485)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="27" fill="#162b27"><tspan x="0" y="0">VectorCraft</tspan></text>
-    <text transform="matrix(1 0 0 1 854 511)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Validated plans to PNG</tspan></text>
-    <rect x="832" y="565" width="309" height="105" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="832" y="565" width="6" height="105" fill="#15675c"/>
-    <rect x="854" y="581" width="33" height="5" fill="#dbece3"/>
-    <text transform="matrix(1 0 0 1 854 613)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="27" fill="#162b27"><tspan x="0" y="0">WordCraft</tspan></text>
-    <text transform="matrix(1 0 0 1 854 639)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Optional DOCX / PDF</tspan></text>
-    <text transform="matrix(1 0 0 1 898 690)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="16" fill="#8c461e" text-anchor="middle"><tspan x="0" y="0">Optional cover generation</tspan></text>
-    <text transform="matrix(1 0 0 1 906 762)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="16" fill="#8c461e" text-anchor="middle"><tspan x="0" y="0">Bounded PR metadata and patches</tspan></text>
-    <rect x="1219" y="280" width="287" height="110" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="1219" y="280" width="6" height="110" fill="#8c461e"/>
-    <rect x="1241" y="296" width="33" height="5" fill="#f2dfcd"/>
-    <text transform="matrix(1 0 0 1 1241 328)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="27" fill="#162b27"><tspan x="0" y="0">Model service</tspan></text>
-    <text transform="matrix(1 0 0 1 1241 354)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Configured by Codex CLI</tspan></text>
-    <rect x="1219" y="665" width="287" height="68" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="1219" y="665" width="6" height="68" fill="#8c461e"/>
-    <text transform="matrix(1 0 0 1 1241 707)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="23" fill="#162b27"><tspan x="0" y="0">Cloudflare Workers AI</tspan></text>
-    <rect x="1219" y="742" width="287" height="63" fill="#fffdf7" stroke="#b9c6b9" stroke-width="1.4" stroke-miterlimit="10"/>
-    <rect x="1219" y="742" width="6" height="63" fill="#8c461e"/>
-    <text transform="matrix(1 0 0 1 1241 781)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="23" fill="#162b27"><tspan x="0" y="0">GitHub public REST API</tspan></text>
-    <line x1="53" y1="847" x2="1506" y2="847" fill="none" stroke="#b9c6b9" stroke-miterlimit="10"/>
-    <text transform="matrix(1 0 0 1 54 879)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">Local prototype: no separate backend or database server.</tspan></text>
-    <g>
-      <g>
-        <path d="M1024 871 L1064 871 L1064 873 L1024 873 Z" fill="#8c461e"/>
-        <path d="M1068 872 L1060 876 L1060 868 Z" fill="#8c461e"/>
-      </g>
-    </g>
-    <text transform="matrix(1 0 0 1 1081 879)" x="0" y="0" xml:space="preserve" font-family="&apos;Source Sans 3&apos;, sans-serif" font-size="19" fill="#425951"><tspan x="0" y="0">External request; responses not shown</tspan></text>
+    <text transform="matrix(1 0 0 1 1090 867)" x="0" y="0" xml:space="preserve" font-family="&apos;Avenir Next&apos;, sans-serif" font-size="20" fill="#96451e"><tspan x="0" y="0">Outbound request</tspan></text>
   </g>
 </svg>
