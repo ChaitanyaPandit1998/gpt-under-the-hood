@@ -15,7 +15,7 @@ test("keeps visual drafts isolated when cached chapter variants have identical t
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input" }).fill("const value = 42;");
   await page.getByRole("button", { name: "Help me understand" }).click();
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   const refine = page.getByRole("region", { name: "Customize Overview" });
   const variant = refine.getByRole("article", { name: "Adapted section" });
   await refine.getByText("Customize explanation", { exact: true }).click();
@@ -34,7 +34,7 @@ test("keeps visual drafts isolated when cached chapter variants have identical t
   await expect(variant).toBeVisible();
   await expect(designer.getByRole("region", { name: "Visual design brief", includeHidden: true })).toHaveCount(0);
   await designer.locator(":scope > summary").click();
-  await expect(designer.getByText("Generate a brief to unlock image rendering.")).toBeVisible();
+  await expect(designer.getByRole("button", { name: "Generate visual brief", exact: true })).toBeVisible();
   await designer.getByRole("button", { name: "Generate visual brief" }).click();
   await expect(designer.getByRole("region", { name: "Visual design brief" })).toBeVisible();
   const regenerate = refine.getByRole("button", { name: "Regenerate section variant", exact: true });
@@ -52,6 +52,7 @@ test("opens citations at the highlight even after very long context lines", asyn
   await page.getByRole("tab", { name: /Documentation/ }).click();
   await page.getByRole("textbox", { name: "Documentation input" }).fill(`${"Context text. ".repeat(300)}\nConfigured value: 42.\nAfter the citation.`);
   await page.getByRole("button", { name: "Help me understand" }).click();
+  await page.getByRole("navigation", { name: "Explanation chapters", exact: true }).getByRole("button", { name: /Key ideas/ }).click();
   const citation = page.getByRole("button", { name: "View source lines 2 through 2", exact: true });
   await citation.click();
   const excerpt = page.getByRole("region", { name: "Source excerpt" });

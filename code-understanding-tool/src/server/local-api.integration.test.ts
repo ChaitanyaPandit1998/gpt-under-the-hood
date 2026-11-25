@@ -6,6 +6,9 @@ import type { ViteDevServer } from "vite";
 import { createLocalExplanationApi, findCodexCliForRequest, type CodexRunner } from "./local-api";
 import type { PullRequestFetch } from "./github-pull-request";
 import { defaultVisualPreferences, sceneVisualGuidance } from "../domain/visual-brief";
+import { createHash } from "node:crypto";
+import { visualCheckStages } from "../domain/visual-evaluation";
+import { makeVisualPng } from "../test-fixtures/visual-png";
 
 type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => unknown;
 type RegisteredMiddleware = { path: string; handler: Middleware };
@@ -103,6 +106,42 @@ function createApiHarness(runCodex: CodexRunner, limits?: NonNullable<Parameters
 }
 
 describe("local explanation API integration", () => {
+  const visualReviewExplanation = "The limit is fixed.";
+  const visualReviewBody = {
+    confirmed: true, explanation: visualReviewExplanation, caption: "A fixed limit.", brief: "Show the limit.", resolution: "standard",
+    pngBase64: makeVisualPng().toString("base64"),
+    plan: JSON.stringify({ background: "#ffffff", items: [{ kind: "text", text: "Limit", x: 50, y: 80, size: 24, color: "#000000", align: "left" }] }),
+    contract: { version: 1, id: "review-test", explanationSha256: createHash("sha256").update(visualReviewExplanation).digest("hex"),
+      audience: "beginner", purpose: "factual-diagram", teachingGoal: "Show the limit.", audienceObjectives: ["Understand the limit."],
+      requirements: [{ id: "limit", kind: "claim", statement: "The limit is fixed.", evidence: "background", evidenceReference: "Explanation" }] },
+  };
+  it("reviews an explicitly confirmed image through the guarded local API", async () => {
+    const runner = vi.fn<CodexRunner>().mockResolvedValue({ imageInspected: true, checks: visualCheckStages.map((stage) => ({ stage,
+      status: "pass", summary: "Mock review only.", requirementIds: ["limit"], findings: [] })) });
+    const request = createApiHarness(runner);
+    const response = await request("/api/visual-review", visualReviewBody);
+    expect(response.status).toBe(200);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.json()).toMatchObject({ report: { contractId: "review-test", artifacts: {
+      captionSha256: createHash("sha256").update(visualReviewBody.caption).digest("hex"),
+    } } });
+    expect(runner.mock.calls[0][4]).toMatch(/visual\.png$/);
+  });
+  it("rejects missing consent, wrong origin and non-POST visual review without model calls", async () => {
+    const runner = vi.fn<CodexRunner>(); const request = createApiHarness(runner);
+    expect((await request("/api/visual-review", { ...visualReviewBody, confirmed: false })).status).toBe(400);
+    expect((await request("/api/visual-review", visualReviewBody, "https://untrusted.example")).status).toBe(403);
+    expect((await request("/api/visual-review", visualReviewBody, undefined, "GET")).status).toBe(405);
+    expect(runner).not.toHaveBeenCalled();
+  });
+  it("returns blocking diagnostics for corrupt PNGs without invoking the model", async () => {
+    const runner = vi.fn<CodexRunner>(); const request = createApiHarness(runner);
+    const response = await request("/api/visual-review", { ...visualReviewBody, pngBase64: "YWJj" });
+    expect(response.status).toBe(200);
+    expect(response.json()).toMatchObject({ report: { checks: expect.arrayContaining([expect.objectContaining({ stage: "raster", status: "fail" })]) } });
+    expect(runner).not.toHaveBeenCalled();
+  });
+
   it("keeps scene guidance in the brief and the render plan even with an edited prompt", async () => {
     const brief = {
       disposition: "render", visualType: "concept-map", takeaway: "A limit controls the result.", composition: "Show the source relationship.",
@@ -121,7 +160,7 @@ describe("local explanation API integration", () => {
     const response = await request("/api/visual-brief", { ...body, purpose: "factual-diagram" });
     expect(response.status).toBe(200);
     const expected = { ...brief, guardrails: [sceneVisualGuidance["factual-diagram"], ...brief.guardrails.slice(0, 9)] };
-    expect(response.json()).toEqual({ brief: expected });
+    expect(response.json()).toMatchObject({ brief: expected, generation: { artifactSha256: createHash("sha256").update(JSON.stringify(expected)).digest("hex") } });
     expect(runner.mock.calls[0][0]).toContain(sceneVisualGuidance["factual-diagram"]);
     expect((await request("/api/visual-plan", expected)).status).toBe(200);
     expect(runner.mock.calls[1][0]).toContain(sceneVisualGuidance["factual-diagram"]);
@@ -133,6 +172,18 @@ describe("local explanation API integration", () => {
     scenes: [{ heading: "A fixed supply", narrative: "The clerk counts three tickets.", meaning: "The constant is set to three.", source_ranges: [{ start_line: 1, end_line: 1 }] }],
     takeaway: "The limit is three.",
   };
+
+  it.each(["beginner", "intermediate", "advanced"])("preserves the %s audience through story generation and review", async (learnerLevel) => {
+    const runner = vi.fn<CodexRunner>().mockResolvedValueOnce(story).mockResolvedValueOnce(passedReview);
+    const request = createApiHarness(runner);
+    const response = await request("/api/chapter-story", { ...storyInput, learnerLevel });
+    expect(response.status).toBe(200);
+    expect(response.json()).toEqual({ story });
+    expect(runner).toHaveBeenCalledTimes(2);
+    for (const [prompt] of runner.mock.calls) {
+      expect(prompt).toContain(`Audience: ${learnerLevel}.`);
+    }
+  });
 
   it("reviews and at most once repairs a source-linked story on request", async () => {
     const revised = { ...story, takeaway: "Three is the value shown in the source." };
@@ -183,7 +234,7 @@ describe("local explanation API integration", () => {
     runner.mockResolvedValueOnce(scene);
     const planned = await request("/api/visual-plan", brief);
     expect(planned.status).toBe(200);
-    expect(planned.json()).toEqual({ scene });
+    expect(planned.json()).toMatchObject({ scene, generation: { artifactSha256: createHash("sha256").update(JSON.stringify(scene)).digest("hex") } });
     expect((await request("/api/visual-render", { scene, resolution: "hd" })).status).toBe(200);
     expect((await request("/api/visual-render", { scene, resolution: "full-hd" })).status).toBe(200);
     expect((await request("/api/visual-render", { scene: { ...scene, items: [] } })).status).toBe(400);
@@ -204,11 +255,14 @@ describe("local explanation API integration", () => {
     expect((await defaultRequest("/api/visual-plan", brief)).status).toBe(502);
     const result = await enabledRequest("/api/visual-plan", brief);
     expect(result.status).toBe(200);
-    expect(runner.mock.calls[2][0]).toContain("Use compact items when practical");
+    expect(runner.mock.calls[0][0]).not.toContain("Application instruction: visual-composition-compact;");
+    expect(runner.mock.calls[2][0]).toContain("Application instruction: visual-composition-compact;");
     const scene = { background: "#ffffff", items: ["One", "Two"].map((text, index) => ({
       kind: "text", text, x: 50 + index * 100, y: 70, size: 24, color: "#123456", align: "left",
     })) };
-    expect(result.json()).toEqual({ scene });
+    const payload = result.json() as { scene: unknown; generation: { artifactSha256: string } };
+    expect(payload.scene).toEqual(scene);
+    expect(payload.generation.artifactSha256).toBe(createHash("sha256").update(JSON.stringify(payload.scene)).digest("hex"));
     expect((await enabledRequest("/api/visual-render", { scene: compact, resolution: "standard" })).status).toBe(400);
     expect((await enabledRequest("/api/visual-render", { scene, resolution: "standard" })).status).toBe(200);
     expect(renderScene).toHaveBeenCalledTimes(1);
@@ -227,7 +281,7 @@ describe("local explanation API integration", () => {
     const result = await request("/api/visual-brief", body);
     expect(result.status).toBe(200);
     expect(result.headers["cache-control"]).toBe("no-store");
-    expect(result.json()).toEqual({ brief });
+    expect(result.json()).toMatchObject({ brief, generation: { artifactSha256: createHash("sha256").update(JSON.stringify(brief)).digest("hex") } });
     expect(runner.mock.calls[0][0]).toContain('2: retry();');
     expect(runner.mock.calls[0][0]).toContain("Visual style: Expressive illustration");
     expect(runner.mock.calls[0][0]).toContain("A learner-provided variant with a waiting period.");

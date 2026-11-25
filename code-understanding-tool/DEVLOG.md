@@ -54,6 +54,555 @@ dated entry for future work; never record secrets or private source material.
 - Next: try the refresh flow with an existing study before deciding
   whether to include completed PR chapters.
 
+## 2026-11-22 - Bounded drawing-plan benchmark
+
+- Ran an external experiment on a synthetic cache decision flow and the
+  existing Intermediate story illustration brief. Each brief ran twice with
+  the ordinary planner and twice with an experimental budget of 26 items,
+  18 points per path and 144 path points total. Paired modes used the same
+  brief, composition skill, CLI and approved renderer, ran concurrently,
+  and alternated launch order. Planning times include structural repairs.
+- Mean planning times (ordinary / bounded): technical diagram 22.83s /
+  17.88s; story illustration 102.56s / 46.42s. Both ordinary story runs
+  needed one structural repair; none of the bounded runs did. Mean
+  reported output tokens, including retries, fell from 909 to 684 for
+  the flow and from 4,745 to 2,095 for the story. Rendering took
+  0.27-0.46s per Full HD PNG.
+- Every PNG cleared browser label preflight. Manual inspection confirmed
+  that all technical images preserve the hit bypass, ordered miss path
+  and shared return. The story images preserve the mirror geometry,
+  character and visible fiction and uncertainty qualifiers; the bounded
+  drawings use fewer decorative layers without losing the teaching point.
+- This is two repeated briefs, not a general quality or latency guarantee.
+  Provider caching varied, and there was no independent blind review.
+  Kept benchmark logic, fixtures and artifacts external, left the app
+  defaults unchanged, and did not rerun app regressions for this
+  documentation-only change.
+- Next: test on unseen multi-panel scenes and exact-scale technical
+  figures before deciding whether to offer an opt-in quick planning mode.
+
+## 2026-11-22 - Mobile image labels and compact-planning comparison
+
+- On mobile, inline illustrations show the exact text from their drawing
+  plan alongside the caption. Dense label lists collapse rather than
+  truncate. Legacy images without a plan keep their original caption and
+  alt text. The preview opens full-screen on mobile, exposes labels as
+  readable text, and offers a scrollable actual-size view on both layouts.
+- Validation: lint, build, 345 unit/API tests and 88 mocked browser tests
+  passed. A separate 390px browser check reused the actual Advanced PNG:
+  caption and labels were readable, and actual size exposed all 1920px
+  within the scrollable preview. No model call was needed for that check.
+- Compared ordinary and compact planning on the same two previously
+  generated public-pilot briefs, one run per mode per brief, alternating
+  mode order. Intermediate took 68.92s ordinary / 77.97s compact.
+  Advanced took 94.87s ordinary / 61.45s compact. PNG delivery took
+  0.57-0.71s. All four Full HD images passed label preflight and manual
+  inspection confirmed the requested relationships and qualifiers. The
+  API returns expanded plans, so it does not expose how much compact
+  encoding the model used. Neither repeated timing nor token counts were
+  measured. Compact planning remains opt-in.
+- Next: benchmark bounded scene complexity with repeated runs, including
+  technical diagrams and expressive scenes, before changing the default.
+
+## 2026-11-22 - Live story and VectorCraft pilot
+
+- Ran the external Riemann Hypothesis fixture through the live browser app
+  at Intermediate and Advanced (both Balanced). Both produced three scenes
+  and one 1920 x 1080 fictional illustration, then restored the story and
+  image after explicit save and reload. No browser page errors were recorded.
+  The returned brief and scene hashes matched their artifacts, with the
+  selected audience profile on each brief and the composition skill on each plan.
+- Browser timings in seconds (Intermediate / Advanced): explanation 69.9 /
+  45.1, story 25.7 / 37.9, visual brief 22.7 / 22.8, drawing plan 59.9 /
+  65.0. Planning through PNG delivery took 60.9 / 66.0 seconds; the remaining
+  client checks and render together added about one second per run.
+- Manual inspection of both stories and PNGs: the intermediate illustration
+  shows a mirrored pair and a fixed point; the advanced triptych adds an
+  aligned coordinate grid, with the exact change of variables in the text
+  and caption. Both depict fictional pins rather than computed zeros, and
+  the stories distinguish the known symmetry from the conjecture. The
+  intermediate mapping is still dense in places. On mobile, captions are
+  readable but embedded labels are small in both inline previews; the
+  advanced PNG cannot reflow its panels as the brief suggested.
+- This was a two-sample live and manual check, not a reviewer calibration,
+  factual-diagram run, or full audience/depth benchmark. Pilot artifacts
+  and topic-specific test logic stayed outside the repository.
+- Next: test caption-backed labels and a larger mobile preview, then
+  benchmark a faster drawing-plan path against the same quality criteria.
+
+## 2026-11-22 - Integrated regression testing
+
+- Updated browser and API assertions for chapter-only navigation, scoped
+  controls, overwrite confirmation and compact planning. The artifact hash
+  assertion now uses the exact returned scene, not a reconstructed fixture
+  with potentially different JSON key order.
+- Builder and inline visual reviews now merge into the latest history for
+  the same accepted image. A late result cannot replace a different PNG or
+  erase an assessment that finished in another panel.
+- Validation: lint, TypeScript, production build and 345 unit/API tests
+  passed. All 86 mocked browser tests passed across desktop and mobile,
+  including legacy restore, fresh re-review consent, out-of-order reviews,
+  PR citations, visual builder cancellation and export.
+- Diagram navigation/export still emits a ResizeObserver warning in the dev
+  browser, although the workflows passed. No new live generation or manual
+  image-quality assessment was performed in this pass.
+- Next: rerun the Riemann Hypothesis as an external live story/VectorCraft
+  pilot and compare factual accuracy, audience fit, visual readability and
+  stage latency. Investigate the diagram resize warning separately.
+
+## 2026-11-22 - Visual-generation lineage and restored-image re-review
+
+- Brief/plan services expose the exact instruction resources loaded for that
+  request, including the selected audience or enabled compact reference. APIs
+  add optional generation metadata with version/content hashes bound to the
+  returned artifact, including repaired plans and scene-policy-adjusted briefs.
+  Metadata is not reconstructed by rereading potentially changed skill files.
+- Clients validate artifact bindings before retaining lineage with accepted
+  images and reuse plan lineage for resizes. Missing metadata from older
+  responses/studies remains unknown; no current-version attribution is invented.
+  Portable/save validation accepts the optional extension and rejects malformed,
+  duplicate or artifact-mismatched stamps without executing imported IDs.
+- Inline image history now shows recorded generation stamps and opt-in
+  re-review for images with valid provenance, including restored studies.
+  Re-review uses recorded context, not later chapter edits; opening controls
+  makes no call and a fresh checklist confirmation is mandatory.
+- Connected metadata updates for whole results, chapters, adapted variants and
+  story scene images. Reviews merge by identity in chronological bounded
+  history and cannot replace a newer PNG or unrelated brief/context. Candidate
+  acceptance remains explicit and review does not approve the artwork.
+- Validation: production build with TypeScript, targeted lint and 40 focused
+  loader/generation/provenance/portable tests passed. New checks cover exact
+  resources used on repaired plans, artifact-bound lineage, duplicate stamps,
+  metadata merging/idempotence and late results against replacement images.
+  Updated API fixtures for additive metadata and prepared mocked browser
+  save/reload/lineage/re-review/fresh-consent coverage, but did not execute full
+  API/browser regressions, live provider calls or manual visual checks.
+- Limits: hashes check consistency, not authorship or reviewer truth. Images
+  without original provenance cannot be re-reviewed using reconstructed inputs.
+  Story-generation instruction metadata is still internal; the new persisted
+  lineage describes the visual brief/plan generation stages. Existing bundle/
+  import warnings and missing PyYAML skill-format dependency remain.
+- Next: run the deferred rigorous integrated validation across the implemented
+  workstreams, then fix findings before marking release readiness. The compact
+  mobile chapter picker remains a documented UI follow-up.
+
+## 2026-11-22 - Visual review skill and explicit saved review history
+
+- Extracted independent image-review guidance into an allowlisted SKILL.md.
+  The reviewer records its exact skill hash in version metadata. Deterministic
+  preflight, attachment handling, strict response validation, conservative
+  failure policy and opt-in consent remain in application code. Standalone
+  review defaults to the trusted module-relative app root; API uses server root.
+- New rendered images retain their brief, validated scene and exact scoped
+  explanation context. Successful, artifact-bound reports append to a recent
+  history capped at five entries and a bounded metadata budget. Metadata-only
+  changes compare PNG identity so they cannot turn an accepted image into a
+  candidate or automatically publish a different candidate image.
+- Explicit save and portable transfer include accepted images' context/history.
+  Save, IndexedDB restore, portable import/export and history display validate
+  shapes and exact explanation/brief/plan/PNG/caption bindings. Older images
+  without metadata remain supported. Mismatched portable/saved metadata rejects
+  rather than showing a saved pass; traversal is bounded and cycle-checked.
+- Added collapsed read-only history to inline images, labelled as historical
+  assessments, not approval. Hash consistency does not authenticate reviewer
+  identity or establish truth; imports may contain edited assertions. Opening
+  history calls no model, and persistence is never automatic. Save/transfer
+  disclosures now mention review context, which may quote original source.
+- Unified bounded explanation context across brief generation, review and
+  provenance so a long context cannot silently bind different submitted text.
+- Validation: production build with TypeScript, targeted lint and 34 focused
+  provenance/portable/reviewer tests passed. They cover exact binding, modified
+  artifacts/context, malformed or excessive history, cycle detection, bounded
+  appending, old images, transfer round trips, conservative review failure and
+  cancellation. Fixed two initial unknown-value narrowing compile errors.
+- Prepared a mocked browser case for explicit-save/reload history without a
+  second review call; did not execute browser/full regression/live provider
+  or manual visual checks. Existing Vite/bundle warnings and missing PyYAML
+  skill-format validation dependency remain.
+- Limits: restored history is read-only; re-review controls and exact generation
+  skill/profile lineage still need implementation. Review hashes bind recorded
+  artifacts, not the current editable checklist or independent human approval.
+- Next: complete generation-skill lineage and restored-image review controls,
+  then perform the deferred integrated testing.
+
+## 2026-11-22 - Reusable visual direction and VectorCraft composition
+
+- Reused the existing visual-direction SKILL.md through the allowlisted
+  instruction loader. Explicit audiences reuse shared learning profiles;
+  Match explanation does not silently select the beginner profile.
+- Added a generic VectorCraft composition skill for supported text, rectangle
+  and path scene data, semantic composition, readable labels, restrained text
+  and visible qualifiers. An optional compact-encoding reference loads only
+  with the compact response schema; unsupported renderer features are excluded.
+- Moved reusable composition guidance out of the service, retained host/schema
+  constraints in code and sourced canvas dimensions from the canonical scene
+  definition. Both planning routes pass the configured application root.
+  Structural validation, one repair, cancellation, safe adapter invocation and
+  API response formats remain unchanged. Repair guidance now matches the
+  normal prompt's 60-character/40-word teaching-label guidance.
+- Shared instruction formatting includes version/content hashes internally;
+  these are not persisted with accepted images yet. No new model stage or
+  arbitrary command execution was introduced.
+- Validation: production build with TypeScript, targeted lint and 16 focused
+  loader/visual-service tests passed. Coverage includes default/compact schema
+  selection, direction reuse, explicit/auto audience handling, missing resources,
+  structural repair limits, provider failure and cancellation. No browser suite,
+  live image generation or manual visual-quality judgment was performed.
+- Limits: skill-format validation still needs the previously missing PyYAML
+  dependency; broad/live evaluation remains deferred. Richer composition is
+  guidance, not evidence that generated images have improved, and the renderer
+  still supports only its existing scene vocabulary.
+- Next: extract independent visual-review guidance and save artifact-bound
+  provenance/history with explicit study saving, preserving old studies.
+
+## 2026-11-22 - App-owned story skills and learning profiles
+
+- Added generic planning, writing and independent review SKILL.md files plus
+  shared Beginner/Intermediate/Advanced and Overview/Balanced/Detailed profiles.
+  No topic-specific production logic or committed pilot material was added.
+- Added an explicit instruction-ID allowlist rooted in server configuration.
+  Unknown IDs (including traversal/prototype names), blank/oversized resources
+  and cancellation fail without falling back to arbitrary paths. Loaded text
+  carries an ID, version and exact SHA256 for later provenance persistence.
+- Story generation now composes planning/writing with only the selected
+  profiles. Review receives its own skill and the profiles, not the generation
+  skills. Existing source/range/schema validation, untrusted-data boundaries,
+  cancellation, temporary-file cleanup and one-repair limit remain in code.
+  Successful generation still uses two model calls, or at most four with repair.
+- Passed the configured root through story API wiring and preserved narrowed
+  audience/depth types in the validated parser. Response/save formats and UI
+  preferences are unchanged; internal skill metadata is not persisted yet.
+- Validation: production build with TypeScript and targeted lint passed; eight
+  focused loader/service tests passed using generic fixtures and mocked runners.
+  Fixed an initial parser type-widening build error. The three bundled skill
+  format-validation attempts could not run because Python lacks PyYAML; no new
+  dependency was installed. Existing Vite/bundle warnings remain.
+- Limits: no full API/browser regression, live provider run, independent skill
+  behavioral evaluation or manual story-quality assessment was performed in
+  this implementation slice. Skills are explicitly loaded by the app, not
+  installed as global Codex skills. Missing skill resources fail the request.
+- Next: reuse the visual-direction skill and add VectorCraft composition
+  guidance through the loader; retain strict scene validation and rendering.
+
+## 2026-11-22 - Three-stage visual builder
+
+- Consolidated the visual builder into three numbered stages: What to teach,
+  Look and feel, and Generate. Optional prompt preview/editing and the brief/
+  render result now live within Generate rather than separate numbered stages.
+- Kept the default generation path, explicit brief-then-render actions, edited
+  prompt behavior, source inclusion, privacy disclosure, resolution choices,
+  cancellation and image review/comparison contracts unchanged. Result/review
+  forms are outside the configuration form to avoid nested HTML forms; the
+  generate action and prompt textarea explicitly reference that form.
+- Prepared a generic mocked browser case for three-stage structure, optional
+  prompt editing without calls, exact edited-prompt submission, source opt-out,
+  and no automatic drawing-plan call after brief generation. Corrected a
+  text-only fixture's visual type in the pending toolbar regression.
+- Validation: production build with TypeScript passed after the structural
+  change; targeted component/browser-test lint passed. No browser suite,
+  live-provider calls or manual visual inspection was run, per the agreed
+  implementation-first cadence. Existing build warnings remain.
+- Limits: three-stage presentation is implemented, not fully validated; it
+  intentionally retains separate brief and render actions rather than adding
+  automatic model calls or bypassing review.
+- Next: extract generic story planning/writing/review skills and shared
+  audience/depth profiles with explicit backend loading.
+
+## 2026-11-22 - Progressive reading tools and concise helper copy
+
+- Reading toolbars collapse idle sibling disclosures when another tool opens.
+  Nested options do not trigger toolbar switching; active brief generation,
+  image rendering/review, export and playback are protected from automatic
+  collapse. Open panels move below the compact action row via CSS.
+- Kept tool contents mounted so drafts and speech settings survive collapse.
+  Manually closing a visual builder no longer cancels brief generation; its
+  summary shows a Working badge while brief/render/review activity continues.
+  Export and speech summaries show activity too. Explicit cancel controls and
+  existing unmount cleanup remain available.
+- Collapsed successful explanation-review commentary, while unresolved review
+  notes remain expanded. Shortened save/visual helper text, moved rendering
+  implementation notes into a disclosure, removed redundant prompt guidance
+  and hid the empty render stage until a brief exists. Generation data/source
+  disclosures and explicit visual-review consent remain intact.
+- Prepared a generic browser case for draft retention, idle-panel switching,
+  active-work visibility and explicit cancellation; updated empty-render-stage
+  expectations. Browser tests were not executed, per the agreed cadence.
+- Validation: production build (including TypeScript) and targeted component/
+  browser-test lint passed. Fixed an initial type error by using native capture
+  for the non-bubbling details toggle event. Existing import-extension and
+  bundle-size warnings remain. No full regressions, live calls or manual
+  desktop/mobile visual checks were run.
+- Limits: progressive visual steps still need consolidation; browser behavior
+  and screenshot quality remain unverified until integrated testing. These
+  changes are implemented, not release-validated.
+- Next: consolidate the visual builder into What to teach, Look and feel,
+  and Generate with an optional prompt preview, preserving current contracts.
+
+## 2026-11-22 - Chapter-only reader implementation
+
+- Removed the Chapters / Full explanation switch and length-based default.
+  Every result now uses the existing chapter outline and pagination, including
+  short results. Chapter-scoped Direct/Story and refinement remain available.
+- Legacy saved/imported `chapterMode: false` is ignored when restoring the
+  view; snapshots retain the version-1 field as `true`. Chapter IDs, variants,
+  stories, covers and images keep their existing storage structure. Whole-study
+  illustrations remain outside the reader and whole-study export/read-aloud
+  remain available rather than being assigned to an unrelated chapter.
+- Prepared a generic browser regression for legacy full-view restoration,
+  chapter/whole-study image access and normalized resaving. Updated explicit
+  reading-mode selectors in existing browser tests and the citation regression
+  to navigate to its containing chapter. Other full-view assumptions still
+  require review during integrated testing.
+- Validation: production build (including TypeScript) passed; targeted lint
+  passed; four chapter-outline unit tests passed. Existing Vite import-extension
+  and bundle-size warnings remain. Browser, full regression, live-provider and
+  manual visual checks were not run, per the implementation-first cadence.
+- Limits: this slice removes the reading toggle only; it does not yet simplify
+  tool panels or add the compact mobile chapter picker. Browser compatibility
+  coverage is prepared but unexecuted; not fully validated or release-ready.
+- Next: simplify scoped tool presentation and helper copy while preserving
+  tool drafts, active generation status and essential consent disclosures.
+
+## 2026-11-22 - Story and visual skills plan
+
+- Saved the ten-point proposal in `docs/story-visual-skills-plan.md`, covering
+  six reusable skills, shared audience/depth profiles and user preferences.
+- Added `docs/reader-ui-simplification-plan.md` for less verbose progressive
+  tools and chapter-only reading, including saved-study compatibility,
+  full-view asset access, accessibility and regression acceptance checks.
+- Consolidated delivery in `docs/prioritized-roadmap.md`: chapter-only reading,
+  clutter reduction, guided visuals, story skills, reuse of the existing visual
+  skill plus VectorCraft composition, review provenance, then broader evaluation.
+  Updated the validation cadence at the user's request: implement first with
+  lightweight build/type and narrow high-risk checks, prepare regression
+  coverage alongside changes, and defer full end-to-end runs and live pilots
+  to the integrated testing phase. Track unrun checks explicitly; implementation
+  completion is not release readiness.
+- Validation: reviewed the Markdown and ran `git diff --check`; no runtime
+  changes or application tests required for this documentation-only update.
+- Limits: proposed architecture only; no skill loader or generation changes.
+- Next: implement chapter-only navigation and compatibility handling, then
+  simplify the visual builder; extract story instructions into app-owned
+  skills before extending the generation pipeline.
+
+## 2026-11-22 - Opt-in visual review panel
+
+- Added a reusable themed review panel after new image renders. Users edit a
+  brief-derived checklist, audience, visual role, teaching goal and learning
+  objective; requirements can be included, edited, added and assigned to the
+  image/caption/surrounding explanation. Unknown audiences require an explicit
+  choice. This draft is clearly not independently verified evidence.
+- Explicit confirmation discloses the PNG, caption, explanation context,
+  brief, plan and checklist sent to the model. Opening the panel does not call
+  the model. Original source is not separately attached; context can quote it.
+- Connected a bounded, validated `/api/visual-review` endpoint through existing
+  origin, concurrency and cancellation guards. The browser verifies exact
+  returned artifact/caption/explanation bindings. New server-side imports use
+  explicit TypeScript extensions to avoid adding native-loader warnings.
+- Five expandable result sections show status, findings, evidence and reviewer
+  metadata. Editing the checklist resets confirmation and marks the report
+  outdated. Cancellation, failure or review findings never replace/approve an
+  image; new renders clear temporary review state. Automatic acceptance and
+  repair remain disabled.
+- Validation: lint, build and 317 unit/API tests passed, including draft,
+  transport, consent/origin/method and corrupt-PNG regressions. Six new mocked
+  desktop/mobile browser tests passed after correcting an initial test-only
+  submit-button selector. They cover opt-in behavior, scoped requirements,
+  findings, stale reports, cancellation/late responses, failure, artifact
+  mismatches and keeping the accepted image unchanged. Full regression passed
+  all 76 mocked desktop/mobile browser tests; all 91 focused visual tests
+  passed. Desktop/mobile screenshot inspection found no horizontal overflow;
+  aligned the Add requirement button with the existing toolbar controls.
+- Limits: temporary reports only; saved/imported images without brief/plan
+  provenance cannot use this panel yet. No new live provider run or independent
+  human calibration was performed for this integration. A selected scene
+  review does not audit unrelated scenes. Existing bundle/config warnings
+  remain; no topic-specific logic or committed pilot material was added.
+- Next: save review provenance/history with images, then controlled repair and
+  comparison; keep automatic acceptance disabled pending broader calibration.
+
+## 2026-11-22 - Live visual-review pilot
+
+- Ran seven real vision-review calls on the external public-math pilot with
+  actual PNG attachments. The CLI identified the reviewer as gpt-6.2-sol.
+  Reports, raw outputs, inputs and deliberately modified VectorCraft images
+  remain outside the repository; no topic-specific production logic or
+  committed evaluation fixtures were introduced.
+- The reviewer rejected the existing Advanced narrative transformation error.
+  With that narrative corrected only in the external pilot, the original
+  Advanced image/caption passed the configured story-illustration checks.
+  The original app study was not repaired or silently replaced.
+- Two image-only negative cases retained honest briefs, plans, explanations
+  and captions. Both the incorrect coordinate label and false proof-status
+  label were detected as critical raster/alignment contradictions.
+- Initial Intermediate review requested revision because the pilot contract
+  incorrectly required an Advanced coordinate equivalence. Preserved that
+  result, scoped the external contract to its intended audience, and reran
+  the original/negative Intermediate cases: pass with a minor gaze note for
+  the original, fail for the misleading image. This was a contract correction,
+  not evidence of an image defect or an automatic image repair.
+- Live review latency across seven calls was 22.6-31.7 seconds, median 24.8
+  seconds, excluding variant rendering. These are exploratory timings, not
+  a general latency guarantee. All seven provider calls completed.
+- Manual comparison was performed by the coding assistant, not an independent
+  human expert. This small, single-topic pilot does not establish accuracy,
+  repeatability, mobile readability or cross-topic audience calibration.
+  Passing images were assessed as captioned story illustrations, not as
+  standalone technical diagrams. Reviewer/generator model independence is
+  not established. No production code changed in this increment.
+- Validation: live provider calls, actual attachment delivery/inspection,
+  two VectorCraft variant renders, manual artifact inspection and saved
+  reports. No fresh unit/browser suite was run for this documentation-only
+  increment; the previous 299-test result remains the latest code check.
+- Next: an opt-in in-app review panel with scoped contracts and stage-specific
+  findings; leave automatic acceptance disabled pending broader independent
+  human calibration.
+
+## 2026-11-22 - PNG decode and independent visual-review service
+
+- Replaced header-only evaluation with bounded decoding of static,
+  non-interlaced 8-bit PNGs via pinned pngjs. Checks reject malformed chunks,
+  duplicate headers, oversized inputs/pixels, bad checksums, truncation,
+  unexpected dimensions and excess scanlines. Uniform/transparent output
+  requires revision; successful decoding alone remains uncertain.
+- Added an opt-in image/caption review service using the existing runner's
+  image attachment support. It evaluates all five stages against the contract,
+  binds the caption digest, retains deterministic blockers and requires full
+  alignment coverage. Invalid/unseen-image responses and provider failures do
+  not approve the image. Cancellation propagates; temporary files are removed.
+- New generic real-PNG fixtures and mocked reviewer tests cover decoding,
+  attachment delivery, metadata binding, corruption, limits, unknown coverage,
+  failure/cancellation cleanup and preservation of deterministic findings.
+  These mocked reviews are not evidence of live semantic accuracy.
+- Replayed decoding on the previously generated Intermediate and Advanced
+  public-math pilot PNGs: both decoded at 1920 x 1080 with nonuniform visible
+  pixels. This is artifact compatibility only, not content approval, and does
+  not resolve the previously identified Advanced narrative error.
+- Validation: `npm run check` passed lint, all 299 unit/API tests and build;
+  `npm run test:visual` passed all 76 focused tests. `git diff --check` passed.
+  Existing Vite configuration/bundle warnings remain. No browser or live model
+  review was run for this increment. npm audit reports nine moderate findings
+  in the existing ESLint/TypeScript-ESLint/
+  minimatch toolchain, none attributed to pngjs or its type declarations.
+  No broad dependency upgrades were made.
+- Limits: no separate OCR engine, live semantic benchmark, human calibration,
+  persistence, auto-repair or app/UI integration. Decoder format/resource
+  restrictions are conservative. Model inspection assertions are not proof
+  of visual understanding; synchronous decoding needs deployment isolation
+  for high concurrency.
+- Next: run a consented live PNG/caption review against human-labeled positive
+  and deliberately misleading cases, then surface calibrated results in-app.
+
+## 2026-11-22 - Deterministic visual evaluation runner
+
+- Added a reusable opt-in server runner that hashes exact supplied artifacts,
+  rejects stale explanation bindings and validates drawing plans. Shared label
+  bounds/overlap checks accept explicitly versioned font metrics; additional
+  checks flag small exported text, low solid-background contrast and possible
+  shape occlusion. No topic-specific production rules or fixtures were added.
+- PNG signature/IHDR/dimension checks detect malformed metadata. Matching
+  headers deliberately remain uncertain rather than claiming decoded images.
+  Brief/alignment/audience reviews remain unrun with no claimed requirement
+  coverage, so deterministic-only reports never produce an overall pass.
+- Added 22 generic offline tests with defective scene/header variants and
+  `npm run test:visual` for the focused suite. `npm run check` passed lint,
+  all 276 unit/API tests and build. Existing Vite/bundle warnings remain.
+  No live provider or browser tests were run for this increment.
+- Limits: no PNG decoding, CRC, OCR, semantic review or mobile legibility
+  validation. Contrast skips mixed/unknown backgrounds; path occlusion uses
+  conservative bounds and can yield false positives. The runner is not wired
+  into image generation/acceptance, persistence or UI yet.
+- Next: real decoded raster fixtures and independent PNG/caption semantic
+  and audience review, then integrate results into the app.
+
+## 2026-11-22 - Visual evaluation foundation
+
+- Recorded the phased pipeline validation plan in
+  `docs/visual-validation-plan.md`, separating brief, plan, actual raster,
+  explanation alignment and audience suitability reviews.
+- Added generic versioned contract/report types and strict runtime validators.
+  Contracts describe teaching goals, audience objectives, required claims,
+  elements, qualifiers and prohibitions with evidence references. Reports bind
+  explanation/artifact digests, reviewer versions, coverage, findings, timings
+  and a maximum of one recorded repair attempt.
+- Conservative derived verdicts block critical findings and failed checks;
+  missing/unrun reviews and uncovered passing reports remain uncertain.
+  Aesthetic quality cannot average away a factual failure.
+- Validation: `npm run check` passed lint, 254 unit/API tests (25 new generic
+  schema/verdict cases) and production build. Existing Vite configuration and
+  bundle-size warnings remain. No new live provider or browser run was made.
+- Limits: foundation only, not wired into generation or acceptance. Digests,
+  reviewer identity, evidence references and declared coverage are not proof
+  of truth. No OCR, actual-PNG review, persistence, repair execution or UI added.
+  The public-math pilot is not included in production logic or test fixtures.
+- Next: build the deterministic evaluation runner and deliberately defective
+  visual fixtures, then add independent PNG/alignment/audience review.
+
+## 2026-11-22 - Caption separation and label preflight
+
+- Drawing prompts now explicitly keep captions, alt text, and narrative
+  paragraphs outside PNGs. Short labels and essential qualifiers remain inside.
+  Existing app captions now wrap long content with consistent line spacing.
+- Added reusable label geometry checks and a browser canvas measurement adapter
+  before rendering or accepting a newly planned illustration. The UI rejects
+  clipped bounds, text-to-text overlap, labels over 60 characters, and drawings
+  exceeding 40 words, with a retry that requests a fresh plan. Accepted images
+  and their captions remain unchanged when a new plan fails.
+- Passed lint, build, 229 unit/API tests and all 70 mocked desktop/mobile browser
+  tests. Browser coverage rejects a clipped label without a render request,
+  then successfully retries and preserves the existing save/restore workflow.
+- This is a browser layout preflight, not OCR or final-raster validation.
+  Browser/renderer font substitution can affect measurements. Geometry covering
+  text, contrast, factual accuracy, and mobile raster legibility still require
+  visual review. Direct API clients do not run the browser preflight.
+- Follow-up live pilots generated fresh Intermediate and Advanced explanations,
+  three-scene overview stories, and one Full HD scene illustration per level.
+  Both passed the browser label preflight, displayed captions outside the PNG,
+  and restored their illustrations after save/reload. Screenshots and inputs
+  remain outside the repository. These are selected-chapter workflows, not
+  generation of every chapter or every scene image.
+- Manual review found an Advanced narrative error despite its model review:
+  the stated half-turn centre did not match the accompanying transformation.
+  The workflow passed technically, but that story is not content-approved.
+  This demonstrates that label checks and a model review do not establish
+  mathematical fidelity.
+- Next: run the public-math pilot with the new planner policy and inspect the
+  image on desktop/mobile; evaluate renderer-side font measurements before
+  extending automatic validation to the raster output.
+
+## 2026-11-22 - Story Mode audience validation
+
+- Added generic API regression coverage that checks Beginner, Intermediate,
+  and Advanced reach both the story draft and review prompts. Lint, build,
+  222 unit/API tests, and 10 mocked desktop/mobile Story Mode tests passed.
+- Separate live browser pilots used the same public-math source for Intermediate
+  and Advanced. Verified the selected audience in explanation, story, and
+  visual-brief requests. Each run returned a reviewed three-scene story and one
+  inline 1920 x 1080 illustration that decoded again after save and reload.
+- Story requests took 44 seconds (Intermediate) and 23 seconds (Advanced);
+  illustration brief and plan took about 79 and 92 seconds, respectively,
+  excluding PNG rendering. These are single-run observations, not benchmarks.
+- Manual inspection found both stories preserved the conjecture's qualifiers,
+  but the technical-depth difference was modest on the short source. The
+  Intermediate image had a partially obscured label. Pilot inputs and outputs
+  remain outside the repository.
+- A second, richer public-math pilot held audience depth fixed and added
+  continuation, the completed function, and symmetry arguments. Intermediate
+  emphasized a mirror analogy; Advanced explicitly composed conjugation and
+  the functional equation. This is one qualitative comparison, not evidence
+  of reliable audience adaptation across topics.
+- Intermediate completed live with a Full HD image and storage restoration.
+  Advanced explanation and story succeeded, but its first visual brief returned
+  502. Retrying only the visual stage with cached explanation/story succeeded;
+  the generated Full HD image also restored after reload. Do not count that
+  retry as a fresh live explanation/story generation.
+- Short-label art direction produced unobscured main labels in both second-pilot
+  images. Long captions were still embedded in the PNGs and become small on
+  mobile. No automatic visual-legibility gate was implemented. The pilot and
+  its topic-specific material remain outside the repository.
+- Next: test audience adaptation on a richer source and check label legibility
+  in rendered illustrations rather than relying only on plan validation.
+
 ## 2026-11-22 - Portable code and document studies
 
 - Added local JSON export of explicit saved studies and validated import before

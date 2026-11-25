@@ -7,15 +7,15 @@ import { ChapterPage, ChapterReader } from "./ChapterReader";
 const explanation: Explanation = { title: "Example", summary: "Summary", concepts: [], walkthrough: [], visuals: [], visual_note: "", assumptions: [] };
 
 describe("chapter reader", () => {
-  it("shows every section for short explanations", () => {
+  it("opens even short explanations in the chapter reader", () => {
     const html = renderToStaticMarkup(<ChapterReader explanation={explanation}><ChapterPage id="overview">Overview content</ChapterPage><ChapterPage id="recap">Recap content</ChapterPage></ChapterReader>);
-    expect(html).not.toContain("hidden=");
-    expect(html).toContain('aria-pressed="false">Chapters');
-    expect(html).not.toContain('aria-label="Explanation chapters"');
-    expect(html).toContain("Recap content");
+    expect(html).toContain('aria-label="Explanation chapters"');
+    expect(html).not.toContain("Full explanation");
+    expect(html).toContain('class="chapter-page">Overview content');
+    expect(html).toContain('class="chapter-page" hidden="">Recap content');
   });
 
-  it("opens long explanations at the overview and retains hidden content for full view and print", () => {
+  it("opens long explanations at the overview and retains hidden content for print", () => {
     const html = renderToStaticMarkup(<ChapterReader explanation={{ ...explanation, summary: "word ".repeat(900) }}><ChapterPage id="overview">Overview content</ChapterPage><ChapterPage id="recap">Recap content</ChapterPage></ChapterReader>);
     expect(html).toContain('aria-current="step"');
     expect(html).toContain("Chapter 1 of 2");

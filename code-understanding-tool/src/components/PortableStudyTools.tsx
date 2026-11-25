@@ -33,7 +33,7 @@ export function PortableStudyTools({ study, disabled, onImport }: {
       <button type="button" disabled={disabled || busy} onClick={() => input.current?.click()}>Import study file</button>
       <input hidden ref={input} type="file" accept=".json,application/json" aria-label="Study file" onChange={event => { const file = event.target.files?.[0]; if (file) void transfer(file); }} />
     </div>
-    <p>Transfer a saved code or document study with its stories and images. Files include source text. Imports stay local; use Resume saved study to open them. Limit: 40 MB. PR studies and decorative covers are not supported yet.</p>
+    <p>Transfer a saved code or document study with its stories, images and review context/history. Files include source text and may quote it in review materials. Imports stay local; use Resume saved study to open them. Limit: 40 MB. PR studies and decorative covers are not supported yet.</p>
     {message && <p role="status">{message}</p>}
   </div>;
 }

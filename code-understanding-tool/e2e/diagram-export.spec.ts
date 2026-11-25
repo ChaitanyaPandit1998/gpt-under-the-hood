@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 test("opens the illustration designer for the selected diagram without generating automatically", async ({ page }) => {
   const briefs: { context: string; preferences: { style: string }; source?: string }[] = [];
@@ -13,13 +13,15 @@ test("opens the illustration designer for the selected diagram without generatin
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input", exact: true }).fill("check();");
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
+  await openMapsChapter(page);
   await page.getByRole("tab", { name: "Second view", exact: true }).click();
   await page.getByText("Export diagram image", { exact: false }).click();
   await page.getByRole("button", { name: "Create an illustration instead", exact: true }).click();
-  await expect(page.locator(".visual-brief-panel > summary")).toBeFocused();
-  await expect(page.getByText("Illustrate this diagram:", { exact: true })).toBeVisible();
-  await page.getByText("Customize visual Optional", { exact: true }).click();
-  await expect(page.getByLabel("Visual style", { exact: true })).toHaveValue("expressive");
+  const builder = page.getByRole("group", { name: "Explanation tools" }).locator(".visual-brief-panel");
+  await expect(builder.locator(":scope > summary")).toBeFocused();
+  await expect(builder.getByText("Illustrate this diagram:", { exact: true })).toBeVisible();
+  await builder.getByText("Customize visual Optional", { exact: true }).click();
+  await expect(builder.getByLabel("Visual style", { exact: true })).toHaveValue("expressive");
   expect(briefs).toHaveLength(0);
   await page.getByRole("button", { name: "Generate visual brief", exact: true }).click();
   await expect(page.getByRole("region", { name: "Visual design brief" })).toBeVisible();
@@ -67,6 +69,7 @@ test("renders only the selected existing view on demand, previews/downloads PNG 
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
   await expect(page.getByRole("heading", { name: "Diagram study", exact: true })).toBeVisible();
   expect(requests).toHaveLength(0); expect(capabilityCalls).toBe(0);
+  await openMapsChapter(page);
   await page.getByRole("tab", { name: "Second view", exact: true }).click();
   await page.getByText("Export diagram image", { exact: false }).click();
   await page.getByRole("button", { name: "Generate diagram PNG", exact: true }).click();
@@ -89,7 +92,7 @@ test("renders only the selected existing view on demand, previews/downloads PNG 
   await page.getByRole("button", { name: "Cancel diagram export", exact: true }).click(); release();
   await expect(page.getByText("Diagram export cancelled.", { exact: true })).toBeVisible();
   expect(modelCalls).toBe(1);
-  await expect(page.getByText(explanation.summary, { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Maps and coverage", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await page.locator(".diagram-export").screenshot({ path: testInfo.outputPath("diagram-export.png") });
 });
@@ -101,8 +104,14 @@ test("keeps the interactive diagram available when VectorCraft is missing", asyn
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input", exact: true }).fill("check();");
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
+  await openMapsChapter(page);
   await page.getByText("Export diagram image", { exact: false }).click();
   await expect(page.getByText("VectorCraft export is unavailable.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Generate diagram PNG", exact: true })).toBeDisabled();
   await expect(page.getByRole("region", { name: "Interactive control flow diagram: First view", exact: true })).toBeVisible();
 });
+
+async function openMapsChapter(page: Page) {
+  await page.getByRole("navigation", { name: "Explanation chapters" })
+    .getByRole("button", { name: /Maps and coverage/ }).click();
+}

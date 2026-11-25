@@ -6,8 +6,8 @@ import { readJsonRequest, sendJson } from "./local-api-http.ts";
 import type { RunModelRequest } from "./model-request.ts";
 
 export function registerChapterStoryApi(middlewares: ViteDevServer["middlewares"], {
-  executeCodex, runModelRequest, maxSourceCharacters, timeoutMs,
-}: { executeCodex: CodexRunner; runModelRequest: RunModelRequest; maxSourceCharacters: number; timeoutMs: number }) {
+  executeCodex, runModelRequest, maxSourceCharacters, timeoutMs, root,
+}: { executeCodex: CodexRunner; runModelRequest: RunModelRequest; maxSourceCharacters: number; timeoutMs: number; root: string }) {
   middlewares.use("/api/chapter-story", async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     if (request.method !== "POST") {
@@ -25,7 +25,7 @@ export function registerChapterStoryApi(middlewares: ViteDevServer["middlewares"
     }
     try {
       const result = await runModelRequest(request, response, "chapter-story", (signal, markPhase) =>
-        createReviewedChapterStory(input, executeCodex, signal, markPhase), timeoutMs);
+        createReviewedChapterStory(input, executeCodex, signal, markPhase, root), timeoutMs);
       if (result.status === "completed") sendJson(response, 200, { story: result.value });
     } catch {
       if (!response.destroyed && !response.headersSent) {

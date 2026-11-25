@@ -5,6 +5,7 @@ import type { ThemeMode } from "../domain/theme";
 import { formatMathText } from "../domain/format-math-text";
 import { GraphView } from "./GraphView";
 import { ReadingTools } from "./ReadingTools";
+import { mergeVisualReviewHistory } from "../domain/visual-provenance";
 import { SourceRanges } from "./SourceRanges";
 import { SourceEvidence } from "./SourceEvidence";
 import { UnderstandingCheck } from "./UnderstandingCheck";
@@ -72,6 +73,10 @@ function Result({
     if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: "instant" });
     if (anchor.restoreFocus) anchor.trigger.focus({ preventScroll: true });
   }, [citation]);
+  function reviewIllustration(image: NonNullable<typeof illustration>) {
+    setIllustration(current => mergeVisualReviewHistory(current, image));
+  }
+
   function onSelectRange(range: SourceRange, trigger: HTMLButtonElement) {
     if (!isValidRange(range, lineCount)) return;
     readingAnchor.current = { trigger, top: trigger.getBoundingClientRect().top, restoreFocus: false };
@@ -112,12 +117,12 @@ function Result({
           scope={materialMode === "pull_request" ? "This PR chapter" : "Whole explanation"} explanation={explanation} source={source} context={exportContext}
           refine={<a href={`#${refinementTarget}`}>{materialMode === "pull_request" ? "Refine PR chapter" : "Refine explanation"}</a>}
           visual={<VisualBriefPanel ref={visualDesigner} explanation={explanation} source={source} scope={exportContext.scope}
-            placement={{ id: illustrationId, current: illustration, onRender: setIllustration }} />}
+            placement={{ id: illustrationId, current: illustration, onRender: setIllustration, onReview: reviewIllustration }} />}
           collectImages={() => ({ overview: illustration, chapters: reader.current?.snapshot().images })}>
           {onSaveStudy && <button type="button" disabled={savingStudy} aria-describedby={`${illustrationId}-save-note`}
             onClick={() => onSaveStudy(snapshot())}>Save study locally</button>}
         </ReadingTools>
-        {onSaveStudy && <p className="saved-study-note" id={`${illustrationId}-save-note`}>Save locally to keep this study beyond the current tab, including variants, stories and accepted images.</p>}
+        {onSaveStudy && <p className="saved-study-note" id={`${illustrationId}-save-note`}>Save locally to keep this study beyond the current tab, including variants, stories and accepted images with their review history.</p>}
         {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
           <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
           <p>The source contains unfinished work. Its intended behavior is not specified, so the explanation does not infer it.</p>
@@ -127,8 +132,10 @@ function Result({
           </li>)}</ul>
         </aside>}
         {explanation.quality_review_note && <aside className={`quality-review-note ${explanation.quality_review_status ?? "incomplete"}`} role="status" aria-live="polite">
-          <strong>Second-pass review · {explanation.quality_review_status === "passed" ? "passed" : explanation.quality_review_status === "revised" ? "revised · final check passed" : "not fully verified"}</strong>
-          <span>{explanation.quality_review_note}</span>
+          <details open={explanation.quality_review_status !== "passed" && explanation.quality_review_status !== "revised"}>
+            <summary><strong>Second-pass review · {explanation.quality_review_status === "passed" ? "passed" : explanation.quality_review_status === "revised" ? "revised · final check passed" : "not fully verified"}</strong></summary>
+            <p>{explanation.quality_review_note}</p>
+          </details>
         </aside>}
         <ChapterReader ref={reader} initialReading={initialReading?.chapter} explanation={explanation} artworkEnabled={allowChapterArtwork}
           storyContext={{ source, mode: materialMode, preferences: storyPreferences, onSelectRange, onClearCitation: () => setCitation(undefined) }}
@@ -159,7 +166,7 @@ function Result({
         <UnderstandingCheck source={source} explanation={explanation} />
         </ChapterPage>
         </ChapterReader>
-        {illustration && <InlineIllustration image={illustration} id={illustrationId} />}
+        {illustration && <InlineIllustration image={illustration} id={illustrationId} onChange={reviewIllustration} />}
       </div>
       <section className="followup-section" aria-label="Ask a follow-up question">
         <div className="section-caption">KEEP EXPLORING</div>

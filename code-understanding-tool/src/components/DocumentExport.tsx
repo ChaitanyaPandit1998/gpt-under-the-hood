@@ -61,8 +61,8 @@ function ExportForm({ explanation, source, context }: { explanation: Explanation
     }
   }
 
-  return <details className="document-export">
-    <summary>Export document <small>Experimental</small></summary>
+  return <details className="document-export" data-tool-active={busy}>
+    <summary>Export document <small>Experimental</small> <small className="tool-active-indicator">Preparing</small></summary>
     <p><strong>Scope:</strong> {context.scope}. Other chapters, variants, follow-ups, and conceptual artwork are excluded. Diagram text and citations are always included.</p>
     <p>Uses this existing explanation locally without model calls. Review and coverage warnings are retained; export does not verify code behaviour.</p>
     {!hasDiagram && <p>This explanation has no diagram to embed. A diagram note is text only.</p>}

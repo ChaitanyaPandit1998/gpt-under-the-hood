@@ -73,5 +73,6 @@ export function parseChapterStoryRequest(value: unknown, maxSourceCharacters: nu
     || (value.learnerLevel !== "beginner" && value.learnerLevel !== "intermediate" && value.learnerLevel !== "advanced")) {
     throw new Error("A valid chapter, source, and reading preferences are required.");
   }
-  return { source: value.source, context: value.context, mode: value.mode as Mode, depth: value.depth, learnerLevel: value.learnerLevel };
+  return { source: value.source, context: value.context, mode: value.mode as Mode,
+    depth: value.depth as ExplanationDepth, learnerLevel: value.learnerLevel as LearnerLevel };
 }

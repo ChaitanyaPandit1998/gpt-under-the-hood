@@ -39,7 +39,7 @@ test(`${mode}: adapts just one section, retains original warnings and restores c
   await editor.fill(source);
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
   await expect(page.getByRole("heading", { name: "Original explanation", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   const overview = page.getByRole("region", { name: "Customize Overview", exact: true });
   await overview.getByRole("button", { name: "Go deeper", exact: true }).click();
   expect(requests).toHaveLength(1);
@@ -133,7 +133,7 @@ test("cancels section work when navigating and ignores its late response", async
   await page.getByRole("textbox", { name: "Code input", exact: true }).fill("const value = 42;");
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
   await expect(page.getByRole("heading", { name: "Original", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   const overview = page.getByRole("region", { name: "Customize Overview", exact: true });
   await overview.getByRole("button", { name: "Generate section variant", exact: true }).click();
   await expect.poll(() => count).toBe(2);

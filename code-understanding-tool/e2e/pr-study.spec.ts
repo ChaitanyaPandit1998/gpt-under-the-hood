@@ -110,7 +110,7 @@ test("resumes a cached PR chapter variant with its story and illustration", asyn
   const state = await workspace(page);
   await page.getByRole("button", { name: "Next chapter", exact: true }).click();
   await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   const storyButton = page.getByRole("button", { name: "Story", exact: true });
   await storyButton.click();
   const story = page.getByRole("article", { name: "A checkpoint in the patch" });
@@ -230,6 +230,7 @@ test("generates only selected source and restores cached results by preferences"
   await expect(page.getByRole("button", { name: "Generate this chapter", exact: true })).toBeVisible();
   await page.getByRole("combobox", { name: "Chapter depth" }).selectOption("detailed");
   await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "Explanation chapters" }).getByRole("button", { name: /Key ideas/ }).click();
   const citation = page.getByRole("button", { name: "View source lines 2 through 3", exact: true });
   await citation.click();
   const evidence = page.getByRole("dialog", { name: "PR chapter source" });
@@ -342,6 +343,7 @@ test("cover generation is opt-in, sends no code, and preserves behavioural expla
   expect(state.covers).toEqual([{ theme: "review", approved: true }]);
   expect(state.generations).toHaveLength(1);
   await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "Explanation chapters" }).getByRole("button", { name: /Key ideas/ }).click();
   await page.getByRole("button", { name: "View source lines 2 through 3", exact: true }).click();
   await page.getByRole("dialog", { name: "PR chapter source" }).getByRole("button", { name: "Close source" }).click();
   await page.getByRole("button", { name: "Previous chapter", exact: true }).click();

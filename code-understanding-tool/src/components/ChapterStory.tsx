@@ -20,7 +20,7 @@ export function ChapterStory({ context, chapter, selected, story, images, onSele
   context: ChapterStoryContext; chapter: string; selected: boolean; story?: Story;
   images?: Record<number, StorySceneImages>;
   onSelect: (selected: boolean) => void; onReady: (story: Story) => void;
-  onRender: (sceneIndex: number, purpose: SceneVisualPurpose, image: RenderedIllustration) => void;
+  onRender: (sceneIndex: number, purpose: SceneVisualPurpose, image: RenderedIllustration, reviewOnly?: boolean) => void;
 }) {
   const request = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
@@ -97,7 +97,7 @@ export function ChapterStory({ context, chapter, selected, story, images, onSele
             <SourceRanges ranges={scene.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} />
           </div>
           <StorySceneVisual scene={scene} sceneNumber={index + 1} source={context.source} audience={context.preferences.learnerLevel}
-            images={images?.[index]} onRender={(purpose, image) => onRender(index, purpose, image)} />
+            images={images?.[index]} onRender={(purpose, image, reviewOnly) => onRender(index, purpose, image, reviewOnly)} />
         </li>)}</ol>
         <p><strong>Takeaway: </strong>{formatMathText(story.takeaway)}</p>
       </article>}

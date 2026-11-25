@@ -393,6 +393,7 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
 
       const diagrams = options.diagramExporter ?? createVectorcraftExporter();
       registerChapterStoryApi(server.middlewares, {
+        root,
         executeCodex, runModelRequest, maxSourceCharacters: MAX_EXPLANATION_SOURCE_CHARACTERS,
         timeoutMs: limits.explanationTimeoutMs,
       });

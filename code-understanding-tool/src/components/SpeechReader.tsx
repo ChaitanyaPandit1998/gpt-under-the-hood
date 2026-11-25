@@ -146,7 +146,7 @@ export function SpeechReader({ explanation, chapterOnly = false }: { explanation
     }
   }
 
-  return <div className="speech-reader" role="group" aria-label={chapterOnly ? "Read this chapter aloud" : "Read explanation or diagram aloud"}>
+  return <div className="speech-reader" role="group" data-tool-active={playbackState !== "idle"} aria-label={chapterOnly ? "Read this chapter aloud" : "Read explanation or diagram aloud"}>
     {!chapterOnly && <label className="speech-reader-select">Read
       <select value={activeReadSection} onChange={(event) => setReadSection(event.target.value as ReadSection)}>
         <option value="summary">Summary</option>

@@ -1,5 +1,49 @@
 import { expect, test } from "@playwright/test";
 
+test("uses three visual stages and keeps prompt preview optional without extra calls", async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  let plans = 0;
+  await page.route("**/api/explain", (route) => route.fulfill({ json: {
+    title: "A fixed capacity", summary: "The capacity is three.", concepts: [], walkthrough: [],
+    assumptions: [], visuals: [], visual_note: "",
+  } }));
+  await page.route("**/api/visual-brief", (route) => {
+    requests.push(route.request().postDataJSON());
+    return route.fulfill({ json: { brief: {
+      disposition: "render", visualType: "comparison", takeaway: "Capacity stays fixed.", composition: "Compare the supplied labels.",
+      content: [{ label: "Capacity", role: "illustrative", statement: "Capacity is three.", chapterLines: [] }],
+      guardrails: [], caption: "A fixed capacity.", altText: "A capacity label.",
+    } } });
+  });
+  await page.route("**/api/visual-plan", (route) => { plans++; return route.abort(); });
+  await page.goto("/");
+  await page.getByRole("textbox", { name: "Code input" }).fill("const capacity = 3;");
+  await page.getByRole("button", { name: "Help me understand" }).click();
+  const designer = page.getByRole("group", { name: "Explanation tools", exact: true }).locator("details.visual-brief-panel");
+  await designer.locator(":scope > summary").click();
+  await expect(designer.locator(".visual-designer-stage")).toHaveCount(3);
+  await expect(designer.getByRole("region", { name: "What to teach", exact: true })).toBeVisible();
+  await expect(designer.getByRole("region", { name: "Look and feel", exact: true })).toBeVisible();
+  const generation = designer.getByRole("region", { name: "Generate", exact: true });
+  await expect(generation).toBeVisible();
+  await expect(designer.getByRole("textbox", { name: "Visual design prompt", exact: true })).toBeHidden();
+  expect(requests).toHaveLength(0);
+  await generation.getByRole("button", { name: "Preview prompt", exact: true }).click();
+  const prompt = generation.getByRole("textbox", { name: "Visual design prompt", exact: true });
+  await prompt.fill("Use a clear capacity label, without invented measurements.");
+  await generation.getByRole("button", { name: "Hide prompt", exact: true }).click();
+  expect(requests).toHaveLength(0);
+  await generation.getByRole("button", { name: "Generate visual brief", exact: true }).click();
+  await expect(generation.getByRole("region", { name: "Visual design brief", exact: true })).toBeVisible();
+  expect(requests).toHaveLength(1);
+  expect(requests[0]).toMatchObject({ designPrompt: "Use a clear capacity label, without invented measurements.", preferences: { includeSource: false } });
+  expect(requests[0]).not.toHaveProperty("source");
+  expect(plans).toBe(0);
+  await expect(designer.locator(".visual-designer-stage")).toHaveCount(3);
+  await expect(generation.getByRole("button", { name: "Render image", exact: true })).toBeVisible();
+  await expect(designer.locator("form form")).toHaveCount(0);
+});
+
 test("compares a new illustration without publishing it until selected", async ({ page }, testInfo) => {
   let briefs = 0;
   let plans = 0;
@@ -99,26 +143,27 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input", exact: true }).fill("retry(operation);");
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
-  await page.getByText("Design a visual", { exact: false }).click();
-  await expect(page.getByText("Original source: not attached.", { exact: true })).toBeVisible();
+  const builder = page.getByRole("group", { name: "Explanation tools" }).locator(".visual-brief-panel");
+  await builder.locator(":scope > summary").click();
+  await expect(builder.getByText("Original source: not attached.", { exact: true })).toBeVisible();
   const renderStep = page.getByRole("region", { name: "Render the image", exact: true });
-  await expect(renderStep.getByText("Generate a brief to unlock image rendering.")).toBeVisible();
+  await expect(renderStep).toHaveCount(0);
   await expect(renderStep.getByRole("button", { name: "Render image", exact: true })).toHaveCount(0);
-  await expect(page.getByLabel("Visual style", { exact: true })).toBeHidden();
-  await page.getByText("Customize visual Optional", { exact: true }).click();
-  await page.getByLabel("Visual style", { exact: true }).selectOption("expressive");
-  await page.getByLabel("Visual audience").selectOption("intermediate");
-  await page.getByLabel("Visual form").selectOption("decision-flow");
-  await page.getByLabel("Output target").selectOption("print");
-  await page.getByLabel("What should the visual explain?", { exact: false }).fill("When do we retry?");
+  await expect(builder.getByLabel("Visual style", { exact: true })).toBeHidden();
+  await builder.getByText("Customize visual Optional", { exact: true }).click();
+  await builder.getByLabel("Visual style", { exact: true }).selectOption("expressive");
+  await builder.getByLabel("Visual audience").selectOption("intermediate");
+  await builder.getByLabel("Visual form").selectOption("decision-flow");
+  await builder.getByLabel("Output target").selectOption("print");
+  await builder.getByLabel("What should the visual explain?", { exact: false }).fill("When do we retry?");
   const warm = page.getByRole("checkbox", { name: "Warm palette", exact: true });
   await warm.focus();
   await warm.press("Space");
   await expect(warm).toBeChecked();
   await page.getByRole("checkbox", { name: "Print-friendly", exact: true }).check();
   await page.getByRole("checkbox", { name: "Step by step", exact: true }).check();
-  await page.getByLabel("Art direction or constraints", { exact: false }).fill("Leave space around labels.");
-  await page.getByLabel("Additional context or data", { exact: false }).fill("A teaching example waits 2 seconds before attempting again.");
+  await builder.getByLabel("Art direction or constraints", { exact: false }).fill("Leave space around labels.");
+  await builder.getByLabel("Additional context or data", { exact: false }).fill("A teaching example waits 2 seconds before attempting again.");
   expect(requests).toHaveLength(0);
   await page.getByRole("button", { name: "Generate visual brief", exact: true }).click();
   await expect(page.getByRole("region", { name: "Visual design brief" })).toBeVisible();
@@ -127,7 +172,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   expect(requests[0]).not.toHaveProperty("source");
   expect(requests[0]).toMatchObject({ preferences: { audience: "intermediate", form: "decision-flow", style: "expressive", target: "print", question: "When do we retry?", direction: "Use a warm accent palette with readable contrast.\nUse clear labels, strong contrast, and cues that work without color.\nLeave space around labels.", additionalContext: "When the material has an ordered progression, guide readers with short numbered callouts.\nA teaching example waits 2 seconds before attempting again.", includeSource: false } });
   await warm.uncheck();
-  await expect(page.getByLabel("Art direction or constraints", { exact: false })).toHaveValue("Leave space around labels.");
+  await expect(builder.getByLabel("Art direction or constraints", { exact: false })).toHaveValue("Leave space around labels.");
   await page.getByRole("checkbox", { name: "Include original source for line references" }).check();
   await expect(page.getByText("Original source: included with numbered lines.", { exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Visual design brief" })).toHaveCount(0);
@@ -141,7 +186,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await expect(page.getByRole("img", { name: "An operation branches to retry." })).toBeVisible();
   await page.getByRole("link", { name: "View inline illustration" }).click();
   await expect(page.locator("figure.inline-illustration")).toBeFocused();
-  await page.getByText("Design a visual", { exact: false }).click();
+  await builder.locator(":scope > summary").click();
   await expect(page.getByRole("img", { name: "An operation branches to retry." })).toBeVisible();
   await page.getByRole("button", { name: "Enlarge illustration" }).click();
   await expect(page.getByRole("dialog", { name: "Enlarged illustration" })).toBeVisible();
@@ -153,7 +198,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   const download = page.waitForEvent("download");
   await page.getByRole("link", { name: "Download image", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("explanation-visual.png");
-  await page.getByText("Design a visual", { exact: false }).click();
+  await builder.locator(":scope > summary").click();
   await page.getByRole("radio", { name: "HD", exact: true }).check();
   failRender = true;
   await page.getByRole("button", { name: "Render image again" }).click();
@@ -198,7 +243,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await expect(prompt).toHaveValue(/numbered callouts/);
   expect(requests).toHaveLength(3);
 
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   const reader = page.getByRole("region", { name: "Overview", exact: true });
   await reader.getByRole("link", { name: "Refine chapter", exact: true }).click();
   await expect(reader.getByRole("region", { name: "Customize Overview", exact: true })).toBeFocused();
@@ -221,7 +266,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await expect(page.getByRole("region", { name: "Limits and understanding check" }).getByRole("img", { name: "An operation branches to retry." })).toHaveCount(0);
   await page.getByRole("button", { name: "Previous", exact: true }).click();
   await expect(reader.getByRole("img", { name: "An operation branches to retry." })).toBeVisible();
-  await page.getByRole("button", { name: "Full explanation", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Full explanation", exact: true })).toHaveCount(0);
   await expect(page.getByRole("img", { name: "An operation branches to retry." })).toHaveCount(2);
   await page.getByRole("button", { name: "PDF preview", exact: true }).click();
   const pdf = page.getByRole("dialog", { name: "PDF preview" });
@@ -253,7 +298,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await expect(pdf).toHaveCount(0);
   expect(renders).toHaveLength(4);
   expect(plans).toBe(2);
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   await reader.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByRole("button", { name: "Resume saved study" })).toHaveCount(0);
   await page.getByRole("button", { name: "Save study locally" }).click();

@@ -16,7 +16,8 @@ async function openChapters(page: Page) {
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input" }).fill(source);
   await page.getByRole("button", { name: "Help me understand" }).click();
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Full explanation", exact: true })).toHaveCount(0);
 }
 
 test("generates only on request, links evidence, and reuses the same chapter story", async ({ page }) => {
@@ -82,7 +83,7 @@ test("stops chapter read-aloud when the story replaces the direct chapter", asyn
   await page.route("**/api/chapter-story", (route) => route.fulfill({ json: { story } }));
   await openChapters(page);
   const chapterTools = page.getByRole("group", { name: "Chapter tools" });
-  await chapterTools.getByText("Read aloud", { exact: true }).click();
+  await chapterTools.locator("summary").filter({ hasText: /^Read aloud/ }).click();
   await chapterTools.getByRole("button", { name: "Read chapter aloud", exact: true }).click();
   await expect(page.locator("body")).toHaveAttribute("data-spoken", "chapter");
   await page.getByRole("button", { name: "Story", exact: true }).click();
@@ -110,8 +111,9 @@ test("saves accepted scene images separately and resumes without generating them
       guardrails: [], caption, altText: caption,
     } } });
   });
+  let plans = 0;
   await page.route("**/api/visual-plan", (route) => route.fulfill({ json: { scene: {
-    background: "#ffffff", items: [{ kind: "text", text: "Limit", x: 40, y: 60, size: 24, color: "#202033", align: "left" }],
+    background: "#ffffff", items: [{ kind: "text", text: "Limit", x: ++plans === 1 ? 999 : 40, y: 60, size: 24, color: "#202033", align: "left" }],
   } } }));
   await page.route("**/api/visual-render", (route) => {
     renders.push(route.request().postDataJSON());
@@ -130,6 +132,9 @@ test("saves accepted scene images separately and resumes without generating them
   await generate.click();
   await first.getByRole("radio", { name: "Full HD", exact: true }).check();
   await render.click();
+  await expect(first.getByRole("alert")).toContainText("may be clipped");
+  expect(renders).toHaveLength(0);
+  await first.getByRole("button", { name: "Retry drawing plan", exact: true }).click();
   const fictionalImage = first.getByRole("figure", { name: "Story illustration: fictional analogy" }).getByRole("img");
   await expect(fictionalImage).toHaveAccessibleName("A drawing of the fictional clerk.");
   await first.getByRole("button", { name: "Factual diagram", exact: true }).click();

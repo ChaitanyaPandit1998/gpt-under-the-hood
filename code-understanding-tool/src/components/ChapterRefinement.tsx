@@ -11,8 +11,9 @@ import { DocumentExport } from "./DocumentExport";
 import { VisualBriefPanel, type VisualBriefPanelHandle } from "./VisualBriefPanel";
 import { InlineIllustration } from "./InlineIllustration";
 import { StudyPdfExport } from "./StudyPdfExport";
-import type { AdaptedStudy } from "../domain/saved-study";
+import type { AdaptedStudy, RenderedIllustration } from "../domain/saved-study";
 import { generationPhaseCopy } from "../domain/generation-progress";
+import { mergeVisualReviewHistory } from "../domain/visual-provenance";
 
 export type ChapterRefinementContext = { source: string; mode: Mode; theme: ThemeMode; onSelectRange: (range: SourceRange, trigger: HTMLButtonElement) => void };
 
@@ -54,6 +55,15 @@ export function ChapterRefinement({ id, context, title, section, active, initial
     setSettings(next);
   }
   const lineCount = context.source.split(/\r\n|\r|\n/).length;
+  function reviewImage(incoming: RenderedIllustration) {
+    setImages(current => {
+      const entry = current[variantKey];
+      if (!entry || entry.explanation !== result) return current;
+      const illustration = mergeVisualReviewHistory(entry.illustration, incoming);
+      return illustration && illustration !== entry.illustration ? { ...current, [variantKey]: { ...entry, illustration } } : current;
+    });
+  }
+
   return <section className="chapter-refinement" id={id} tabIndex={-1} hidden={!active} aria-label={`Customize ${title}`}>
     <ChapterControls settings={settings} onChange={changeSettings} />
     <div className="chapter-toolbar"><button type="button" disabled={session.isGenerating} onClick={() => {
@@ -74,8 +84,9 @@ export function ChapterRefinement({ id, context, title, section, active, initial
           collectImages={() => ({ overview: image })} />
       </div>
       {active && <VisualBriefPanel key={`${variantKey}:${visualResult.revision}`} ref={visualDesigner} explanation={result} source={context.source} scope={`Adapted section: ${title}`}
-        placement={{ id: illustrationId, current: image, onRender: (rendered) => setImages((current) => ({ ...current, [variantKey]: { explanation: result, illustration: rendered } })) }} />}
-      {image && <InlineIllustration id={illustrationId} image={image} />}
+        placement={{ id: illustrationId, current: image, onRender: (rendered) => setImages((current) => ({ ...current, [variantKey]: { explanation: result, illustration: rendered } })),
+          onReview: reviewImage }} />}
+      {image && <InlineIllustration id={illustrationId} image={image} onChange={reviewImage} />}
       <p className="quality-review-note" role="status">{result.quality_review_note || "Check this variant against the source; more detail does not establish correctness."}</p>
       {result.incomplete_items?.map((item, index) => <div key={index}><p><strong>{item.title}</strong> {item.explanation}</p><SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} /></div>)}
       {[...result.concepts.map((item) => ({ heading: item.term, ...item })), ...result.walkthrough].map((item, index) => <section key={index}><h4>{item.heading}</h4><p>{item.explanation}</p><SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} /></section>)}

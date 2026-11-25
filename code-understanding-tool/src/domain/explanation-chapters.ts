@@ -11,9 +11,3 @@ export function explanationChapters(explanation: Explanation): ExplanationChapte
     { id: "recap", title: "Limits and understanding check" },
   ];
 }
-
-export function prefersChapters(explanation: Explanation): boolean {
-  const text = [explanation.summary, ...explanation.concepts.map((item) => item.explanation),
-    ...explanation.walkthrough.map((item) => item.explanation)].join(" ");
-  return explanation.walkthrough.length >= 6 || text.trim().split(/\s+/).length >= 900;
-}

@@ -9,6 +9,9 @@ import { readJsonRequest, sendJson } from "./local-api-http.ts";
 import type { RunModelRequest } from "./model-request.ts";
 import type { DiagramExporter } from "./vectorcraft-export.ts";
 import { createVisualBrief, createVisualScene } from "./visual-brief-service.ts";
+import { parseVisualReviewRequest, visualReviewRequestLimit } from "./visual-review-request.ts";
+import { reviewVisualImage } from "./visual-review-service.ts";
+import { generationStage, type ApplicationInstruction } from "./application-instructions.ts";
 
 type VisualApiOptions = {
   root: string;
@@ -26,6 +29,28 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
   const { root, maxSourceLines, executeCodex, runModelRequest, diagrams } = options;
   let chapterCoverRequests = 0;
 
+  middlewares.use("/api/visual-review", async (request, response) => {
+    response.setHeader("Cache-Control", "no-store");
+    if (request.method !== "POST") { response.setHeader("Allow", "POST"); sendJson(response, 405, { error: "Method not allowed." }); return; }
+    let input: ReturnType<typeof parseVisualReviewRequest>;
+    try { input = parseVisualReviewRequest(await readJsonRequest(request, visualReviewRequestLimit)); }
+    catch (error) {
+      const oversized = error instanceof Error && error.message === "REQUEST_TOO_LARGE";
+      sendJson(response, oversized ? 413 : 400, { error: oversized ? "Visual review request is too large." : "Confirm a valid checklist, explanation, caption and PNG before reviewing." });
+      return;
+    }
+    try {
+      const result = await runModelRequest(request, response, "visual-review", (signal, markPhase) => {
+        markPhase("reviewing_image");
+        return reviewVisualImage(input, { run: executeCodex, signal, root,
+          reviewer: { name: "Configured Codex vision reviewer", version: "visual-review-rubric-1; provider model version unverified" } });
+      }, 180_000);
+      if (result.status === "completed") sendJson(response, 200, { report: result.value });
+    } catch {
+      if (!response.destroyed && !response.headersSent) sendJson(response, 502, { error: "Could not complete visual review. Your image is unchanged." });
+    }
+  });
+
   middlewares.use("/api/visual-brief", async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     if (request.method !== "POST") { response.setHeader("Allow", "POST"); sendJson(response, 405, { error: "Method not allowed." }); return; }
@@ -37,11 +62,12 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
       return;
     }
     try {
+      let instructions: ApplicationInstruction[] = [];
       const result = await runModelRequest(request, response, "visual-brief", (signal, markPhase) => {
         markPhase("designing_visual");
-        return createVisualBrief(input, root, executeCodex, signal);
+        return createVisualBrief(input, root, executeCodex, signal, loaded => { instructions = loaded; });
       });
-      if (result.status === "completed") sendJson(response, 200, { brief: result.value });
+      if (result.status === "completed") sendJson(response, 200, { brief: result.value, generation: generationStage(result.value, instructions) });
     } catch {
       if (!response.destroyed && !response.headersSent) sendJson(response, 502, { error: "Could not prepare a visual brief. Try again or narrow the question." });
     }
@@ -59,11 +85,12 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
       return;
     }
     try {
+      let instructions: ApplicationInstruction[] = [];
       const result = await runModelRequest(request, response, "visual-plan", (signal, markPhase) => {
         markPhase("planning_scene");
-        return createVisualScene(brief, executeCodex, signal, options.compactVisualPlanning);
+        return createVisualScene(brief, root, executeCodex, signal, options.compactVisualPlanning, loaded => { instructions = loaded; });
       });
-      if (result.status === "completed") sendJson(response, 200, { scene: result.value });
+      if (result.status === "completed") sendJson(response, 200, { scene: result.value, generation: generationStage(result.value, instructions) });
     } catch {
       if (!response.destroyed && !response.headersSent) sendJson(response, 502, { error: "Could not plan the drawing. Try again or simplify the brief." });
     }
@@ -96,7 +123,7 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
       const result = await runModelRequest(request, response, "visual-render", async (signal, markPhase) => {
         if (brief) {
           markPhase("planning_scene");
-          scene = await createVisualScene(brief, executeCodex, signal, options.compactVisualPlanning);
+          scene = await createVisualScene(brief, root, executeCodex, signal, options.compactVisualPlanning);
         }
         if (!scene) throw new Error("Missing validated drawing.");
         markPhase("rendering_scene");

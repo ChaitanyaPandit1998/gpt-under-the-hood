@@ -1,6 +1,7 @@
 import type { SavedStudy, ResultReadingState } from "./saved-study";
 import { validateChapterStory } from "./chapter-story";
 import { validateExplanation } from "../server/response-validation";
+import { validateSavedVisualArtifacts } from "./visual-provenance";
 
 export const portableStudyLimit = 40 * 1024 * 1024;
 const bad = () => { throw new Error("Invalid or unsupported study file."); };
@@ -123,6 +124,7 @@ function decode(value: unknown, depth = 0): unknown {
 }
 export async function exportPortableStudy(study: SavedStudy): Promise<Blob> {
   validate(study);
+  await validateSavedVisualArtifacts(study);
   const json = JSON.stringify({ format: "understand-study", version: 1, study: await encode(study) });
   const blob = new Blob([json], { type: "application/json" });
   if (blob.size > portableStudyLimit) throw new Error("Study file exceeds the 40 MB transfer limit.");
@@ -132,5 +134,7 @@ export async function importPortableStudy(file: Blob): Promise<SavedStudy> {
   if (file.size > portableStudyLimit) throw new Error("Study file exceeds the 40 MB transfer limit.");
   const envelope = record(JSON.parse(await file.text()));
   if (envelope.format !== "understand-study" || envelope.version !== 1) return bad();
-  return validate(decode(envelope.study));
+  const study = validate(decode(envelope.study));
+  await validateSavedVisualArtifacts(study);
+  return study;
 }
