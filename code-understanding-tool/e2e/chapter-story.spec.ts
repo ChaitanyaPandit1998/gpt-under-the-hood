@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 
 const source = "const limit = 3;";
 const explanation = {
@@ -166,7 +167,7 @@ test("saves accepted scene images separately and resumes without generating them
   const candidate = first.getByRole("group", { name: "Compare illustrations" }).getByRole("img", { name: "An unaccepted alternative." });
   await expect(candidate).toBeVisible();
   await expect(page.getByRole("button", { name: "Resume saved study", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
   await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
   await page.reload();

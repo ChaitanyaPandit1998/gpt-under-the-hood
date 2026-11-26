@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 
 test("uses three visual stages and keeps prompt preview optional without extra calls", async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
@@ -95,7 +96,7 @@ test("compares a new illustration without publishing it until selected", async (
   if (testInfo.project.name === "mobile") expect(candidateBox.y).toBeGreaterThan(currentBox.y + currentBox.height);
   else expect(candidateBox.x).toBeGreaterThan(currentBox.x + currentBox.width);
   await expect(inline.getByRole("img")).toHaveAccessibleName("Items in two baskets");
-  await page.getByRole("button", { name: "PDF preview", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "PDF preview", exact: true }).click();
   const pdf = page.getByRole("dialog", { name: "PDF preview" });
   const pdfImage = pdf.getByRole("article", { name: "Selected PDF content" }).getByRole("img");
   await expect(pdfImage).toHaveAccessibleName("Items in two baskets");
@@ -110,7 +111,7 @@ test("compares a new illustration without publishing it until selected", async (
   await page.getByRole("button", { name: "Use new illustration" }).click();
   await expect(comparison).toHaveCount(0);
   await expect(inline.getByRole("img")).toHaveAccessibleName("Items on a color wheel");
-  await page.getByRole("button", { name: "PDF preview", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "PDF preview", exact: true }).click();
   await expect(pdfImage).toHaveAccessibleName("Items on a color wheel");
   expect(plans).toBe(2);
   expect(resolutions).toEqual(["hd", "hd", "hd"]);
@@ -268,7 +269,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await expect(reader.getByRole("img", { name: "An operation branches to retry." })).toBeVisible();
   await expect(page.getByRole("button", { name: "Full explanation", exact: true })).toHaveCount(0);
   await expect(page.getByRole("img", { name: "An operation branches to retry." })).toHaveCount(2);
-  await page.getByRole("button", { name: "PDF preview", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "PDF preview", exact: true }).click();
   const pdf = page.getByRole("dialog", { name: "PDF preview" });
   const paper = pdf.getByRole("article", { name: "Selected PDF content" });
   await expect(paper.getByRole("img")).toHaveCount(2);
@@ -301,7 +302,7 @@ test("reuses the explanation, sends only selected preferences and opts in to sou
   await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   await reader.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByRole("button", { name: "Resume saved study" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Save study locally" }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally" }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
   await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
   await page.reload();

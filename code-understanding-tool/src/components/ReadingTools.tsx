@@ -4,10 +4,10 @@ import { type ExportContext, DocumentExport } from "./DocumentExport";
 import { SpeechReader } from "./SpeechReader";
 import { type StudyPdfImages, StudyPdfExport } from "./StudyPdfExport";
 
-export function ReadingTools({ label, scope, explanation, source, context, refine, visual, collectImages, onlyChapterId, chapterSpeech, children }: {
+export function ReadingTools({ label, scope, explanation, source, context, refine, visual, collectImages, onlyChapterId, chapterSpeech, saveStudy }: {
   label: string; scope: string; explanation: Explanation; source: string; context: ExportContext;
   refine: ReactNode; visual: ReactNode; collectImages: () => StudyPdfImages;
-  onlyChapterId?: string; chapterSpeech?: Explanation; children?: ReactNode;
+  onlyChapterId?: string; chapterSpeech?: Explanation; saveStudy?: { action: ReactNode; note: ReactNode };
 }) {
   const [listeningOpen, setListeningOpen] = useState(false);
   const toolbar = useRef<HTMLDivElement>(null);
@@ -19,7 +19,7 @@ export function ReadingTools({ label, scope, explanation, source, context, refin
       if (!(opened instanceof HTMLDetailsElement) || !opened.open || opened.parentElement !== container) return;
       for (const sibling of container!.children) {
         if (sibling !== opened && sibling instanceof HTMLDetailsElement && sibling.open
-          && !sibling.querySelector('[data-tool-active="true"]') && sibling.dataset.toolActive !== "true") {
+          && !sibling.querySelector('[data-tool-active="true"], [data-tool-decision="true"]') && sibling.dataset.toolActive !== "true") {
           sibling.open = false;
         }
       }
@@ -28,6 +28,8 @@ export function ReadingTools({ label, scope, explanation, source, context, refin
     container.addEventListener("toggle", revealTool, true);
     return () => container.removeEventListener("toggle", revealTool, true);
   }, []);
+  const pdf = <StudyPdfExport explanation={explanation} source={source} context={context} collectImages={collectImages} onlyChapterId={onlyChapterId} />;
+  const documentExport = !onlyChapterId && <DocumentExport explanation={explanation} source={source} context={context} />;
   return <div ref={toolbar} className="reading-tools scoped-reading-tools" role="group" aria-label={label}>
     <div className="section-caption">{scope}</div>
     {refine}
@@ -36,8 +38,13 @@ export function ReadingTools({ label, scope, explanation, source, context, refin
       <summary>Read aloud <small className="tool-active-indicator">Playback active</small></summary>
       {listeningOpen && <SpeechReader explanation={chapterSpeech ?? explanation} chapterOnly={!!chapterSpeech} />}
     </details>
-    {!onlyChapterId && <DocumentExport explanation={explanation} source={source} context={context} />}
-    <StudyPdfExport explanation={explanation} source={source} context={context} collectImages={collectImages} onlyChapterId={onlyChapterId} />
-    {children}
+    {saveStudy ? <details className="study-actions">
+      <summary><span>Save &amp; export</span> <small className="tool-active-indicator">Exporting</small></summary>
+      <div className="study-actions-content">
+        <div className="study-actions-buttons">{saveStudy.action}{pdf}</div>
+        {saveStudy.note}
+        {documentExport}
+      </div>
+    </details> : <>{documentExport}{pdf}</>}
   </div>;
 }

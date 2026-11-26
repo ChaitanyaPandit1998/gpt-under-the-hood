@@ -122,6 +122,7 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
             };
           })} />}
         <div className="chapter-direct-content" hidden={storyVisible}>
+        <ChapterContext value={{ active: chapter.id, imagePrefix, images, onReviewImage: reviewImage }}>{children}</ChapterContext>
         {!storyVisible && chapterContext && refinementContext && <ReadingTools key={`tools-${chapter.id}`} label="Chapter tools" scope={`This chapter: ${chapter.title}`}
           explanation={explanation} source={refinementContext.source} context={{ scope: `Chapter: ${chapter.title}`, provenance: "" }}
           refine={<a href={`#${imagePrefix}-refine-${chapter.id}`}>Refine chapter</a>}
@@ -144,7 +145,6 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
             else refinementReaders.current.delete(item.id);
           }}
           section={item.id === "overview" ? explanation.summary : item.id === "concepts" ? explanation.concepts : item.id.startsWith("step-") ? explanation.walkthrough[Number(item.id.slice(5))] : item.id === "visuals" ? { visuals: explanation.visuals, note: explanation.visual_note } : explanation.assumptions} />)}
-        <ChapterContext value={{ active: chapter.id, imagePrefix, images, onReviewImage: reviewImage }}>{children}</ChapterContext>
         </div>
         <nav className="chapter-pagination" aria-label="Chapter navigation">
           <button type="button" disabled={index === 0} onClick={() => navigate(index - 1)}>Previous</button>

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 
 const explanation = {
   title: "Read the configured value",
@@ -55,7 +56,7 @@ test("restores the source and active chapter in the same tab without generation"
 
 test("turning recovery off removes the temporary result without deleting a manual save", async ({ page }) => {
   const calls = await explainDocument(page);
-  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
 
   const recovery = page.getByRole("checkbox", { name: recoveryLabel, exact: true });

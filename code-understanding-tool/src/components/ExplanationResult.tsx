@@ -113,16 +113,6 @@ function Result({
       <div className="explanation-content">
         <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
         {isRegenerating && <p role="status">Showing the last completed explanation while the new one generates.</p>}
-        <ReadingTools label={materialMode === "pull_request" ? "PR chapter tools" : "Explanation tools"}
-          scope={materialMode === "pull_request" ? "This PR chapter" : "Whole explanation"} explanation={explanation} source={source} context={exportContext}
-          refine={<a href={`#${refinementTarget}`}>{materialMode === "pull_request" ? "Refine PR chapter" : "Refine explanation"}</a>}
-          visual={<VisualBriefPanel ref={visualDesigner} explanation={explanation} source={source} scope={exportContext.scope}
-            placement={{ id: illustrationId, current: illustration, onRender: setIllustration, onReview: reviewIllustration }} />}
-          collectImages={() => ({ overview: illustration, chapters: reader.current?.snapshot().images })}>
-          {onSaveStudy && <button type="button" disabled={savingStudy} aria-describedby={`${illustrationId}-save-note`}
-            onClick={() => onSaveStudy(snapshot())}>Save study locally</button>}
-        </ReadingTools>
-        {onSaveStudy && <p className="saved-study-note" id={`${illustrationId}-save-note`}>Save locally to keep this study beyond the current tab, including variants, stories and accepted images with their review history.</p>}
         {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
           <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
           <p>The source contains unfinished work. Its intended behavior is not specified, so the explanation does not infer it.</p>
@@ -167,6 +157,17 @@ function Result({
         </ChapterPage>
         </ChapterReader>
         {illustration && <InlineIllustration image={illustration} id={illustrationId} onChange={reviewIllustration} />}
+        <ReadingTools label={materialMode === "pull_request" ? "PR chapter tools" : "Explanation tools"}
+          scope={materialMode === "pull_request" ? "This PR chapter" : "Whole explanation"} explanation={explanation} source={source} context={exportContext}
+          refine={<a href={`#${refinementTarget}`}>{materialMode === "pull_request" ? "Refine PR chapter" : "Refine explanation"}</a>}
+          visual={<VisualBriefPanel ref={visualDesigner} explanation={explanation} source={source} scope={exportContext.scope}
+            placement={{ id: illustrationId, current: illustration, onRender: setIllustration, onReview: reviewIllustration }} />}
+          collectImages={() => ({ overview: illustration, chapters: reader.current?.snapshot().images })}
+          saveStudy={onSaveStudy ? {
+            action: <button type="button" disabled={savingStudy} aria-describedby={`${illustrationId}-save-note`}
+              onClick={() => onSaveStudy(snapshot())}>Save study locally</button>,
+            note: <p className="saved-study-note" id={`${illustrationId}-save-note`}>Saves variants, stories, accepted images and review history in this browser.</p>,
+          } : undefined} />
       </div>
       <section className="followup-section" aria-label="Ask a follow-up question">
         <div className="section-caption">KEEP EXPLORING</div>

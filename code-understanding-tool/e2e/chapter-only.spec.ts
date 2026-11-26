@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 import { makeVisualPng } from "../src/test-fixtures/visual-png";
 
 test("restores a legacy full-view study in chapters without losing illustrations", async ({ page }) => {
@@ -47,7 +48,7 @@ test("restores a legacy full-view study in chapters without losing illustrations
   await expect(page.getByRole("img", { name: "Chapter illustration", exact: true })).not.toBeVisible();
   await expect(page.getByRole("img", { name: "Whole-study illustration", exact: true })).toBeVisible();
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
   const reading = await page.evaluate(() => new Promise<{ chapterMode: boolean; chapterId: string }>((resolve, reject) => {
     const open = indexedDB.open("understand-local-study", 1);

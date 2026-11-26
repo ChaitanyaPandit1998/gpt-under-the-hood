@@ -103,7 +103,7 @@ export function VisualBriefImage({ brief, placement, disabled = false, reviewCon
     }
   }
 
-  return <div className="visual-image-renderer" data-tool-active={busy}>
+  return <div className="visual-image-renderer" data-tool-active={busy} data-tool-decision={!!candidate}>
     <details className="visual-builder-options">
       <summary>Rendering details</summary>
       <p>The first render plans the drawing; retries and other sizes reuse that plan without another model call.</p>

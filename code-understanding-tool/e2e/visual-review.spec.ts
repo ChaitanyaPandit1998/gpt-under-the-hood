@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 import { visualCheckStages } from "../src/domain/visual-evaluation";
 import { makeVisualPng } from "../src/test-fixtures/visual-png";
 
@@ -190,7 +191,7 @@ test("retains accepted-image review history only through explicit saving and res
   await expect(panel.getByRole("heading", { name: "Checks passed", exact: true })).toBeVisible();
   await expect(page.locator("details.saved-visual-reviews > summary")).toContainText("Review history (1)");
   await expect(page.getByRole("button", { name: "Resume saved study", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
   await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
   await page.reload();
@@ -216,7 +217,7 @@ test("retains accepted-image review history only through explicit saving and res
   await expect(history.locator(":scope > summary")).toContainText("Review history (2)");
   expect(reviews).toBe(2);
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "Resume saved study", exact: true }).click();

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 
 for (const mode of ["code", "docs"] as const) {
 test(`${mode}: adapts just one section, retains original warnings and restores cached variants`, async ({ page }, testInfo) => {
@@ -97,7 +98,7 @@ test(`${mode}: adapts just one section, retains original warnings and restores c
   await overview.getByRole("button", { name: "Render image", exact: true }).click();
   const illustration = overview.getByRole("img", { name: "Adapted value illustration.", exact: true });
   await expect(illustration).toBeVisible();
-  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
   await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
   await page.reload();

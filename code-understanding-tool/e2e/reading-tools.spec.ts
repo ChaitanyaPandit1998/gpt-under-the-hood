@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openStudyActions, studyActions } from "./support/study-actions";
 
 test("collapses idle tools without losing drafts and keeps active visual work open", async ({ page }) => {
   await page.route("**/api/explain", (route) => route.fulfill({ json: {
@@ -21,9 +22,18 @@ test("collapses idle tools without losing drafts and keeps active visual work op
   const tools = page.getByRole("group", { name: "Explanation tools", exact: true });
   const visual = tools.locator(":scope > details.visual-brief-panel");
   const speech = tools.locator(":scope > details.speech-tools");
-  const document = tools.locator(":scope > details.document-export");
+  const actions = studyActions(page);
+  const studyTrigger = actions.locator(":scope > summary");
   await expect(page.getByText("No blocking findings.", { exact: true })).not.toBeVisible();
   await expect(visual).not.toHaveAttribute("open", "");
+  await expect(visual.locator(":scope > summary .tool-active-indicator")).not.toBeVisible();
+  await expect(studyTrigger).toHaveAccessibleName("Save & export");
+  await expect(actions.getByRole("button", { name: "Save study locally" })).not.toBeVisible();
+  await expect(actions.getByRole("button", { name: "PDF preview" })).not.toBeVisible();
+  await studyTrigger.press("Enter");
+  await expect(actions.getByRole("button", { name: "Save study locally" })).toBeVisible();
+  await studyTrigger.press("Enter");
+  await expect(actions).not.toHaveAttribute("open", "");
   await visual.locator(":scope > summary").click();
   await visual.getByText("Customize visual", { exact: false }).click();
   const question = visual.getByRole("textbox", { name: "What should the visual explain?", exact: false });
@@ -35,7 +45,8 @@ test("collapses idle tools without losing drafts and keeps active visual work op
   await expect(speech).not.toHaveAttribute("open", "");
   await visual.getByRole("button", { name: "Generate visual brief", exact: true }).click();
   await expect(visual).toHaveAttribute("data-tool-active", "true");
-  await document.locator(":scope > summary").click();
+  await openStudyActions(page);
+  await expect(actions.getByRole("button", { name: "PDF preview" })).toBeVisible();
   await expect(visual).toHaveAttribute("open", "");
   await expect(visual.getByRole("button", { name: "Cancel visual brief", exact: true })).toBeVisible();
   await visual.locator(":scope > summary").click();
@@ -66,6 +77,13 @@ test("labels each reading scope and plays only the selected chapter", async ({ p
   await page.getByRole("button", { name: "Help me understand" }).click();
   const whole = page.getByRole("group", { name: "Explanation tools", exact: true });
   await expect(whole.getByText("Whole explanation", { exact: true })).toBeVisible();
+  const chapter = page.getByRole("group", { name: "Chapter tools", exact: true });
+  const summary = page.getByText("Start with a queue.", { exact: true });
+  const mode = page.getByRole("group", { name: "Chapter explanation style", exact: true });
+  await expect(summary).toBeVisible();
+  expect((await mode.boundingBox())!.y).toBeLessThan((await summary.boundingBox())!.y);
+  expect((await summary.boundingBox())!.y).toBeLessThan((await chapter.boundingBox())!.y);
+  expect((await chapter.boundingBox())!.y).toBeLessThan((await whole.boundingBox())!.y);
   await whole.getByRole("link", { name: "Refine explanation", exact: true }).click();
   await expect(page.getByRole("region", { name: "Explanation preferences" })).toBeFocused();
   await whole.locator("summary").filter({ hasText: /^Read aloud/ }).click();
@@ -73,7 +91,6 @@ test("labels each reading scope and plays only the selected chapter", async ({ p
   await expect(page.locator("body")).toHaveAttribute("data-spoken", /Start with a queue[\s\S]*Read up to four records/);
 
   await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
-  const chapter = page.getByRole("group", { name: "Chapter tools", exact: true });
   await expect(chapter.getByText("This chapter: Overview", { exact: true })).toBeVisible();
   await chapter.locator("summary").filter({ hasText: /^Read aloud/ }).click();
   await expect(page.locator("body")).toHaveAttribute("data-spoken", /Read up to four records/);

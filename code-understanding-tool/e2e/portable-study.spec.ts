@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 
 const explanation = { title: "A portable concept", summary: "A generic lesson.", concepts: [], walkthrough: [], assumptions: [], visuals: [], visual_note: "" };
 
@@ -7,7 +8,7 @@ test("exports a saved study and imports it without model requests", async ({ pag
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input" }).fill("const count = 3;");
   await page.getByRole("button", { name: "Help me understand" }).click();
-  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
   page.on("dialog", dialog => dialog.accept());
   const downloadEvent = page.waitForEvent("download");

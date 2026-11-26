@@ -3,6 +3,23 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-26 - Reading-first layout and simpler tools
+
+- Grouped local save, PDF preview, and document export under a closed-by-default
+  Save & export control. Moved save help into the group. Chapter and PR
+  tool scopes are unchanged.
+- Hide idle status badges; active export and visual work remain visible, and
+  opening another tool does not hide an unresolved image comparison.
+- Put chapter text and accepted chapter illustrations below Direct/Story
+  and above chapter tools. Move whole-explanation actions below the reader
+  while retaining review and incomplete-code notices above it.
+- Validation: lint, build, 345 unit/API tests, and 98 mocked desktop and mobile
+  browser tests passed, including keyboard access, save/restore, PDF preview,
+  export cancellation, and the new reading order. No live provider calls
+  were needed.
+- Next: review the reading-first layout in use. The mobile chapter picker
+  is deferred.
+
 ## 2026-11-26 - Integrated checks and two live evaluation cases
 
 - On revision `45f4f23`, lint, the production build, 345 unit/API tests
