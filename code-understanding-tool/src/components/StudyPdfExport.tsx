@@ -5,6 +5,7 @@ import type { Explanation } from "../domain/explanation-types";
 import type { RenderedIllustration } from "../domain/saved-study";
 import { isValidRange, type SourceRange } from "../domain/source-ranges";
 import type { ExportContext } from "./DocumentExport";
+import { ReadingParagraphs } from "./ReadingParagraphs";
 
 export type StudyPdfImages = { overview?: RenderedIllustration; chapters?: Record<string, RenderedIllustration> };
 type Props = { explanation: Explanation; source: string; context: ExportContext; collectImages: () => StudyPdfImages; onlyChapterId?: string };
@@ -92,13 +93,13 @@ export function PdfResultBody({ explanation, source, images, includeSource, sele
   }
 
   function chapterContent(chapter: ExplanationChapter) {
-    if (chapter.id === "overview") return <p>{explanation.summary}</p>;
+    if (chapter.id === "overview") return <ReadingParagraphs text={explanation.summary} />;
     if (chapter.id === "concepts") return explanation.concepts.map((item, index) => <div key={index}>
-      <SubHeading>{item.term}</SubHeading><p>{item.explanation}</p>{citations(item.source_ranges)}
+      <SubHeading>{item.term}</SubHeading><ReadingParagraphs text={item.explanation} />{citations(item.source_ranges)}
     </div>);
     if (chapter.id.startsWith("step-")) {
       const step = explanation.walkthrough[Number(chapter.id.slice(5))];
-      return <><p>{step.explanation}</p>{citations(step.source_ranges)}</>;
+      return <><ReadingParagraphs text={step.explanation} />{citations(step.source_ranges)}</>;
     }
     if (chapter.id === "visuals") return explanation.visuals.length ? explanation.visuals.map((visual, index) => <div key={index}>
       <SubHeading>{visual.title}</SubHeading>

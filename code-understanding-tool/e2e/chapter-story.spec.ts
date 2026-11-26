@@ -12,14 +12,34 @@ const story = {
 };
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=", "base64");
 
-async function openChapters(page: Page) {
-  await page.route("**/api/explain", (route) => route.fulfill({ json: explanation }));
+async function openChapters(page: Page, result = explanation) {
+  await page.route("**/api/explain", (route) => route.fulfill({ json: result }));
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input" }).fill(source);
   await page.getByRole("button", { name: "Help me understand" }).click();
   await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Full explanation", exact: true })).toHaveCount(0);
 }
+
+test("renders selective emphasis in Direct and Story without interpreting HTML", async ({ page }) => {
+  await page.route("**/api/chapter-story", route => route.fulfill({ json: { story: {
+    ...story, setup: "The **clerk** works with a *fixed supply*.",
+    scenes: [{ ...story.scenes[0], narrative: "The clerk counts **three tickets**, *no more*." }],
+  } } }));
+  await openChapters(page, { ...explanation, summary: "**The limit** stays *fixed*. <b>Literal tag</b>" });
+  const direct = page.locator(".result-summary");
+  await expect(direct.locator("strong")).toHaveText("The limit");
+  await expect(direct.locator("em")).toHaveText("fixed");
+  await expect(direct.locator("em")).toHaveCSS("font-synthesis-style", "auto");
+  await expect(direct.locator("b")).toHaveCount(0);
+  await expect(direct).toContainText("<b>Literal tag</b>");
+  await page.getByRole("button", { name: "Story", exact: true }).click();
+  const narrative = page.getByRole("article", { name: story.title, exact: true });
+  await expect(narrative.getByText("three tickets", { exact: true })).toHaveJSProperty("tagName", "STRONG");
+  await expect(narrative.getByText("fixed supply", { exact: true })).toHaveJSProperty("tagName", "EM");
+  await expect(narrative.getByText("fixed supply", { exact: true })).toHaveCSS("font-synthesis-style", "auto");
+  await expect(direct).not.toBeVisible();
+});
 
 test("generates only on request, links evidence, and reuses the same chapter story", async ({ page }) => {
   const bodies: unknown[] = [];

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Explanation } from "../domain/explanation-types";
+import { stripInlineEmphasis } from "../domain/inline-emphasis";
 
 type ReadSection = "summary" | "walkthrough" | "diagram" | "full";
 type PlaybackState = "idle" | "speaking" | "paused";
@@ -65,7 +66,7 @@ export function SpeechReader({ explanation, chapterOnly = false }: { explanation
 
   const activeReadSection = (readSection === "walkthrough" && !textBySection.walkthrough)
     || (readSection === "diagram" && !textBySection.diagram) ? "full" : readSection;
-  const text = textBySection[activeReadSection] || textBySection.summary;
+  const text = stripInlineEmphasis(textBySection[activeReadSection] || textBySection.summary);
   const selectedVoice = voices.find((voice) => voice.voiceURI === voiceURI);
 
   useEffect(() => {

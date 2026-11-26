@@ -25,6 +25,12 @@ Never use an analogy's happy ending to claim that a conjecture is proved, that
 untested code executed successfully, or that unavailable evidence exists.
 Retain known limitations and uncertainty in the meaning and takeaway.
 
+Inside the JSON prose strings, use `**bold**` and `*italics*` as inline
+emphasis. Across the chapter, bold one or two essential terms or actions and
+italicize one short contrast or qualifier when it helps the reader. Use this
+only in setup, narrative, meaning, or takeaway. Leave titles, headings,
+code, and equations unmarked. The story must make sense without the emphasis.
+
 Use minimal directly supporting original-source ranges for substantive claims.
 Return empty ranges when no original-source passage supports the claim; never
 cite fiction as source evidence or invent line numbers. Respect the requested

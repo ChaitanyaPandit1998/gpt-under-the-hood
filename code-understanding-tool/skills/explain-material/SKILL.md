@@ -167,3 +167,4 @@ When a visual would help and `visual_preference` permits it, return one or more 
 - Line numbers must refer to the learner-approved `source_text`, not hidden context or imagined files.
 - Do not invent quiz answers, test results, execution outcomes, or citations.
 - Keep JSON strings valid: escape quotes and newlines as required.
+- Inside the JSON prose strings, use `**bold**` and `*italics*` as inline emphasis. In the summary, bold one or two essential terms and italicize one short contrast or qualifier when it helps the reader. For example: "The **cache** reuses an earlier result, *but only while it is fresh*." Use the same restraint in concept explanations and walkthrough prose. Leave titles, code, equations, and diagram labels unmarked. Never rely on styling alone to convey a caveat.

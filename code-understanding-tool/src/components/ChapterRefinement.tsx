@@ -8,6 +8,7 @@ import { ChapterControls } from "./ChapterControls";
 import { SourceRanges } from "./SourceRanges";
 import { GraphView } from "./GraphView";
 import { DocumentExport } from "./DocumentExport";
+import { ReadingParagraphs } from "./ReadingParagraphs";
 import { VisualBriefPanel, type VisualBriefPanelHandle } from "./VisualBriefPanel";
 import { InlineIllustration } from "./InlineIllustration";
 import { StudyPdfExport } from "./StudyPdfExport";
@@ -76,7 +77,7 @@ export function ChapterRefinement({ id, context, title, section, active, initial
     {session.isGenerating && session.generationPhase && <p role="status">{generationPhaseCopy[session.generationPhase].detail}</p>}
     {session.error && <p role="alert">{session.error}</p>}
     {result && <article className="section-variant" aria-label="Adapted section">
-      <h4>{result.title}</h4><p>{result.summary}</p>
+      <h4>{result.title}</h4><ReadingParagraphs text={result.summary} />
       <div className="reading-tools" role="group" aria-label="Adapted section export">
         <DocumentExport explanation={result} source={context.source} context={{ scope: `Adapted section: ${title}`, provenance: `Selected preferences: ${JSON.stringify(settings)}` }} />
         <StudyPdfExport explanation={result} source={context.source}
@@ -89,7 +90,7 @@ export function ChapterRefinement({ id, context, title, section, active, initial
       {image && <InlineIllustration id={illustrationId} image={image} onChange={reviewImage} />}
       <p className="quality-review-note" role="status">{result.quality_review_note || "Check this variant against the source; more detail does not establish correctness."}</p>
       {result.incomplete_items?.map((item, index) => <div key={index}><p><strong>{item.title}</strong> {item.explanation}</p><SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} /></div>)}
-      {[...result.concepts.map((item) => ({ heading: item.term, ...item })), ...result.walkthrough].map((item, index) => <section key={index}><h4>{item.heading}</h4><p>{item.explanation}</p><SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} /></section>)}
+      {[...result.concepts.map((item) => ({ heading: item.term, ...item })), ...result.walkthrough].map((item, index) => <section key={index}><h4>{item.heading}</h4><ReadingParagraphs text={item.explanation} /><SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} /></section>)}
       {result.visuals.map((visual, index) => <GraphView key={index} visual={visual} theme={context.theme} source={context.source} lineCount={lineCount} onSelectRange={context.onSelectRange} incompleteItems={result.incomplete_items} exportContext={{ explanation: result, visualIndex: index, scope: `Adapted section: ${title}`, provenance: `Selected preferences: ${JSON.stringify(settings)}` }} onIllustrate={() => visualDesigner.current?.openForDiagram(index)} />)}
       {result.visual_note && <p><strong>Diagram coverage:</strong> {result.visual_note}</p>}
       {result.assumptions.map((item, index) => <p key={index}><strong>{item.statement}</strong> {item.reason}</p>)}

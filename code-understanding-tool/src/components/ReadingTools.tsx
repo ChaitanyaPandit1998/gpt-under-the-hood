@@ -4,10 +4,10 @@ import { type ExportContext, DocumentExport } from "./DocumentExport";
 import { SpeechReader } from "./SpeechReader";
 import { type StudyPdfImages, StudyPdfExport } from "./StudyPdfExport";
 
-export function ReadingTools({ label, scope, explanation, source, context, refine, visual, collectImages, onlyChapterId, chapterSpeech, saveStudy }: {
+export function ReadingTools({ label, scope, explanation, source, context, refine, visual, collectImages, onlyChapterId, chapterSpeech, saveStudy, targetId }: {
   label: string; scope: string; explanation: Explanation; source: string; context: ExportContext;
   refine: ReactNode; visual: ReactNode; collectImages: () => StudyPdfImages;
-  onlyChapterId?: string; chapterSpeech?: Explanation; saveStudy?: { action: ReactNode; note: ReactNode };
+  onlyChapterId?: string; chapterSpeech?: Explanation; saveStudy?: { action: ReactNode; note: ReactNode }; targetId?: string;
 }) {
   const [listeningOpen, setListeningOpen] = useState(false);
   const toolbar = useRef<HTMLDivElement>(null);
@@ -30,7 +30,7 @@ export function ReadingTools({ label, scope, explanation, source, context, refin
   }, []);
   const pdf = <StudyPdfExport explanation={explanation} source={source} context={context} collectImages={collectImages} onlyChapterId={onlyChapterId} />;
   const documentExport = !onlyChapterId && <DocumentExport explanation={explanation} source={source} context={context} />;
-  return <div ref={toolbar} className="reading-tools scoped-reading-tools" role="group" aria-label={label}>
+  return <div ref={toolbar} id={targetId} tabIndex={targetId ? -1 : undefined} className="reading-tools scoped-reading-tools" role="group" aria-label={label}>
     <div className="section-caption">{scope}</div>
     {refine}
     {visual}

@@ -4,6 +4,8 @@ import type { Mode } from "../domain/explanation-types";
 import { formatMathText } from "../domain/format-math-text";
 import type { SourceRange } from "../domain/source-ranges";
 import { SourceRanges } from "./SourceRanges";
+import { ReadingParagraphs } from "./ReadingParagraphs";
+import { InlineEmphasis } from "./InlineEmphasis";
 import { StorySceneVisual } from "./StorySceneVisual";
 import type { RenderedIllustration, StorySceneImages } from "../domain/saved-study";
 import type { SceneVisualPurpose } from "../domain/visual-brief";
@@ -87,19 +89,19 @@ export function ChapterStory({ context, chapter, selected, story, images, onSele
       {story && selected && <article className="chapter-story-content" aria-labelledby={headingId}>
         <div className="section-caption">Story mode · Illustrative analogy</div>
         <h4 id={headingId}>{story.title}</h4>
-        <p>{formatMathText(story.setup)}</p>
+        <ReadingParagraphs text={formatMathText(story.setup)} />
         <ol className="chapter-story-scenes">{story.scenes.map((scene, index) => <li key={index}>
           <h5>{scene.heading}</h5>
-          <p>{formatMathText(scene.narrative)}</p>
+          <ReadingParagraphs text={formatMathText(scene.narrative)} />
           <div className="chapter-story-evidence">
             <strong>What this represents</strong>
-            <p>{formatMathText(scene.meaning)}</p>
+            <ReadingParagraphs text={formatMathText(scene.meaning)} />
             <SourceRanges ranges={scene.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} />
           </div>
           <StorySceneVisual scene={scene} sceneNumber={index + 1} source={context.source} audience={context.preferences.learnerLevel}
             images={images?.[index]} onRender={(purpose, image, reviewOnly) => onRender(index, purpose, image, reviewOnly)} />
         </li>)}</ol>
-        <p><strong>Takeaway: </strong>{formatMathText(story.takeaway)}</p>
+        <p><strong>Takeaway: </strong><InlineEmphasis text={formatMathText(story.takeaway)} /></p>
       </article>}
     </div>
   </div>;

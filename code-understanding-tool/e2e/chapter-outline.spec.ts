@@ -38,16 +38,17 @@ for (const mode of ["explanation", "pull request"] as const) {
       await expect.poll(async () => (await outline.boundingBox())?.y).toBe(12);
     } else {
       expect(await outline.evaluate((node) => getComputedStyle(node).position)).toBe("static");
-      expect((await list.boundingBox())!.height).toBeLessThanOrEqual(180);
+      expect(await list.evaluate((node) => node.clientHeight)).toBeLessThanOrEqual(180);
     }
 
     const last = outline.getByRole("button", { name: /Batching step 25$/ });
     await last.click();
     await expect(last).toHaveAttribute("aria-current", "step");
     await expect(page.getByRole("heading", { name: "Batching step 25", exact: true }).first()).toBeFocused();
-    const listBox = (await list.boundingBox())!;
-    const itemBox = (await last.boundingBox())!;
-    expect(itemBox.y).toBeGreaterThanOrEqual(listBox.y - 1);
-    expect(itemBox.y + itemBox.height).toBeLessThanOrEqual(listBox.y + listBox.height + 1);
+    await expect.poll(() => list.evaluate((node) => {
+      const listBox = node.getBoundingClientRect();
+      const itemBox = node.querySelector('[aria-current="step"]')!.getBoundingClientRect();
+      return Math.max(listBox.top - itemBox.top, itemBox.bottom - listBox.bottom);
+    })).toBeLessThanOrEqual(1);
   });
 }

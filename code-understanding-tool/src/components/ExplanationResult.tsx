@@ -5,6 +5,7 @@ import type { ThemeMode } from "../domain/theme";
 import { formatMathText } from "../domain/format-math-text";
 import { GraphView } from "./GraphView";
 import { ReadingTools } from "./ReadingTools";
+import { ReadingParagraphs } from "./ReadingParagraphs";
 import { mergeVisualReviewHistory } from "../domain/visual-provenance";
 import { SourceRanges } from "./SourceRanges";
 import { SourceEvidence } from "./SourceEvidence";
@@ -92,6 +93,7 @@ function Result({
   const snapshot = () => ({ chapter: reader.current?.snapshot(), illustration });
   useImperativeHandle(ref, () => ({ snapshot, activeChapterId: () => reader.current?.activeChapterId() }));
   const illustrationId = useId();
+  const studyToolsId = materialMode === "pull_request" ? undefined : `${illustrationId}-study-tools`;
   const visualDesigner = useRef<VisualBriefPanelHandle>(null);
   const activeVisual = explanation.visuals[activeVisualIndex] ?? explanation.visuals[0];
   const selectVisualFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -111,7 +113,10 @@ function Result({
     <section className="result-card" aria-labelledby="explanation-title" aria-busy={isAskingFollowUp}>
       <div className="result-topline"><span className="result-label"><span className="result-spark">✳</span> YOUR EXPLANATION</span><div className="result-actions"><button className="copy-explanation" type="button" onClick={onCopy}>{copyStatus || "Copy explanation"}</button><span className="preview-badge">EXPLANATION</span></div></div>
       <div className="explanation-content">
-        <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
+        <div className="explanation-heading">
+          <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
+          {studyToolsId && <a className="study-tools-jump" href={`#${studyToolsId}`}>Study tools <span aria-hidden="true">↓</span></a>}
+        </div>
         {isRegenerating && <p role="status">Showing the last completed explanation while the new one generates.</p>}
         {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
           <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
@@ -130,11 +135,11 @@ function Result({
         <ChapterReader ref={reader} initialReading={initialReading?.chapter} explanation={explanation} artworkEnabled={allowChapterArtwork}
           storyContext={{ source, mode: materialMode, preferences: storyPreferences, onSelectRange, onClearCitation: () => setCitation(undefined) }}
           refinementContext={allowChapterArtwork ? { source, mode: materialMode, theme, onSelectRange } : undefined}>
-        <ChapterPage id="overview"><p className="result-summary">{explanation.summary}</p></ChapterPage>
+        <ChapterPage id="overview"><ReadingParagraphs text={explanation.summary} paragraphClassName="result-summary" /></ChapterPage>
         <ChapterPage id="concepts">
-        {explanation.concepts.length > 0 && <div className="result-section"><div className="section-caption">KEY IDEAS</div><div className="concept-grid">{explanation.concepts.map((concept, index) => <article className="concept-card" key={`${concept.term}-${index}`}><h3>{concept.term}</h3><p>{concept.explanation}</p><SourceRanges ranges={concept.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article>)}</div></div>}
+        {explanation.concepts.length > 0 && <div className="result-section"><div className="section-caption">KEY IDEAS</div><div className="concept-grid">{explanation.concepts.map((concept, index) => <article className="concept-card" key={`${concept.term}-${index}`}><h3>{concept.term}</h3><ReadingParagraphs text={concept.explanation} /><SourceRanges ranges={concept.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article>)}</div></div>}
         </ChapterPage>
-        {explanation.walkthrough.map((step, index) => <ChapterPage id={`step-${index}`} key={`${step.heading}-${index}`}><div className="result-section walkthrough-section"><div className="section-caption">WALKTHROUGH</div><div className="walkthrough-list"><article className="walkthrough-item"><div className="walkthrough-heading"><span className="number-badge">{index + 1}</span><div><h3>{step.heading}</h3></div></div><p className="result-body">{step.explanation}</p><SourceRanges ranges={step.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article></div></div></ChapterPage>)}
+        {explanation.walkthrough.map((step, index) => <ChapterPage id={`step-${index}`} key={`${step.heading}-${index}`}><div className="result-section walkthrough-section"><div className="section-caption">WALKTHROUGH</div><div className="walkthrough-list"><article className="walkthrough-item"><div className="walkthrough-heading"><span className="number-badge">{index + 1}</span><div><h3>{step.heading}</h3></div></div><ReadingParagraphs text={step.explanation} paragraphClassName="result-body" /><SourceRanges ranges={step.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article></div></div></ChapterPage>)}
         <ChapterPage id="visuals">
         {activeVisual && <div className="result-section">
           <div className="section-caption diagram-section-caption">{activeVisual.kind === "control_flow" ? "CONTROL FLOW MAP" : "CONCEPT MAP"}</div>
@@ -157,7 +162,7 @@ function Result({
         </ChapterPage>
         </ChapterReader>
         {illustration && <InlineIllustration image={illustration} id={illustrationId} onChange={reviewIllustration} />}
-        <ReadingTools label={materialMode === "pull_request" ? "PR chapter tools" : "Explanation tools"}
+        <ReadingTools targetId={studyToolsId} label={materialMode === "pull_request" ? "PR chapter tools" : "Explanation tools"}
           scope={materialMode === "pull_request" ? "This PR chapter" : "Whole explanation"} explanation={explanation} source={source} context={exportContext}
           refine={<a href={`#${refinementTarget}`}>{materialMode === "pull_request" ? "Refine PR chapter" : "Refine explanation"}</a>}
           visual={<VisualBriefPanel ref={visualDesigner} explanation={explanation} source={source} scope={exportContext.scope}

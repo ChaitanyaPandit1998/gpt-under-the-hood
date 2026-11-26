@@ -17,8 +17,39 @@ dated entry for future work; never record secrets or private source material.
   browser tests passed, including keyboard access, save/restore, PDF preview,
   export cancellation, and the new reading order. No live provider calls
   were needed.
-- Next: review the reading-first layout in use. The mobile chapter picker
-  is deferred.
+- A separate Chromium walkthrough on commit a9d6159 used a synthetic
+  12-chapter explanation with a 600-word overview. Text was visible without
+  scrolling from the explanation title. Chapter navigation, chapter and
+  whole-study PDF previews, and local save worked at 1440 x 900 and 390 x 844
+  without horizontal overflow or another explanation request.
+- The whole-study toolbar started 1345px and 2545px below the title on
+  desktop and mobile. This is a layout measurement, not a usability study.
+- Added a Study tools jump link beside the Code and Documentation result
+  title. It scrolls and focuses the existing toolbar without opening a panel.
+  Lint, build, 345 unit/API tests, and 28 targeted mocked browser tests passed,
+  including keyboard order and desktop/mobile viewport checks.
+- Added visible paragraph spacing to direct explanations, stories, and
+  refined sections. Authored breaks are preserved; long unbroken prose
+  is split at sentence boundaries where supported, without changing the
+  saved, copied, or read-aloud text.
+- Validation: lint, build, 348 unit/API tests, and 102 mocked browser tests
+  passed. Captured the same long mock overview at desktop and mobile widths.
+  The mobile outline checks now measure clipping in a single browser frame;
+  mobile chapter navigation itself is unchanged.
+- New Direct and Story responses request selective bold for key terms and
+  italics for contrasts and caveats. The reader, refined sections, and
+  browser PDF preview render supported emphasis as text formatting, not HTML.
+  Read-aloud and WordCraft prose omit the markers; existing unmarked studies
+  are unchanged.
+- Validation: lint, build, 350 unit/API tests, and 104 mocked desktop and
+  mobile browser tests passed before the live pilot.
+- Live Riemann Hypothesis pilot: the first Direct overview omitted emphasis
+  and the first Story request returned a 502. Clarified the prose prompts and
+  enabled italic synthesis only for reader emphasis. The final live Direct
+  and Story responses both bolded two key terms and italicized one word;
+  verified in screenshots. The focused desktop and mobile regression passed.
+- Next: review and push the reading updates. The mobile chapter picker
+  remains deferred.
 
 ## 2026-11-26 - Integrated checks and two live evaluation cases
 

@@ -1,6 +1,34 @@
 import { expect, test } from "@playwright/test";
 import { openStudyActions, studyActions } from "./support/study-actions";
 
+test("jumps from a long explanation title to the study toolbar without opening tools", async ({ page }) => {
+  let generations = 0;
+  await page.route("**/api/explain", (route) => {
+    generations += 1;
+    return route.fulfill({ json: {
+      title: "Processing batches", summary: "A batch keeps the worker's memory use predictable. ".repeat(130),
+      concepts: [], walkthrough: [], assumptions: [], visuals: [], visual_note: "",
+    } });
+  });
+  await page.goto("/");
+  await page.getByRole("textbox", { name: "Code input" }).fill("processBatch(queue);");
+  await page.getByRole("button", { name: "Help me understand" }).click();
+  const title = page.getByRole("heading", { name: "Processing batches", exact: true });
+  await title.focus();
+  await page.keyboard.press("Tab");
+  const jump = page.getByRole("link", { name: "Study tools", exact: true });
+  await expect(jump).toBeFocused();
+  const toolbar = page.getByRole("group", { name: "Explanation tools", exact: true });
+  await expect(toolbar).not.toBeInViewport();
+  await page.keyboard.press("Enter");
+  await expect(toolbar).toBeFocused();
+  await expect(toolbar).toBeInViewport();
+  await expect(studyActions(page)).not.toHaveAttribute("open", "");
+  await page.keyboard.press("Tab");
+  await expect(toolbar.getByRole("link", { name: "Refine explanation", exact: true })).toBeFocused();
+  expect(generations).toBe(1);
+});
+
 test("collapses idle tools without losing drafts and keeps active visual work open", async ({ page }) => {
   await page.route("**/api/explain", (route) => route.fulfill({ json: {
     title: "A configured value", summary: "The value is fixed.", concepts: [], walkthrough: [],
@@ -67,7 +95,7 @@ test("labels each reading scope and plays only the selected chapter", async ({ p
     } });
   });
   await page.route("**/api/explain", (route) => route.fulfill({ json: {
-    title: "Batching records", summary: "Start with a queue.", concepts: [],
+    title: "Batching records", summary: "Start with a **queue**.", concepts: [],
     walkthrough: [{ heading: "Collect a group", explanation: "Read up to four records.", source_ranges: [] }],
     assumptions: [{ statement: "Ordering is unspecified.", reason: "The source does not define it." }],
     visuals: [], visual_note: "",
