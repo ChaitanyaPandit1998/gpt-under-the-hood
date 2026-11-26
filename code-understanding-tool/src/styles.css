@@ -337,6 +337,8 @@ html[data-theme="dark"] .quiz-feedback.is-incorrect{color:#ebb1aa}
 .pr-study-header h2{font-family:Manrope,sans-serif;margin:8px 0;overflow-wrap:anywhere}
 .pr-study button,.pr-study select{font:inherit;cursor:pointer}
 .pr-study-header button{padding:10px;flex-shrink:0}
+.pr-diagram-option{display:inline-flex;align-items:center;gap:.4rem;font-weight:600}
+.pr-diagram-option input{accent-color:var(--theme-accent-strong)}
 .pr-study .chapter-layout{margin-top:24px}
 .pr-revision{overflow-wrap:anywhere;font-size:11px}
 .pr-manifest{margin:20px 0}

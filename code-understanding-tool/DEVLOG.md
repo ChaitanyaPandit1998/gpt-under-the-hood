@@ -3,6 +3,67 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-26 - Live large PR benchmark
+
+- Imported FastAPI #12199 and Vite #16471 through the real GitHub and browser
+  workflow. FastAPI listed 72/72 files in 1.1s (12 chapters, 66 patches
+  included, 6 unavailable). Vite listed 165/165 in 1.9s (27 chapters,
+  122 included, 4 partial, 6 unavailable, 33 deferred by the budget).
+- Neither import triggered generation. One deferred Vite SSR patch loaded
+  in 0.22s without a model call.
+- Vite generated an implementation chapter in 220.4s with incomplete model
+  review. The request contained the selected chapter's diff, all three
+  sampled citation highlights matched the supplied lines, and revisiting
+  reused the cached explanation. Manual inspection supported the main
+  full-reload behavior described in that chapter.
+- FastAPI returned a 120s CLI timeout on the first attempt; the isolated
+  retry did not produce a response before the 325s browser deadline.
+  Story, visuals, and export were not covered by this benchmark.
+- Timed a rerun of the same Vite implementation chapter (16,630 source
+  characters, detailed depth) through the local API. Progress entered
+  drafting within 0.4s; the CLI timed out at 120.1s before review or repair.
+  This confirms drafting can be the bottleneck independently of review.
+- Overview depth with the same source returned a revised explanation at
+  297.4s, with final review incomplete. Approximate phase durations from
+  progress polling: draft 72s, initial review 16s, repair 81s, and final
+  review through response 128s. The initial review flagged an incorrect
+  diagram path. One run per depth is not a latency comparison guarantee.
+- A focused Overview-depth rerun used a 2,405-character Vite full-reload
+  excerpt versus 16,630 characters in the original chapter. The request
+  with visuals off drafted in about 73s and returned in 211.1s, but it
+  incorrectly generated four diagrams. Review flagged missing rejection
+  paths and repair did not complete. With visuals on, drafting again took
+  about 73s and the response arrived in 132.9s with one revised diagram;
+  final review flagged omitted decisions in the entrypoint search.
+- Both responses described the source's main reload behavior, but neither
+  completed diagram review successfully. These runs do not isolate the
+  cost of visuals because the no-visuals request was not honored. Smaller
+  input did not improve drafting time in this sample.
+- Enforced the existing API no-visuals preference with a text-only schema
+  for drafts and repairs. Unexpected visuals are discarded before review;
+  prose, citation, and accuracy review still run. The reader default is
+  unchanged. Lint, build, and 351 unit/API tests passed.
+- Reran the same 2,405-character excerpt at Overview depth with visuals
+  disabled. Drafting took about 16s; prose review passed and the request
+  returned in 28.8s with zero diagrams and no repair. This is one live
+  observation, not a guaranteed latency improvement.
+- Added a chapter-local Text only checkbox next to PR generation. Saved
+  studies preserve separate results for text-only and automatic diagrams;
+  existing automatic-mode cache keys are unchanged. Lint, build, 351
+  unit/API tests and 106 mocked desktop/mobile browser tests passed.
+- Live browser reruns used Overview depth and full first implementation
+  chapters. FastAPI #12199 (11,672 characters) took 70.2s; Vite #16471
+  (16,630 characters) took 71.7s, versus 297.4s in the earlier Vite
+  Overview run with automatic diagrams. Both drafted in about 24s,
+  returned zero diagrams and passed final prose review after one repair.
+  These are individual live samples, not guaranteed production timings.
+- Made text the default for new PR chapters. Include diagrams explicitly
+  enables automatic diagrams for that chapter. Saved variants and legacy
+  automatic-diagram cache keys are preserved. Story scene images and covers
+  remain on demand; opening the scene controls makes no visual requests.
+- Next: review and push the text-first PR changes. Repeat the live timing
+  on more PRs before treating the benchmark results as typical.
+
 ## 2026-11-26 - Reading-first layout and simpler tools
 
 - Grouped local save, PDF preview, and document export under a closed-by-default

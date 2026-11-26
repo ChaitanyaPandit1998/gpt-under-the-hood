@@ -12,6 +12,8 @@ import type { ChapterArtwork } from "../domain/chapter-illustrations";
 import type { CachedPrResult, PrReadingState } from "../domain/saved-study";
 import { PullRequestPdfExport, type PrPdfChapter } from "./PullRequestPdfExport";
 
+const initialChapterSettings: ChapterSettings = { ...defaultChapterSettings, depth: "detailed" };
+
 export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave, saving }: {
   plan: PullRequestPlan; theme: ThemeMode; onClose: () => void;
   initialReading?: PrReadingState; onSave: (reading: PrReadingState) => void; saving: boolean;
@@ -29,12 +31,19 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
   const resultReader = useRef<ExplanationResultHandle>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const refinementTarget = useId();
+  const diagramNote = useId();
   const chapters = [...plan.chapters, ...extraChapters];
   const chapter = chapters[index];
   const source = chapter.sourceText;
-  const settingsFor = (chapterIndex: number) => chapterSettings[chapterIndex] ?? { ...defaultChapterSettings, depth: "detailed" as const };
-  const settings = settingsFor(index);
   const cacheKey = (chapterIndex: number, preferences: ChapterSettings) => `${chapterIndex}:${chapterVariantKey(preferences)}`;
+  const settingsFor = (chapterIndex: number): ChapterSettings => {
+    const saved = chapterSettings[chapterIndex];
+    if (saved) return saved;
+    // Older studies could save a generated chapter without saving its default settings.
+    if (cache.has(cacheKey(chapterIndex, initialChapterSettings))) return initialChapterSettings;
+    return { ...initialChapterSettings, visualPreference: "no" };
+  };
+  const settings = settingsFor(index);
   const activeKey = cacheKey(index, settings);
   const savedResult = cache.get(activeKey);
   const session = useExplanationSession({ source, mode: "pull_request", ...settings }, savedResult?.explanation);
@@ -150,6 +159,9 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
         </div>
         <div className="chapter-toolbar">
           <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => void session.explainSource()}>{session.isGenerating ? "Generating chapter…" : session.error ? "Retry chapter generation" : session.explanation ? "Regenerate chapter" : "Generate this chapter"}</button>
+          <label className="pr-diagram-option"><input type="checkbox" checked={settings.visualPreference !== "no"} disabled={session.isGenerating || !!loadingFile} aria-describedby={diagramNote}
+            onChange={(event) => selectChapter(index, { ...settings, visualPreference: event.target.checked ? "auto" : "no" })} />Include diagrams</label>
+          <small id={diagramNote}>Optional. The explanation is reviewed either way.</small>
           {session.isGenerating && <button type="button" onClick={session.invalidatePendingRequests}>Cancel</button>}
         </div>
         {session.generationPhase && session.isGenerating && <p role="status">{generationPhaseCopy[session.generationPhase].detail}</p>}

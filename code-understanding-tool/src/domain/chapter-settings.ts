@@ -5,6 +5,7 @@ export type ChapterSettings = {
   learnerLevel: LearnerLevel;
   tone: "plain" | "technical";
   focus: "auto" | "concepts" | "behaviour" | "example";
+  visualPreference?: "auto" | "no";
 };
 
 export const defaultChapterSettings: ChapterSettings = {
@@ -12,7 +13,9 @@ export const defaultChapterSettings: ChapterSettings = {
 };
 
 export function chapterVariantKey(settings: ChapterSettings): string {
-  return JSON.stringify([settings.depth, settings.learnerLevel, settings.tone, settings.focus]);
+  const parts: string[] = [settings.depth, settings.learnerLevel, settings.tone, settings.focus];
+  if (settings.visualPreference === "no") parts.push("no");
+  return JSON.stringify(parts);
 }
 
 export function adjustChapterDepth(settings: ChapterSettings, direction: -1 | 1): ChapterSettings {

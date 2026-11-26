@@ -7,6 +7,7 @@ import { createLocalExplanationApi, findCodexCliForRequest, type CodexRunner } f
 import type { PullRequestFetch } from "./github-pull-request";
 import { defaultVisualPreferences, sceneVisualGuidance } from "../domain/visual-brief";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { visualCheckStages } from "../domain/visual-evaluation";
 import { makeVisualPng } from "../test-fixtures/visual-png";
 
@@ -465,6 +466,44 @@ describe("local explanation API integration", () => {
       expect(call[0]).toContain("tone=technical");
       expect(call[0]).toContain("focus=behaviour");
       expect(call[0]).toContain("Explain only the assignment section.");
+    }
+  });
+
+  it("keeps drafts and repairs text-only without skipping factual review", async () => {
+    const strayVisual = { visuals: [{ title: "Unrequested diagram" }], visual_note: "Unrequested note" };
+    const writerSchemas: unknown[] = [];
+    const runner = vi.fn<CodexRunner>()
+      .mockImplementationOnce(async (prompt, schemaPath) => {
+        expect(prompt).toContain("Visuals are disabled. Write only prose");
+        expect(prompt).not.toContain("return an Overview visual plus focused visual(s)");
+        writerSchemas.push(JSON.parse(await readFile(schemaPath, "utf8")));
+        return { ...explanation, ...strayVisual };
+      })
+      .mockResolvedValueOnce(reviseReview)
+      .mockImplementationOnce(async (prompt, schemaPath) => {
+        expect(prompt).toContain("Visuals are disabled. Write only prose");
+        writerSchemas.push(JSON.parse(await readFile(schemaPath, "utf8")));
+        return { ...explanation, ...strayVisual, summary: "Explains when retries stop." };
+      })
+      .mockResolvedValueOnce(passedReview);
+    const response = await createApiHarness(runner)("/api/explain", {
+      source_text: "if (attempt >= limit) return false;\nreturn retry();",
+      visual_preference: "no",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.json()).toMatchObject({
+      summary: "Explains when retries stop.", visuals: [], visual_note: "", quality_review_status: "revised",
+    });
+    expect(writerSchemas).toHaveLength(2);
+    for (const schema of writerSchemas) {
+      expect(schema).not.toHaveProperty("properties.visuals");
+      expect(schema).not.toHaveProperty("properties.visual_note");
+    }
+    expect(runner).toHaveBeenCalledTimes(4);
+    for (const [prompt] of [runner.mock.calls[1]!, runner.mock.calls[3]!]) {
+      expect(prompt).toContain("Review prose, factual accuracy, and citations only");
+      expect(prompt).not.toContain("Unrequested");
     }
   });
 

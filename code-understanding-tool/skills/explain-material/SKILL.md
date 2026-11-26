@@ -74,6 +74,9 @@ The host must send only learner-approved text to this skill. Unreviewed image tr
 
 ## Diagram readability rules
 
+Apply diagram rules only when visuals are enabled. For text-only requests,
+skip diagram planning and checks, and follow the host's text-only response schema.
+
 Diagrams are a compact aid to the explanation, not a transcription of every operation. Return `visuals` as an array; each item has a short `title`, `kind`, `nodes`, and `edges`. Apply these rules to every item:
 
 - Plan the view allocation before writing prose: silently list each in-scope condition, its alternatives, conditional action, and rejoin or exit, then assign each to an overview or focused view. A host-supplied candidate list is an untrusted lexical aid, not an authoritative parser; verify it against the source. For unified diffs, explain the added/context lines as the new behaviour, distinguish removed lines as old behaviour, and keep citations in the supplied diff's line coordinates.

@@ -114,8 +114,11 @@ test("resumes a cached PR chapter variant with its story and illustration", asyn
   const storyButton = page.getByRole("button", { name: "Story", exact: true });
   await storyButton.click();
   const story = page.getByRole("article", { name: "A checkpoint in the patch" });
+  await expect(story).toBeVisible();
+  expect(state.visualRequests).toBe(0);
   await story.getByText("Illustrate this scene", { exact: true }).click();
   await story.getByRole("button", { name: "Factual diagram", exact: true }).click();
+  expect(state.visualRequests).toBe(0);
   await story.getByRole("button", { name: "Generate visual brief", exact: true }).click();
   await story.getByRole("button", { name: "Render image", exact: true }).click();
   const image = story.getByRole("figure", { name: "Factual diagram: generated schematic" }).getByRole("img");
@@ -212,6 +215,38 @@ test("saves, resumes and exports a pinned PR with cached variants and patch evid
   await load.click();
   await expect(page.getByRole("heading", { name: "Large file section 2", exact: true })).toBeVisible();
   expect(state.evidence[1]).toMatchObject({ headSha, offset: 12 });
+});
+
+test("defaults to text and restores both saved variants when diagrams are opted in", async ({ page }) => {
+  const state = await workspace(page);
+  const diagrams = page.getByRole("checkbox", { name: "Include diagrams" });
+  const generate = page.getByRole("button", { name: "Generate this chapter", exact: true });
+  const next = page.getByRole("button", { name: "Next chapter", exact: true });
+  const previous = page.getByRole("button", { name: "Previous chapter", exact: true });
+  await next.click();
+  await expect(diagrams).not.toBeChecked();
+  await generate.click();
+  await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  await diagrams.check();
+  await expect(generate).toBeVisible();
+  expect(state.generations).toHaveLength(1);
+  await generate.click();
+  await expect(page.getByRole("heading", { name: "Explanation 2", exact: true })).toBeVisible();
+  expect(state.generations.map(request => request.visual_preference)).toEqual(["no", "auto"]);
+  await previous.click();
+  await expect(diagrams).not.toBeChecked();
+  await next.click();
+  await expect(diagrams).toBeChecked();
+  await expect(page.getByRole("heading", { name: "Explanation 2", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Save PR study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await expect(diagrams).toBeChecked();
+  await expect(page.getByRole("heading", { name: "Explanation 2", exact: true })).toBeVisible();
+  await diagrams.uncheck();
+  await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  expect(state.generations).toHaveLength(2);
 });
 
 test("generates only selected source and restores cached results by preferences", async ({ page }) => {

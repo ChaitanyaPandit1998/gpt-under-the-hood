@@ -73,6 +73,10 @@ export function validateExplanation(value: unknown, sourceText: string): Explana
   return value;
 }
 
+export function validateTextExplanation(value: unknown, sourceText: string): Explanation {
+  return validateExplanation(isRecord(value) ? { ...value, visuals: [], visual_note: "" } : value, sourceText);
+}
+
 export function validateCompletedExplanation(value: unknown, sourceText: string): Explanation {
   const explanation = validateExplanation(value, sourceText);
   const { incomplete_items, quality_review_note, quality_review_status } = explanation;
