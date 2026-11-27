@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Explanation } from "./explanation-types";
-import { explanationChapters, prefersChapters } from "./explanation-chapters";
+import { explanationChapters } from "./explanation-chapters";
 
 const shortExplanation: Explanation = {
   title: "A small change", summary: "Validates a request.",
@@ -8,8 +8,7 @@ const shortExplanation: Explanation = {
 };
 
 describe("explanation chapters", () => {
-  it("keeps short explanations in full view by default", () => {
-    expect(prefersChapters(shortExplanation)).toBe(false);
+  it("includes overview and recap even for short explanations", () => {
     expect(explanationChapters(shortExplanation).map((chapter) => chapter.id)).toEqual(["overview", "recap"]);
   });
 
@@ -27,9 +26,13 @@ describe("explanation chapters", () => {
     ]);
   });
 
-  it("defaults detailed walkthroughs and long prose to chapters", () => {
-    expect(prefersChapters({ ...shortExplanation, walkthrough: Array.from({ length: 6 }, () => ({ heading: "Step", explanation: "Details", source_ranges: [] })) })).toBe(true);
-    expect(prefersChapters({ ...shortExplanation, summary: "word ".repeat(900) })).toBe(true);
+  it("includes every walkthrough step for long explanations", () => {
+    const chapters = explanationChapters({ ...shortExplanation, summary: "word ".repeat(900),
+      walkthrough: Array.from({ length: 12 }, (_, index) => ({ heading: `Step ${index + 1}`, explanation: "Details", source_ranges: [] })),
+    });
+    expect(chapters.map((chapter) => chapter.id)).toEqual([
+      "overview", ...Array.from({ length: 12 }, (_, index) => `step-${index}`), "recap",
+    ]);
   });
 
   it("gives duplicate step headings unique chapter IDs", () => {

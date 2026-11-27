@@ -4,12 +4,14 @@ import type { ExplanationDepth, LearnerLevel, Mode, Transcription } from "./doma
 import { isThemeMode, type ThemeMode } from "./domain/theme";
 import { useExplanationSession } from "./hooks/useExplanationSession";
 import { LearningWorkspace } from "./components/LearningWorkspace";
-import { ExplanationResult, type TextSelection } from "./components/ExplanationResult";
+import { ExplanationResult, type ExplanationResultHandle, type TextSelection } from "./components/ExplanationResult";
 import { PageDisplayControls } from "./components/PageDisplayControls";
 import { PullRequestStudy } from "./components/PullRequestStudy";
 import type { PullRequestPlan } from "./domain/pull-request-plan";
 import { accessSavedStudy, type ResultReadingState, type SavedStudy } from "./domain/saved-study";
 import type { StarterExample } from "./domain/starter-examples";
+import { PortableStudyTools } from "./components/PortableStudyTools";
+import { readTemporaryStudy, writeTemporaryStudy } from "./domain/temporary-study";
 
 function App() {
   const [pageZoom, setPageZoom] = useState(100);
@@ -21,15 +23,21 @@ function App() {
       return "light";
     }
   });
-  const [mode, setMode] = useState<Mode>("code");
-  const [explanationDepth, setExplanationDepth] = useState<ExplanationDepth>("balanced");
-  const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>("beginner");
-  const [source, setSource] = useState("");
+  const [temporary] = useState(readTemporaryStudy);
+  const recovered = temporary.study;
+  const [keepTemporary, setKeepTemporary] = useState(temporary.enabled);
+  const [temporaryError, setTemporaryError] = useState(false);
+  const [mode, setMode] = useState<Mode>(recovered?.mode ?? "code");
+  const [explanationDepth, setExplanationDepth] = useState<ExplanationDepth>(recovered?.depth ?? "balanced");
+  const [learnerLevel, setLearnerLevel] = useState<LearnerLevel>(recovered?.level ?? "beginner");
+  const [source, setSource] = useState(recovered?.source ?? "");
   const [pullRequestUrl, setPullRequestUrl] = useState("");
   const [isLoadingPullRequest, setIsLoadingPullRequest] = useState(false);
   const [prPlan, setPrPlan] = useState<PullRequestPlan | null>(null);
   const [savedStudy, setSavedStudy] = useState<SavedStudy>();
-  const [restoredStudy, setRestoredStudy] = useState<SavedStudy>();
+  const [restoredStudy, setRestoredStudy] = useState<SavedStudy | undefined>(() => recovered && ({
+    ...recovered, reading: recovered.chapterId ? { chapter: { chapterMode: true, chapterId: recovered.chapterId, images: {} } } : {},
+  }));
   const [restoreRevision, setRestoreRevision] = useState(0);
   const [storageBusy, setStorageBusy] = useState(true);
   const [storageMessage, setStorageMessage] = useState("");
@@ -45,9 +53,20 @@ function App() {
   const sourceEditor = useRef<HTMLTextAreaElement>(null);
   const transcriptionRequestId = useRef(0);
   const transcriptionRequestController = useRef<AbortController | null>(null);
-  const session = useExplanationSession({ source, mode, depth: explanationDepth, learnerLevel });
+  const resultReader = useRef<ExplanationResultHandle>(null);
+  const session = useExplanationSession({ source, mode, depth: explanationDepth, learnerLevel }, recovered?.explanation);
   const { explanation, isGenerating, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus, followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion, followUpMessages, followUpError, error, setError, resetExplanation, explainSource, askFollowUp } = session;
   const lineCount = useMemo(() => Math.max(source.split("\n").length, 1), [source]);
+
+  useEffect(() => {
+    const saveCheckpoint = () => writeTemporaryStudy(keepTemporary, mode !== "pull_request" && source.trim() && explanation
+      ? { version: 1, mode, source, depth: explanationDepth, level: learnerLevel, explanation,
+        chapterId: resultReader.current?.activeChapterId() }
+      : undefined);
+    setTemporaryError(!saveCheckpoint());
+    window.addEventListener("pagehide", saveCheckpoint);
+    return () => window.removeEventListener("pagehide", saveCheckpoint);
+  }, [keepTemporary, mode, source, explanationDepth, learnerLevel, explanation]);
 
   useEffect(() => {
     let active = true;
@@ -318,6 +337,7 @@ function App() {
             <p>Bring a piece of code or documentation. Get an explanation that helps you build a mental model, not just skim the surface.</p>
           </section>
 
+          <PortableStudyTools study={savedStudy} disabled={storageBusy} onImport={saveStudy} />
           {(savedStudy || storageMessage) && <section className="saved-study-tools" aria-label="Local saved study">
             {savedStudy && <div className="chapter-toolbar">
               <span><strong>Saved on this browser:</strong> {savedStudy.mode === "pull_request" ? savedStudy.plan.title : savedStudy.explanation.title}</span>
@@ -346,6 +366,9 @@ function App() {
             isLoadingPullRequest={isLoadingPullRequest}
             explanationDepth={explanationDepth}
             learnerLevel={learnerLevel}
+            keepTemporary={keepTemporary}
+            temporaryError={temporaryError}
+            onKeepTemporaryChange={setKeepTemporary}
             error={error}
             onModeChange={updateMode}
             onPullRequestUrlChange={setPullRequestUrl}
@@ -364,6 +387,7 @@ function App() {
 
           {!prPlan && explanation && <ExplanationResult
             key={restoreRevision}
+            ref={resultReader}
             initialReading={restoredStudy && restoredStudy.mode !== "pull_request" && restoredStudy.explanation === explanation && restoredStudy.source === source ? restoredStudy.reading : undefined}
             onSaveStudy={mode === "pull_request" ? undefined : saveSourceStudy}
             savingStudy={storageBusy || isGenerating}

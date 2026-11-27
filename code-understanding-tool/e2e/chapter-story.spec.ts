@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 
 const source = "const limit = 3;";
 const explanation = {
@@ -11,13 +12,34 @@ const story = {
 };
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=", "base64");
 
-async function openChapters(page: Page) {
-  await page.route("**/api/explain", (route) => route.fulfill({ json: explanation }));
+async function openChapters(page: Page, result = explanation) {
+  await page.route("**/api/explain", (route) => route.fulfill({ json: result }));
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input" }).fill(source);
   await page.getByRole("button", { name: "Help me understand" }).click();
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Full explanation", exact: true })).toHaveCount(0);
 }
+
+test("renders selective emphasis in Direct and Story without interpreting HTML", async ({ page }) => {
+  await page.route("**/api/chapter-story", route => route.fulfill({ json: { story: {
+    ...story, setup: "The **clerk** works with a *fixed supply*.",
+    scenes: [{ ...story.scenes[0], narrative: "The clerk counts **three tickets**, *no more*." }],
+  } } }));
+  await openChapters(page, { ...explanation, summary: "**The limit** stays *fixed*. <b>Literal tag</b>" });
+  const direct = page.locator(".result-summary");
+  await expect(direct.locator("strong")).toHaveText("The limit");
+  await expect(direct.locator("em")).toHaveText("fixed");
+  await expect(direct.locator("em")).toHaveCSS("font-synthesis-style", "auto");
+  await expect(direct.locator("b")).toHaveCount(0);
+  await expect(direct).toContainText("<b>Literal tag</b>");
+  await page.getByRole("button", { name: "Story", exact: true }).click();
+  const narrative = page.getByRole("article", { name: story.title, exact: true });
+  await expect(narrative.getByText("three tickets", { exact: true })).toHaveJSProperty("tagName", "STRONG");
+  await expect(narrative.getByText("fixed supply", { exact: true })).toHaveJSProperty("tagName", "EM");
+  await expect(narrative.getByText("fixed supply", { exact: true })).toHaveCSS("font-synthesis-style", "auto");
+  await expect(direct).not.toBeVisible();
+});
 
 test("generates only on request, links evidence, and reuses the same chapter story", async ({ page }) => {
   const bodies: unknown[] = [];
@@ -82,7 +104,7 @@ test("stops chapter read-aloud when the story replaces the direct chapter", asyn
   await page.route("**/api/chapter-story", (route) => route.fulfill({ json: { story } }));
   await openChapters(page);
   const chapterTools = page.getByRole("group", { name: "Chapter tools" });
-  await chapterTools.getByText("Read aloud", { exact: true }).click();
+  await chapterTools.locator("summary").filter({ hasText: /^Read aloud/ }).click();
   await chapterTools.getByRole("button", { name: "Read chapter aloud", exact: true }).click();
   await expect(page.locator("body")).toHaveAttribute("data-spoken", "chapter");
   await page.getByRole("button", { name: "Story", exact: true }).click();
@@ -90,24 +112,29 @@ test("stops chapter read-aloud when the story replaces the direct chapter", asyn
   await expect(page.locator("body")).not.toHaveAttribute("data-spoken");
 });
 
-test("illustrates a single scene on demand and keeps the factual diagram separate", async ({ page }) => {
+test("saves accepted scene images separately and resumes without generating them again", async ({ page }) => {
   const briefs: Record<string, unknown>[] = [];
   const renders: Record<string, unknown>[] = [];
-  await page.route("**/api/chapter-story", (route) => route.fulfill({ json: { story: {
-    ...story, scenes: [...story.scenes, { heading: "Another scene", narrative: "A second clerk walks past.", meaning: "There is no other action.", source_ranges: [] }],
-  } } }));
+  let stories = 0;
+  await page.route("**/api/chapter-story", (route) => {
+    stories += 1;
+    return route.fulfill({ json: { story: {
+      ...story, scenes: [...story.scenes, { heading: "Another scene", narrative: "A second clerk walks past.", meaning: "There is no other action.", source_ranges: [] }],
+    } } });
+  });
   await page.route("**/api/visual-brief", (route) => {
     const body = route.request().postDataJSON();
     briefs.push(body);
-    const caption = body.purpose === "factual-diagram" ? "A factual limit schematic." : "A drawing of the fictional clerk.";
+    const caption = briefs.length === 3 ? "An unaccepted alternative." : body.purpose === "factual-diagram" ? "A factual limit schematic." : "A drawing of the fictional clerk.";
     return route.fulfill({ json: { brief: {
       disposition: "render", visualType: "concept-map", takeaway: caption, composition: caption,
       content: [{ label: "Limit", role: "background", statement: "The constant is set to three.", chapterLines: [] }],
       guardrails: [], caption, altText: caption,
     } } });
   });
+  let plans = 0;
   await page.route("**/api/visual-plan", (route) => route.fulfill({ json: { scene: {
-    background: "#ffffff", items: [{ kind: "text", text: "Limit", x: 40, y: 60, size: 24, color: "#202033", align: "left" }],
+    background: "#ffffff", items: [{ kind: "text", text: "Limit", x: ++plans === 1 ? 999 : 40, y: 60, size: 24, color: "#202033", align: "left" }],
   } } }));
   await page.route("**/api/visual-render", (route) => {
     renders.push(route.request().postDataJSON());
@@ -126,6 +153,9 @@ test("illustrates a single scene on demand and keeps the factual diagram separat
   await generate.click();
   await first.getByRole("radio", { name: "Full HD", exact: true }).check();
   await render.click();
+  await expect(first.getByRole("alert")).toContainText("may be clipped");
+  expect(renders).toHaveLength(0);
+  await first.getByRole("button", { name: "Retry drawing plan", exact: true }).click();
   const fictionalImage = first.getByRole("figure", { name: "Story illustration: fictional analogy" }).getByRole("img");
   await expect(fictionalImage).toHaveAccessibleName("A drawing of the fictional clerk.");
   await first.getByRole("button", { name: "Factual diagram", exact: true }).click();
@@ -149,6 +179,25 @@ test("illustrates a single scene on demand and keeps the factual diagram separat
   await expect(fictionalImage).toBeVisible();
   await expect(diagram).toBeVisible();
   expect(renders).toHaveLength(2);
+
+  await first.getByText("Illustrate this scene", { exact: true }).click();
+  await storyChoice.click();
+  await generate.click();
+  await render.click();
+  const candidate = first.getByRole("group", { name: "Compare illustrations" }).getByRole("img", { name: "An unaccepted alternative." });
+  await expect(candidate).toBeVisible();
+  await expect(page.getByRole("button", { name: "Resume saved study", exact: true })).toHaveCount(0);
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Story", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(fictionalImage).toHaveAccessibleName("A drawing of the fictional clerk.");
+  await expect(diagram).toHaveAccessibleName("A factual limit schematic.");
+  await expect(candidate).toHaveCount(0);
+  expect(stories).toBe(1);
+  expect(renders).toHaveLength(3);
 });
 
 test("does not publish an image that finishes after leaving its scene", async ({ page }) => {

@@ -1,12 +1,11 @@
 import { useId, useState } from "react";
 import type { ChapterStory } from "../domain/chapter-story";
 import type { Explanation, LearnerLevel } from "../domain/explanation-types";
-import type { RenderedIllustration } from "../domain/saved-study";
+import type { RenderedIllustration, StorySceneImages } from "../domain/saved-study";
 import { defaultVisualPreferences, type SceneVisualPurpose } from "../domain/visual-brief";
 import { InlineIllustration } from "./InlineIllustration";
 import { VisualBriefPanel } from "./VisualBriefPanel";
 
-export type StorySceneImages = Partial<Record<SceneVisualPurpose, RenderedIllustration>>;
 const purposes = ["story-illustration", "factual-diagram"] as const;
 const labels = { "story-illustration": "Story illustration", "factual-diagram": "Factual diagram" };
 const figureLabels = { "story-illustration": "Story illustration: fictional analogy", "factual-diagram": "Factual diagram: generated schematic" };
@@ -24,7 +23,7 @@ function visualMaterial(scene: ChapterStory["scenes"][number], purpose: SceneVis
 export function StorySceneVisual({ scene, sceneNumber, source, audience, images, onRender }: {
   scene: ChapterStory["scenes"][number]; sceneNumber: number; source: string;
   audience: LearnerLevel; images?: StorySceneImages;
-  onRender: (purpose: SceneVisualPurpose, image: RenderedIllustration) => void;
+  onRender: (purpose: SceneVisualPurpose, image: RenderedIllustration, reviewOnly?: boolean) => void;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -44,11 +43,12 @@ export function StorySceneVisual({ scene, sceneNumber, source, audience, images,
           style: purpose === "story-illustration" ? "expressive" : "technical",
         }}
         explanation={visualMaterial(scene, purpose, sceneNumber)} source={source} scope={`${labels[purpose]} for scene ${sceneNumber}`}
-        placement={{ id: imageId(purpose), current: images?.[purpose], location: "scene", onRender: (image) => onRender(purpose, image) }} />}
+        placement={{ id: imageId(purpose), current: images?.[purpose], location: "scene",
+          onRender: (image) => onRender(purpose, image), onReview: (image) => onRender(purpose, image, true) }} />}
     </details>
     {purposes.map((kind) => {
       const image = images?.[kind];
-      return image && <InlineIllustration key={kind} id={imageId(kind)} image={image} label={figureLabels[kind]} />;
+      return image && <InlineIllustration key={kind} id={imageId(kind)} image={image} label={figureLabels[kind]} onChange={updated => onRender(kind, updated, true)} />;
     })}
   </div>;
 }

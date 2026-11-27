@@ -3,7 +3,7 @@ import { MAX_FOLLOW_UP_HISTORY_MESSAGES, type Explanation, type ExplanationDepth
 import { isGenerationPhase, type GenerationPhase } from "../domain/generation-progress";
 import type { ChapterSettings } from "../domain/chapter-settings";
 
-type SessionInput = { source: string; mode: Mode; depth: ExplanationDepth; learnerLevel: LearnerLevel; tone?: ChapterSettings["tone"]; focus?: ChapterSettings["focus"]; learnerQuestion?: string };
+type SessionInput = { source: string; mode: Mode; depth: ExplanationDepth; learnerLevel: LearnerLevel; tone?: ChapterSettings["tone"]; focus?: ChapterSettings["focus"]; visualPreference?: ChapterSettings["visualPreference"]; learnerQuestion?: string };
 
 function createProgressId(): string {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -13,9 +13,10 @@ function createProgressId(): string {
   });
 }
 
-export function useExplanationSession({ source, mode, depth, learnerLevel, tone = "plain", focus = "auto", learnerQuestion }: SessionInput, initialExplanation: Explanation | null = null) {
+export function useExplanationSession({ source, mode, depth, learnerLevel, tone = "plain", focus = "auto", visualPreference = "auto", learnerQuestion }: SessionInput, initialExplanation: Explanation | null = null) {
   const [explanation, setExplanation] = useState<Explanation | null>(initialExplanation);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
   const [generationPhase, setGenerationPhase] = useState<GenerationPhase | null>(null);
   const [isAskingFollowUp, setIsAskingFollowUp] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
@@ -49,6 +50,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
     explanationRequestId.current += 1;
     cancelFollowUp();
     setIsGenerating(false);
+    setIsReviewing(false);
     setGenerationPhase(null);
     explanationRequestController.current?.abort();
     explanationRequestController.current = null;
@@ -66,27 +68,30 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
     setError("");
   }
 
-  async function explainSource() {
+  async function explainSource(action?: "draft" | "review" | "draft-and-review") {
     if (explanationRequestController.current) return;
+    if (action === "review" && !explanation) return;
     cancelFollowUp();
     const requestId = ++explanationRequestId.current;
-    const progressId = createProgressId();
+    let progressId = createProgressId();
     const requestController = new AbortController();
     const progressController = new AbortController();
     explanationRequestController.current = requestController;
     progressPollingController.current?.abort();
     progressPollingController.current = progressController;
     setIsGenerating(true);
-    setGenerationPhase("preparing");
+    setIsReviewing(action === "review");
+    setGenerationPhase(action === "review" ? "reviewing" : "preparing");
     setError("");
     let polling = true;
     const pollProgress = async () => {
       while (polling && requestId === explanationRequestId.current) {
         try {
-          const progressResponse = await fetch(`/api/explain-progress?id=${encodeURIComponent(progressId)}`, { signal: progressController.signal });
+          const polledId = progressId;
+          const progressResponse = await fetch(`/api/explain-progress?id=${encodeURIComponent(polledId)}`, { signal: progressController.signal });
           if (progressResponse.ok) {
             const progressPayload = await progressResponse.json() as { phase?: unknown };
-            if (isGenerationPhase(progressPayload.phase) && requestId === explanationRequestId.current) {
+            if (isGenerationPhase(progressPayload.phase) && requestId === explanationRequestId.current && polledId === progressId) {
               setGenerationPhase(progressPayload.phase);
             }
           }
@@ -98,22 +103,33 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
       }
     };
     const progressPolling = pollProgress();
-    try {
+    async function submit(reviewMode?: "draft" | "review", draft?: Explanation): Promise<Explanation> {
       const response = await fetch("/api/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_text: source, material_kind: mode === "code" ? "code" : "docs", teaching_mode: "auto", visual_preference: "auto", explanation_depth: depth, learner_level: learnerLevel, explanation_tone: tone, explanation_focus: focus, learner_question: learnerQuestion, progress_id: progressId }),
+        body: JSON.stringify({ source_text: source, material_kind: mode === "code" ? "code" : "docs", teaching_mode: "auto", visual_preference: visualPreference, explanation_depth: depth, learner_level: learnerLevel, explanation_tone: tone, explanation_focus: focus, learner_question: learnerQuestion, progress_id: progressId, review_mode: reviewMode, draft }),
         signal: requestController.signal,
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not generate an explanation.");
+      return payload as Explanation;
+    }
+    try {
+      const payload = await (action === "review" ? submit("review", explanation!) : submit(action ? "draft" : undefined));
       if (requestId !== explanationRequestId.current) return;
-      setExplanation(payload as Explanation);
+      setExplanation(payload);
       setCopyStatus("");
       setFollowUpMessages([]);
       setFollowUpQuestion("");
       setSelectedTextForQuestion("");
       setFollowUpError("");
+      if (action === "draft-and-review") {
+        progressId = createProgressId();
+        setIsReviewing(true);
+        setGenerationPhase("reviewing");
+        const reviewed = await submit("review", payload);
+        if (requestId === explanationRequestId.current) setExplanation(reviewed);
+      }
     } catch (caught) {
       if (requestId !== explanationRequestId.current) return;
       setError(caught instanceof Error ? caught.message : "Unable to reach the local explanation service.");
@@ -124,6 +140,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
       if (progressPollingController.current === progressController) progressPollingController.current = null;
       if (requestId === explanationRequestId.current) {
         setIsGenerating(false);
+        setIsReviewing(false);
         setGenerationPhase(null);
       }
       await progressPolling;
@@ -170,7 +187,7 @@ export function useExplanationSession({ source, mode, depth, learnerLevel, tone 
   }
 
   return {
-    explanation, setExplanation, isGenerating, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus,
+    explanation, setExplanation, isGenerating, isReviewing, generationPhase, isAskingFollowUp, copyStatus, setCopyStatus,
     followUpQuestion, setFollowUpQuestion, selectedTextForQuestion, setSelectedTextForQuestion,
     followUpMessages, followUpError, error, setError,
     invalidatePendingRequests, resetExplanation, explainSource, askFollowUp,

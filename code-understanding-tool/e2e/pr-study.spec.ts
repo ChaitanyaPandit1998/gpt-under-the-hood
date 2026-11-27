@@ -18,10 +18,10 @@ const plan: PullRequestPlan = {
 
 async function workspace(page: Page) {
   const state = {
-    generations: [] as Record<string, unknown>[], evidence: [] as Record<string, unknown>[], imports: 0, visualRequests: 0,
+    generations: [] as Record<string, unknown>[], evidence: [] as Record<string, unknown>[], imports: 0, visualRequests: 0, stories: 0,
     covers: [] as Record<string, unknown>[], holdCover: false, releaseCover: () => {},
-    holdGeneration: false, holdEvidence: false, evidenceError: "",
-    releaseGeneration: () => {}, releaseEvidence: () => {},
+    holdGeneration: false, holdReview: false, holdEvidence: false, evidenceError: "",
+    releaseGeneration: () => {}, releaseReview: () => {}, releaseEvidence: () => {},
   };
   // No GitHub or model requests leave the browser during these regression tests.
   await page.route("**/api/**", async (route) => {
@@ -29,6 +29,13 @@ async function workspace(page: Page) {
     if (endpoint === "/api/document-export") return route.fulfill({ json: { available: false } });
     if (endpoint === "/api/pull-request-plan") { state.imports += 1; return route.fulfill({ json: { plan } }); }
     if (endpoint === "/api/explain-progress") return route.fulfill({ json: { phase: "drafting" } });
+    if (endpoint === "/api/chapter-story") {
+      state.stories++;
+      return route.fulfill({ json: { story: {
+        title: "A checkpoint in the patch", setup: "A clerk receives a form.", takeaway: "Read the patch for actual behavior.",
+        scenes: [{ heading: "The checkpoint", narrative: "The clerk checks the form.", meaning: "The change validates the request.", source_ranges: [{ start_line: 2, end_line: 2 }] }],
+      } } });
+    }
     if (endpoint === "/api/visual-brief") {
       state.visualRequests++;
       return route.fulfill({ json: { brief: { disposition: "render", visualType: "comparison", takeaway: "Compare two cases.",
@@ -55,11 +62,13 @@ async function workspace(page: Page) {
       state.generations.push(body);
       const number = state.generations.length;
       if (state.holdGeneration) await new Promise<void>((resolve) => { state.releaseGeneration = resolve; });
+      if (body.review_mode === "review" && state.holdReview) await new Promise<void>((resolve) => { state.releaseReview = resolve; });
       await route.fulfill({ json: {
         title: `Explanation ${number}`, summary: "This chapter explains only the supplied source.",
-        concepts: [{ term: "Validation", explanation: "Checks the request.", source_ranges: [{ start_line: 2, end_line: 3 }] }],
+        concepts: body.review_mode === "review" ? [] : [{ term: "Validation", explanation: "Checks the request.", source_ranges: [{ start_line: 2, end_line: 3 }] }],
         walkthrough: [], assumptions: [], visuals: [], visual_note: "",
-        quality_review_status: "passed", quality_review_note: "Checked against chapter evidence.",
+        quality_review_status: body.review_mode === "draft" ? "unreviewed" : "passed",
+        quality_review_note: body.review_mode === "draft" ? "Awaiting review." : "Checked against chapter evidence.",
       } }).catch(() => {}); // Cancellation intentionally closes pending requests.
       return;
     }
@@ -99,6 +108,36 @@ test("imports an outline without generation and navigates its boundaries", async
   expect(state.generations).toHaveLength(0);
 });
 
+test("resumes a cached PR chapter variant with its story and illustration", async ({ page }) => {
+  const state = await workspace(page);
+  await page.getByRole("button", { name: "Next chapter", exact: true }).click();
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
+  const storyButton = page.getByRole("button", { name: "Story", exact: true });
+  await storyButton.click();
+  const story = page.getByRole("article", { name: "A checkpoint in the patch" });
+  await expect(story).toBeVisible();
+  expect(state.visualRequests).toBe(0);
+  await story.getByText("Illustrate this scene", { exact: true }).click();
+  await story.getByRole("button", { name: "Factual diagram", exact: true }).click();
+  expect(state.visualRequests).toBe(0);
+  await story.getByRole("button", { name: "Generate visual brief", exact: true }).click();
+  await story.getByRole("button", { name: "Render image", exact: true }).click();
+  const image = story.getByRole("figure", { name: "Factual diagram: generated schematic" }).getByRole("img");
+  await expect(image).toBeVisible();
+  await page.getByRole("button", { name: "Previous chapter", exact: true }).click();
+  await page.getByRole("button", { name: "Save PR study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await page.getByRole("button", { name: "Next chapter", exact: true }).click();
+  await expect(storyButton).toHaveAttribute("aria-pressed", "true");
+  await expect(image).toHaveAccessibleName("Chapter illustration.");
+  expect(state.generations).toHaveLength(1);
+  expect(state.stories).toBe(1);
+  expect(state.visualRequests).toBe(3);
+});
+
 test("saves, resumes and exports a pinned PR with cached variants and patch evidence", async ({ page }, testInfo) => {
   const state = await workspace(page);
   const pdfButton = page.getByRole("button", { name: "PR study PDF preview", exact: true });
@@ -133,6 +172,7 @@ test("saves, resumes and exports a pinned PR with cached variants and patch evid
   await pdfButton.click();
   const pdf = page.getByRole("dialog", { name: "PDF preview" });
   const paper = pdf.getByRole("article", { name: "Selected PDF content" });
+  await expect(paper.getByText("Review: unreviewed.", { exact: true }).first()).toBeVisible();
   const overview = pdf.getByRole("checkbox", { name: "Overview and change inventory", exact: true });
   const evidence = pdf.getByRole("checkbox", { name: "Large file section 1", exact: true });
   const illustration = pdf.getByRole("checkbox", { name: "Overview and change inventory illustrations", exact: true });
@@ -180,6 +220,76 @@ test("saves, resumes and exports a pinned PR with cached variants and patch evid
   expect(state.evidence[1]).toMatchObject({ headSha, offset: 12 });
 });
 
+test("defaults to text and restores both saved variants when diagrams are opted in", async ({ page }) => {
+  const state = await workspace(page);
+  const diagrams = page.getByRole("checkbox", { name: "Include diagrams" });
+  const generate = page.getByRole("button", { name: "Generate this chapter", exact: true });
+  const next = page.getByRole("button", { name: "Next chapter", exact: true });
+  const previous = page.getByRole("button", { name: "Previous chapter", exact: true });
+  await next.click();
+  await expect(diagrams).not.toBeChecked();
+  await generate.click();
+  await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  await diagrams.check();
+  await expect(generate).toBeVisible();
+  expect(state.generations).toHaveLength(1);
+  await generate.click();
+  await expect(page.getByRole("heading", { name: "Explanation 2", exact: true })).toBeVisible();
+  expect(state.generations.map(request => request.visual_preference)).toEqual(["no", "auto"]);
+  await previous.click();
+  await expect(diagrams).not.toBeChecked();
+  await next.click();
+  await expect(diagrams).toBeChecked();
+  await expect(page.getByRole("heading", { name: "Explanation 2", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Save PR study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await expect(diagrams).toBeChecked();
+  await expect(page.getByRole("heading", { name: "Explanation 2", exact: true })).toBeVisible();
+  await diagrams.uncheck();
+  await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  expect(state.generations).toHaveLength(2);
+});
+
+test("shows an unreviewed draft before optional review and keeps it on cancellation", async ({ page }) => {
+  const state = await workspace(page);
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  const draft = page.getByText("Unreviewed draft", { exact: true });
+  await expect(draft).toBeVisible();
+  expect(state.generations.map(request => request.review_mode)).toEqual(["draft"]);
+  state.holdReview = true;
+  const review = page.getByRole("button", { name: "Review this chapter", exact: true });
+  await review.click();
+  await expect.poll(() => state.generations[1]?.review_mode).toBe("review");
+  expect(state.generations[1]?.draft).toMatchObject({ title: "Explanation 1", quality_review_status: "unreviewed" });
+  await expect(draft).toBeVisible();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  state.holdReview = false;
+  state.releaseReview();
+  await expect(draft).toBeVisible();
+  await page.getByRole("navigation", { name: "Explanation chapters", exact: true }).getByRole("button", { name: /Key ideas/ }).click();
+  await review.click();
+  await expect(page.getByText("Second-pass review · passed", { exact: true })).toBeVisible();
+  await expect(draft).not.toBeVisible();
+});
+
+test("automatic review shows the draft before the review returns", async ({ page }) => {
+  const state = await workspace(page);
+  await page.getByRole("checkbox", { name: "Review automatically" }).check();
+  state.holdReview = true;
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  await expect.poll(() => state.generations.map(request => request.review_mode)).toEqual(["draft", "review"]);
+  await expect(page.getByText("Unreviewed draft", { exact: true })).toBeVisible();
+  state.releaseReview();
+  await expect(page.getByText("Second-pass review · passed", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("tab", { name: "Pull request" }).click();
+  await page.getByRole("textbox", { name: "GitHub pull request URL" }).fill(plan.url);
+  await page.getByRole("button", { name: "Load PR", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "Review automatically" })).toBeChecked();
+});
+
 test("generates only selected source and restores cached results by preferences", async ({ page }) => {
   const state = await workspace(page);
   await page.getByRole("button", { name: "Next chapter", exact: true }).click();
@@ -196,6 +306,7 @@ test("generates only selected source and restores cached results by preferences"
   await expect(page.getByRole("button", { name: "Generate this chapter", exact: true })).toBeVisible();
   await page.getByRole("combobox", { name: "Chapter depth" }).selectOption("detailed");
   await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "Explanation chapters" }).getByRole("button", { name: /Key ideas/ }).click();
   const citation = page.getByRole("button", { name: "View source lines 2 through 3", exact: true });
   await citation.click();
   const evidence = page.getByRole("dialog", { name: "PR chapter source" });
@@ -308,6 +419,7 @@ test("cover generation is opt-in, sends no code, and preserves behavioural expla
   expect(state.covers).toEqual([{ theme: "review", approved: true }]);
   expect(state.generations).toHaveLength(1);
   await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "Explanation chapters" }).getByRole("button", { name: /Key ideas/ }).click();
   await page.getByRole("button", { name: "View source lines 2 through 3", exact: true }).click();
   await page.getByRole("dialog", { name: "PR chapter source" }).getByRole("button", { name: "Close source" }).click();
   await page.getByRole("button", { name: "Previous chapter", exact: true }).click();

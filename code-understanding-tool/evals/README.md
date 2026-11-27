@@ -133,3 +133,54 @@ Liberation Sans fallback was observed during its smoke test.
 
 No binary or generated output is committed. The product integration sequence,
 limits, security boundary, and release gates are recorded in `../PLAN.md`.
+# Automatic Branch Layout Prototype
+
+Run against a saved explanation fixture using the local VectorCraft CLI:
+
+```sh
+node evals/vectorcraft-lanes.mjs INPUT.json "VISUAL TITLE" OUTPUT.png /path/to/vectorcraft-cli
+node --test evals/vectorcraft-lanes.test.mjs
+```
+
+The prototype draws structured binary branches that rejoin as compact lanes,
+with decision labels and source citations. Other valid graphs use a labeled
+connection index that retains every directed edge (including parallel edges and
+loops), edge label, and node citation. Invalid endpoints and graphs beyond the
+prototype size limits fail explicitly. The planner is shared with the app's
+opt-in **Automatic branches** PNG mode; PDF layout remains unchanged.
+
+The two hand-transcribed fixtures in `evals/fixtures/vectorcraft-*.json` are
+derived from the linked PR diffs, not model-generated chapters. Each identifies
+its line coordinate system. The CLI prints which layout it selected.
+
+To inspect the output at current portrait PDF sizing, use a saved app
+explanation with its source text and a locally rendered prototype PNG:
+
+```sh
+node evals/vectorcraft-pdf-fit.mjs INPUT.json "VISUAL TITLE" INPUT.png OUTPUT.pdf /path/to/wordcraft-cli
+```
+
+This is an offline fit check; it does not modify the app's PDF behavior.
+
+For the separate hand-authored visual skill pilot, render the critical strip,
+FastAPI schema-extras decision, and an illustrative attention matrix:
+
+```sh
+node evals/vectorcraft-visual-skill.mjs /path/to/vectorcraft-cli SAVED_PR_9816.json OUTPUT_DIR
+```
+
+This uses the saved PR chapter fixture from the Craft pilots and requires
+Poppler's `pdftotext` for PDF content checks. No model or provider calls.
+
+To evaluate model-authored briefs rather than hand-authored drawings:
+
+```sh
+node evals/visual-design-briefs.mjs /absolute/path/to/codex SAVED_PR_9816.json /tmp/visual-briefs [CASE_ID]
+```
+
+This makes three model requests (one with an optional case ID) and writes structured briefs, timings and
+mechanical checks. It sends only public selected PR lines and educational
+fixtures, never the full saved chapter. Review factual fidelity and whether the
+composition can be rendered; no model output is executed or rendered. These
+are known evaluation cases, not a held-out generalization benchmark. Named
+scenarios are confined to the evaluation inputs, not the production skill.

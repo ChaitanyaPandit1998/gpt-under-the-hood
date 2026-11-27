@@ -12,6 +12,9 @@ import type { ChapterArtwork } from "../domain/chapter-illustrations";
 import type { CachedPrResult, PrReadingState } from "../domain/saved-study";
 import { PullRequestPdfExport, type PrPdfChapter } from "./PullRequestPdfExport";
 
+const initialChapterSettings: ChapterSettings = { ...defaultChapterSettings, depth: "detailed" };
+const automaticReviewKey = "understand-pr-automatic-review";
+
 export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave, saving }: {
   plan: PullRequestPlan; theme: ThemeMode; onClose: () => void;
   initialReading?: PrReadingState; onSave: (reading: PrReadingState) => void; saving: boolean;
@@ -22,6 +25,9 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
   const [evidenceProgress, setEvidenceProgress] = useState<PrReadingState["evidenceProgress"]>(() => initialReading?.evidenceProgress ?? {});
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
   const [evidenceError, setEvidenceError] = useState("");
+  const [automaticReview, setAutomaticReview] = useState(() => {
+    try { return localStorage.getItem(automaticReviewKey) === "true"; } catch { return false; }
+  });
   const [covers, setCovers] = useState<Record<string, ChapterArtwork>>(() => initialReading?.covers ?? {});
   const evidenceController = useRef<AbortController | null>(null);
   const evidenceRequestId = useRef(0);
@@ -29,17 +35,29 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
   const resultReader = useRef<ExplanationResultHandle>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const refinementTarget = useId();
+  const diagramNote = useId();
   const chapters = [...plan.chapters, ...extraChapters];
   const chapter = chapters[index];
   const source = chapter.sourceText;
-  const settingsFor = (chapterIndex: number) => chapterSettings[chapterIndex] ?? { ...defaultChapterSettings, depth: "detailed" as const };
-  const settings = settingsFor(index);
   const cacheKey = (chapterIndex: number, preferences: ChapterSettings) => `${chapterIndex}:${chapterVariantKey(preferences)}`;
+  const settingsFor = (chapterIndex: number): ChapterSettings => {
+    const saved = chapterSettings[chapterIndex];
+    if (saved) return saved;
+    // Older studies could save a generated chapter without saving its default settings.
+    if (cache.has(cacheKey(chapterIndex, initialChapterSettings))) return initialChapterSettings;
+    return { ...initialChapterSettings, visualPreference: "no" };
+  };
+  const settings = settingsFor(index);
   const activeKey = cacheKey(index, settings);
   const savedResult = cache.get(activeKey);
   const session = useExplanationSession({ source, mode: "pull_request", ...settings }, savedResult?.explanation);
   const completedCount = chapters.filter((_, itemIndex) =>
     itemIndex === index ? !!session.explanation : cache.has(cacheKey(itemIndex, settingsFor(itemIndex)))).length;
+
+  function updateAutomaticReview(enabled: boolean) {
+    setAutomaticReview(enabled);
+    try { localStorage.setItem(automaticReviewKey, String(enabled)); } catch { /* Keep the preference for this session. */ }
+  }
 
   function collectPdfChapters(): PrPdfChapter[] {
     return chapters.map((item, itemIndex) => {
@@ -124,7 +142,7 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
     <p className="pr-revision">Snapshot: {plan.headSha}. Chapters are generated only when requested. A saved study restores this snapshot, not the latest PR revision.</p>
     <div className="chapter-toolbar"><button type="button" disabled={saving || !!loadingFile || session.isGenerating} aria-describedby="pr-study-save-note" onClick={save}>Save PR study locally</button>
       <PullRequestPdfExport plan={plan} available={completedCount > 0} collect={collectPdfChapters} />
-      <span id="pr-study-save-note">Stores the imported patches, completed explanations, and illustrations in this browser only when you save.</span></div>
+      <span id="pr-study-save-note">Stores the imported patches, completed explanations and stories, and accepted illustrations in this browser only when you save.</span></div>
     <p aria-live="polite">{completedCount} / {chapters.length} chapters generated for their selected preferences.</p>
     <aside className="incomplete-code-note" aria-label="PR coverage limits"><strong>Initial import coverage limits</strong><ul>{plan.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul><p>Load additional sections below for excluded or excerpted files. Retrieved sections remain separate evidence chapters; no chapter automatically sees all other sections.</p></aside>
     <details className="pr-manifest"><summary>File manifest and evidence coverage</summary><ul>{plan.files.map((file) => <li key={file.path}><code>{file.path}</code> · {file.status} · +{file.additions}/-{file.deletions} · <strong>Initial: {file.coverage.replaceAll("_", " ")}</strong>
@@ -149,7 +167,14 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
           <ChapterControls settings={settings} onChange={(next) => selectChapter(index, next)} disabled={!!loadingFile} />
         </div>
         <div className="chapter-toolbar">
-          <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => void session.explainSource()}>{session.isGenerating ? "Generating chapter…" : session.error ? "Retry chapter generation" : session.explanation ? "Regenerate chapter" : "Generate this chapter"}</button>
+          <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => void session.explainSource(automaticReview ? "draft-and-review" : "draft")}>{session.isReviewing ? "Reviewing chapter…" : session.isGenerating ? "Generating chapter…" : session.explanation ? "Regenerate chapter" : session.error ? "Retry chapter generation" : "Generate this chapter"}</button>
+          {session.explanation && (session.explanation.quality_review_status === "unreviewed" || session.explanation.quality_review_status === "incomplete") &&
+            <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => void session.explainSource("review")}>Review this chapter</button>}
+          <label className="pr-diagram-option"><input type="checkbox" checked={settings.visualPreference !== "no"} disabled={session.isGenerating || !!loadingFile} aria-describedby={diagramNote}
+            onChange={(event) => selectChapter(index, { ...settings, visualPreference: event.target.checked ? "auto" : "no" })} />Include diagrams</label>
+          <small id={diagramNote}>Optional. Diagrams are off by default.</small>
+          <label className="pr-diagram-option"><input type="checkbox" checked={automaticReview} disabled={session.isGenerating || !!loadingFile}
+            onChange={(event) => updateAutomaticReview(event.target.checked)} />Review automatically</label>
           {session.isGenerating && <button type="button" onClick={session.invalidatePendingRequests}>Cancel</button>}
         </div>
         {session.generationPhase && session.isGenerating && <p role="status">{generationPhaseCopy[session.generationPhase].detail}</p>}
@@ -158,7 +183,7 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
           allowChapterArtwork={false} materialMode="pull_request" refinementTarget={refinementTarget} explanation={session.explanation} source={source} theme={theme} lineCount={source.split("\n").length}
           storyPreferences={{ depth: settings.depth, learnerLevel: settings.learnerLevel }}
           exportContext={{ scope: `PR chapter: ${chapter.title}`, provenance: `PR: ${plan.url}\nHead: ${plan.headSha}\nBase: ${plan.baseSha}\nPreferences: ${JSON.stringify(settings)}\nPR coverage limits: ${plan.warnings.join("; ")}` }}
-          isRegenerating={session.isGenerating} isAskingFollowUp={session.isAskingFollowUp} copyStatus={session.copyStatus} followUpQuestion={session.followUpQuestion} selectedTextForQuestion="" followUpMessages={session.followUpMessages} followUpError={session.followUpError} textSelection={null}
+          isRegenerating={session.isGenerating} isReviewing={session.isReviewing} isAskingFollowUp={session.isAskingFollowUp} copyStatus={session.copyStatus} followUpQuestion={session.followUpQuestion} selectedTextForQuestion="" followUpMessages={session.followUpMessages} followUpError={session.followUpError} textSelection={null}
           onCopy={() => void copy()} onFollowUpQuestionChange={session.setFollowUpQuestion} onAskFollowUp={session.askFollowUp} onClearSelectedTextContext={() => session.setSelectedTextForQuestion("")} onAskAboutSelectedText={() => {}} />}
         <nav className="chapter-pagination" aria-label="PR chapter navigation"><button type="button" disabled={index === 0} onClick={() => selectChapter(index - 1)}>Previous chapter</button><span>{index + 1} / {chapters.length}</span><button type="button" disabled={index === chapters.length - 1} onClick={() => selectChapter(index + 1)}>Next chapter</button></nav>
       </div>

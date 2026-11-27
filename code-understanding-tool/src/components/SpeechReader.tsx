@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Explanation } from "../domain/explanation-types";
+import { stripInlineEmphasis } from "../domain/inline-emphasis";
 
 type ReadSection = "summary" | "walkthrough" | "diagram" | "full";
 type PlaybackState = "idle" | "speaking" | "paused";
@@ -65,7 +66,7 @@ export function SpeechReader({ explanation, chapterOnly = false }: { explanation
 
   const activeReadSection = (readSection === "walkthrough" && !textBySection.walkthrough)
     || (readSection === "diagram" && !textBySection.diagram) ? "full" : readSection;
-  const text = textBySection[activeReadSection] || textBySection.summary;
+  const text = stripInlineEmphasis(textBySection[activeReadSection] || textBySection.summary);
   const selectedVoice = voices.find((voice) => voice.voiceURI === voiceURI);
 
   useEffect(() => {
@@ -146,7 +147,7 @@ export function SpeechReader({ explanation, chapterOnly = false }: { explanation
     }
   }
 
-  return <div className="speech-reader" role="group" aria-label={chapterOnly ? "Read this chapter aloud" : "Read explanation or diagram aloud"}>
+  return <div className="speech-reader" role="group" data-tool-active={playbackState !== "idle"} aria-label={chapterOnly ? "Read this chapter aloud" : "Read explanation or diagram aloud"}>
     {!chapterOnly && <label className="speech-reader-select">Read
       <select value={activeReadSection} onChange={(event) => setReadSection(event.target.value as ReadSection)}>
         <option value="summary">Summary</option>

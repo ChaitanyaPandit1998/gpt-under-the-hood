@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 
 for (const mode of ["code", "docs"] as const) {
 test(`${mode}: adapts just one section, retains original warnings and restores cached variants`, async ({ page }, testInfo) => {
@@ -39,7 +40,7 @@ test(`${mode}: adapts just one section, retains original warnings and restores c
   await editor.fill(source);
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
   await expect(page.getByRole("heading", { name: "Original explanation", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   const overview = page.getByRole("region", { name: "Customize Overview", exact: true });
   await overview.getByRole("button", { name: "Go deeper", exact: true }).click();
   expect(requests).toHaveLength(1);
@@ -97,8 +98,9 @@ test(`${mode}: adapts just one section, retains original warnings and restores c
   await overview.getByRole("button", { name: "Render image", exact: true }).click();
   const illustration = overview.getByRole("img", { name: "Adapted value illustration.", exact: true });
   await expect(illustration).toBeVisible();
-  await page.getByRole("button", { name: "Save study locally", exact: true }).click();
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
   await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
   await page.reload();
   await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
   await expect(overview.getByRole("heading", { name: "Variant 2", exact: true })).toBeVisible();
@@ -132,7 +134,7 @@ test("cancels section work when navigating and ignores its late response", async
   await page.getByRole("textbox", { name: "Code input", exact: true }).fill("const value = 42;");
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
   await expect(page.getByRole("heading", { name: "Original", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Chapters", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Explanation chapters", exact: true })).toBeVisible();
   const overview = page.getByRole("region", { name: "Customize Overview", exact: true });
   await overview.getByRole("button", { name: "Generate section variant", exact: true }).click();
   await expect.poll(() => count).toBe(2);

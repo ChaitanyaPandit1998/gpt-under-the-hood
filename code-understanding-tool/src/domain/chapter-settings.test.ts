@@ -16,5 +16,7 @@ describe("chapter preferences", () => {
     expect(chapterVariantKey({ ...defaultChapterSettings, focus: "example" })).not.toBe(original);
     expect(chapterVariantKey({ ...defaultChapterSettings, depth: "detailed" })).not.toBe(original);
     expect(chapterVariantKey({ ...defaultChapterSettings, learnerLevel: "advanced" })).not.toBe(original);
+    expect(chapterVariantKey({ ...defaultChapterSettings, visualPreference: "auto" })).toBe(original);
+    expect(chapterVariantKey({ ...defaultChapterSettings, visualPreference: "no" })).not.toBe(original);
   });
 });

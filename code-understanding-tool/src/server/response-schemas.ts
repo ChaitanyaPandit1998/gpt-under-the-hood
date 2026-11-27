@@ -82,6 +82,13 @@ export const explanationSchema = {
   $defs: { sourceRanges },
 };
 
+const textFields = ["title", "summary", "concepts", "walkthrough", "assumptions"] as const;
+export const textExplanationSchema = {
+  ...explanationSchema,
+  required: textFields,
+  properties: Object.fromEntries(textFields.map(key => [key, explanationSchema.properties[key]])),
+};
+
 export const explanationReviewSchema = {
   type: "object",
   additionalProperties: false,

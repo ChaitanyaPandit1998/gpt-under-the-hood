@@ -18,7 +18,7 @@ export function VisualPreferenceFields({ value, onChange, presets, onPresetsChan
       <ToggleCards label="Teaching approach" choices={visualPresets.additionalContext} values={presets.additionalContext}
         onChange={(additionalContext) => onPresetsChange({ ...presets, additionalContext })} />
     </VisualDesignerStep>
-    <VisualDesignerStep number="02" title="How it should look">
+    <VisualDesignerStep number="02" title="Look and feel">
       <ToggleCards label="Art direction presets" choices={visualPresets.direction} values={presets.direction}
         onChange={(direction) => onPresetsChange({ ...presets, direction })} />
     </VisualDesignerStep>

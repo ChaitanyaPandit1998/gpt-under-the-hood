@@ -3,8 +3,13 @@ import type { VisualResolution } from "./visual-resolution";
 import type { ChapterSettings } from "./chapter-settings";
 import type { PullRequestChapter, PullRequestPlan } from "./pull-request-plan";
 import type { ChapterArtwork } from "./chapter-illustrations";
+import type { ChapterStory } from "./chapter-story";
+import type { SceneVisualPurpose } from "./visual-brief";
+import { validateSavedVisualArtifacts, type VisualProvenance } from "./visual-provenance";
 
-export type RenderedIllustration = { png: Blob; alt: string; caption: string; resolution: VisualResolution };
+export type RenderedIllustration = { png: Blob; alt: string; caption: string; resolution: VisualResolution; provenance?: VisualProvenance };
+export type StorySceneImages = Partial<Record<SceneVisualPurpose, RenderedIllustration>>;
+export type SavedChapterStory = { story: ChapterStory; images?: Record<number, StorySceneImages> };
 export type AdaptedStudy = {
   settings: ChapterSettings; visible: boolean; variants: Record<string, Explanation>;
   images?: Record<string, { explanation: Explanation; illustration: RenderedIllustration }>;
@@ -12,6 +17,7 @@ export type AdaptedStudy = {
 export type ReadingState = {
   chapterMode: boolean; chapterId: string; images: Record<string, RenderedIllustration>;
   adapted?: Record<string, AdaptedStudy>; covers?: Record<string, ChapterArtwork>;
+  stories?: Record<string, SavedChapterStory>; activeStoryKey?: string;
 };
 export type ResultReadingState = { chapter?: ReadingState; illustration?: RenderedIllustration };
 type SavedSourceStudy = {
@@ -29,7 +35,8 @@ export type SavedStudy = SavedSourceStudy | SavedPrStudy;
 
 type Action = { type: "read" } | { type: "save"; study: SavedStudy } | { type: "delete" };
 
-export function accessSavedStudy(action: Action): Promise<SavedStudy | undefined> {
+export async function accessSavedStudy(action: Action): Promise<SavedStudy | undefined> {
+  if (action.type === "save") await validateSavedVisualArtifacts(action.study);
   return new Promise((resolve, reject) => {
     const open = indexedDB.open("understand-local-study", 1);
     open.onupgradeneeded = () => open.result.createObjectStore("snapshots");
@@ -43,7 +50,8 @@ export function accessSavedStudy(action: Action): Promise<SavedStudy | undefined
       tx.oncomplete = () => {
         db.close();
         const study = action.type === "read" ? operation.result as SavedStudy | undefined : undefined;
-        resolve(study?.version === 1 ? study : undefined);
+        if (study?.version === 1) void validateSavedVisualArtifacts(study).then(() => resolve(study), reject);
+        else resolve(undefined);
       };
       tx.onabort = () => { db.close(); reject(tx.error); };
     };

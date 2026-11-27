@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openStudyActions } from "./support/study-actions";
 
 test("exports an existing result with source consent, errors and cancellation without regeneration", async ({ page }, testInfo) => {
   const exports: Record<string, unknown>[] = [];
@@ -23,7 +24,7 @@ test("exports an existing result with source consent, errors and cancellation wi
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input", exact: true }).fill("const answer = 42;");
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
-  await page.getByText("Export document", { exact: false }).first().click();
+  await (await openStudyActions(page)).getByText("Export document", { exact: false }).click();
   await expect(page.getByText("For an illustrated PDF", { exact: false })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Include source text in this download" })).not.toBeChecked();
   await page.getByLabel("Document format").selectOption("pdf");
@@ -44,9 +45,14 @@ test("exports an existing result with source consent, errors and cancellation wi
   mode = "hold";
   await page.getByRole("button", { name: "Download document", exact: true }).click();
   await expect.poll(() => exports.length).toBe(4);
+  const actions = await openStudyActions(page);
+  await actions.locator(":scope > summary").click();
+  await expect(actions.locator(":scope > summary .tool-active-indicator")).toBeVisible();
+  await openStudyActions(page);
   await page.getByRole("button", { name: "Cancel export", exact: true }).click();
   release();
   await expect(page.getByText("Export cancelled.", { exact: true })).toBeVisible();
+  await expect(actions.locator(":scope > summary .tool-active-indicator")).not.toBeVisible();
   expect(generations).toBe(1);
   await expect(page.getByRole("heading", { name: "Current result", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -59,7 +65,7 @@ test("explains missing exporter setup without blocking study", async ({ page }) 
   await page.goto("/");
   await page.getByRole("textbox", { name: "Code input", exact: true }).fill("x");
   await page.getByRole("button", { name: "Help me understand", exact: false }).click();
-  await page.getByText("Export document", { exact: false }).first().click();
+  await (await openStudyActions(page)).getByText("Export document", { exact: false }).click();
   await expect(page.getByText("This explanation has no diagram to embed.", { exact: false })).toBeVisible();
   await expect(page.getByText("Export is unavailable.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Download document", exact: true })).toBeDisabled();

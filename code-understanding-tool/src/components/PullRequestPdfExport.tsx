@@ -65,7 +65,7 @@ function PrPdfPreview({ plan, chapters, onClose }: { plan: PullRequestPlan; chap
       <header>
         <h2>{index + 1}. {chapter.title}</h2>
         <p><strong>{result.explanation.title}</strong></p>
-        <p className="study-pdf-provenance">Depth: {settings.depth} · Audience: {settings.learnerLevel} · Tone: {settings.tone} · Focus: {settings.focus}</p>
+        <p className="study-pdf-provenance">Depth: {settings.depth} · Audience: {settings.learnerLevel} · Tone: {settings.tone} · Focus: {settings.focus}{settings.visualPreference === "no" ? " · Text only" : ""}</p>
         {chapter.files.length ? <p className="study-pdf-provenance">Chapter evidence: {chapter.files.join(", ")}</p> :
           <p className="study-pdf-provenance">Inventory only. No implementation patches in this chapter.</p>}
       </header>

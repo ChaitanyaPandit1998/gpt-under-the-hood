@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { validateExplanation } from "./response-validation.ts";
 import type { Explanation } from "../domain/explanation-types.ts";
+import { stripInlineEmphasis } from "../domain/inline-emphasis.ts";
 
 export type StudyExportSnapshot = {
   version: 1;
@@ -21,7 +22,7 @@ export function parseStudyExport(value: unknown): { snapshot: StudyExportSnapsho
     || typeof body.scope !== "string" || !body.scope.trim() || body.scope.length > 500
     || typeof body.provenance !== "string" || body.provenance.length > 4_000) throw new Error("Invalid export scope, format, or source.");
   const explanation = structuredClone(validateExplanation(body.explanation, body.source));
-  if (explanation.quality_review_status !== undefined && !["passed", "revised", "incomplete"].includes(explanation.quality_review_status)) throw new Error("Invalid review status.");
+  if (explanation.quality_review_status !== undefined && !["passed", "revised", "incomplete", "unreviewed"].includes(explanation.quality_review_status)) throw new Error("Invalid review status.");
   if (explanation.quality_review_note !== undefined && (typeof explanation.quality_review_note !== "string" || explanation.quality_review_note.length > 8_000)) throw new Error("Invalid review note.");
   if (explanation.incomplete_items !== undefined) {
     if (!Array.isArray(explanation.incomplete_items) || explanation.incomplete_items.length > 20) throw new Error("Invalid incomplete-code findings.");
@@ -74,12 +75,12 @@ export function documentCommands(snapshot: StudyExportSnapshot, docxPath: string
   paragraph(`Review status: ${e.quality_review_status ?? "not provided"}`);
   paragraph(e.quality_review_note ?? "No model review note provided.");
   paragraph(snapshot.includeSource ? "Source inclusion approved for this download." : "Source text omitted from the appendix by choice; explanation text may still quote code. Evidence coordinates are chapter-local and cannot be checked from this document alone.");
-  paragraph("Overview", "Heading1"); paragraph(e.summary);
+  paragraph("Overview", "Heading1"); paragraph(stripInlineEmphasis(e.summary));
   for (const item of e.incomplete_items ?? []) { paragraph(`Incomplete code ${item.title}`, "Heading2"); paragraph(item.explanation); cite(item.source_ranges); }
   if (e.concepts.length) paragraph("Key ideas", "Heading1");
-  for (const item of e.concepts) { paragraph(item.term, "Heading2"); paragraph(item.explanation); cite(item.source_ranges); }
+  for (const item of e.concepts) { paragraph(item.term, "Heading2"); paragraph(stripInlineEmphasis(item.explanation)); cite(item.source_ranges); }
   if (e.walkthrough.length) paragraph("Walkthrough", "Heading1");
-  for (const item of e.walkthrough) { paragraph(item.heading, "Heading2"); paragraph(item.explanation); cite(item.source_ranges); }
+  for (const item of e.walkthrough) { paragraph(item.heading, "Heading2"); paragraph(stripInlineEmphasis(item.explanation)); cite(item.source_ranges); }
   paragraph("Diagram coverage and limits", "Heading1"); paragraph(e.visual_note || "No diagram coverage note provided.");
   for (const visual of e.visuals) {
     paragraph(visual.title, "Heading2");

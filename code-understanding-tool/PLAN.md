@@ -1,5 +1,8 @@
 # Implementation Plan
 
+For the current system rather than the original design proposals below, see the
+[architecture guide and VectorCraft diagram](docs/architecture.md).
+
 ## Product goal
 
 Build a small interactive workspace that helps a learner understand a piece of code or documentation. It should combine an explanation, a useful visual when appropriate, and a way to check understanding. It should make clear what the input supports and where the explanation is inferring missing context.

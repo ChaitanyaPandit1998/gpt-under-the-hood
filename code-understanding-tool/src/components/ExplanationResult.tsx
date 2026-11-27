@@ -5,6 +5,8 @@ import type { ThemeMode } from "../domain/theme";
 import { formatMathText } from "../domain/format-math-text";
 import { GraphView } from "./GraphView";
 import { ReadingTools } from "./ReadingTools";
+import { ReadingParagraphs } from "./ReadingParagraphs";
+import { mergeVisualReviewHistory } from "../domain/visual-provenance";
 import { SourceRanges } from "./SourceRanges";
 import { SourceEvidence } from "./SourceEvidence";
 import { UnderstandingCheck } from "./UnderstandingCheck";
@@ -33,6 +35,7 @@ type Props = {
   lineCount: number;
   isAskingFollowUp: boolean;
   isRegenerating?: boolean;
+  isReviewing?: boolean;
   copyStatus: string;
   followUpQuestion: string;
   selectedTextForQuestion: string;
@@ -45,7 +48,7 @@ type Props = {
   onClearSelectedTextContext: () => void;
   onAskAboutSelectedText: () => void;
 };
-export type ExplanationResultHandle = { snapshot: () => ResultReadingState };
+export type ExplanationResultHandle = { snapshot: () => ResultReadingState; activeChapterId: () => string | undefined };
 
 export function ExplanationResult(props: Props) {
   return <Result key={JSON.stringify([props.explanation, props.source, props.exportContext?.scope])} {...props} />;
@@ -56,7 +59,7 @@ function Result({
   exportContext = { scope: "Original explanation only (not adapted section variants)", provenance: "Generation preferences not recorded in this export." },
   allowChapterArtwork = true,
   materialMode = "code", storyPreferences = defaultStoryPreferences, refinementTarget = "explanation-preferences",
-  explanation, source, theme, lineCount, isAskingFollowUp, isRegenerating = false, copyStatus, followUpQuestion,
+  explanation, source, theme, lineCount, isAskingFollowUp, isRegenerating = false, isReviewing = false, copyStatus, followUpQuestion,
   selectedTextForQuestion, followUpMessages, followUpError, textSelection, onCopy,
   onFollowUpQuestionChange, onAskFollowUp, onClearSelectedTextContext, onAskAboutSelectedText,
 }: Props) {
@@ -72,6 +75,10 @@ function Result({
     if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: "instant" });
     if (anchor.restoreFocus) anchor.trigger.focus({ preventScroll: true });
   }, [citation]);
+  function reviewIllustration(image: NonNullable<typeof illustration>) {
+    setIllustration(current => mergeVisualReviewHistory(current, image));
+  }
+
   function onSelectRange(range: SourceRange, trigger: HTMLButtonElement) {
     if (!isValidRange(range, lineCount)) return;
     readingAnchor.current = { trigger, top: trigger.getBoundingClientRect().top, restoreFocus: false };
@@ -85,8 +92,9 @@ function Result({
   }
   const reader = useRef<ChapterReaderHandle>(null);
   const snapshot = () => ({ chapter: reader.current?.snapshot(), illustration });
-  useImperativeHandle(ref, () => ({ snapshot }));
+  useImperativeHandle(ref, () => ({ snapshot, activeChapterId: () => reader.current?.activeChapterId() }));
   const illustrationId = useId();
+  const studyToolsId = materialMode === "pull_request" ? undefined : `${illustrationId}-study-tools`;
   const visualDesigner = useRef<VisualBriefPanelHandle>(null);
   const activeVisual = explanation.visuals[activeVisualIndex] ?? explanation.visuals[0];
   const selectVisualFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -106,18 +114,11 @@ function Result({
     <section className="result-card" aria-labelledby="explanation-title" aria-busy={isAskingFollowUp}>
       <div className="result-topline"><span className="result-label"><span className="result-spark">✳</span> YOUR EXPLANATION</span><div className="result-actions"><button className="copy-explanation" type="button" onClick={onCopy}>{copyStatus || "Copy explanation"}</button><span className="preview-badge">EXPLANATION</span></div></div>
       <div className="explanation-content">
-        <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
-        {isRegenerating && <p role="status">Showing the last completed explanation while the new one generates.</p>}
-        <ReadingTools label={materialMode === "pull_request" ? "PR chapter tools" : "Explanation tools"}
-          scope={materialMode === "pull_request" ? "This PR chapter" : "Whole explanation"} explanation={explanation} source={source} context={exportContext}
-          refine={<a href={`#${refinementTarget}`}>{materialMode === "pull_request" ? "Refine PR chapter" : "Refine explanation"}</a>}
-          visual={<VisualBriefPanel ref={visualDesigner} explanation={explanation} source={source} scope={exportContext.scope}
-            placement={{ id: illustrationId, current: illustration, onRender: setIllustration }} />}
-          collectImages={() => ({ overview: illustration, chapters: reader.current?.snapshot().images })}>
-          {onSaveStudy && <button type="button" disabled={savingStudy} aria-describedby={`${illustrationId}-save-note`}
-            onClick={() => onSaveStudy(snapshot())}>Save study locally</button>}
-        </ReadingTools>
-        {onSaveStudy && <p className="saved-study-note" id={`${illustrationId}-save-note`}>Saving keeps the source text, explanations, adapted variants, chapter position, and rendered illustrations in this browser. Nothing is saved automatically.</p>}
+        <div className="explanation-heading">
+          <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
+          {studyToolsId && <a className="study-tools-jump" href={`#${studyToolsId}`}>Study tools <span aria-hidden="true">↓</span></a>}
+        </div>
+        {isRegenerating && <p role="status">{isReviewing ? "You can keep reading this chapter while review runs." : "Showing the last completed explanation while the new one generates."}</p>}
         {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
           <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
           <p>The source contains unfinished work. Its intended behavior is not specified, so the explanation does not infer it.</p>
@@ -126,18 +127,22 @@ function Result({
             <SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} />
           </li>)}</ul>
         </aside>}
-        {explanation.quality_review_note && <aside className={`quality-review-note ${explanation.quality_review_status ?? "incomplete"}`} role="status" aria-live="polite">
-          <strong>Second-pass review · {explanation.quality_review_status === "passed" ? "passed" : explanation.quality_review_status === "revised" ? "revised · final check passed" : "not fully verified"}</strong>
-          <span>{explanation.quality_review_note}</span>
+        {explanation.quality_review_status === "unreviewed" ? <aside className="quality-review-note" role="status">
+          <strong>Unreviewed draft</strong> · Check important details against the source.
+        </aside> : explanation.quality_review_note && <aside className={`quality-review-note ${explanation.quality_review_status ?? "incomplete"}`} role="status" aria-live="polite">
+          <details open={explanation.quality_review_status !== "passed" && explanation.quality_review_status !== "revised"}>
+            <summary><strong>Second-pass review · {explanation.quality_review_status === "passed" ? "passed" : explanation.quality_review_status === "revised" ? "revised · final check passed" : "not fully verified"}</strong></summary>
+            <p>{explanation.quality_review_note}</p>
+          </details>
         </aside>}
         <ChapterReader ref={reader} initialReading={initialReading?.chapter} explanation={explanation} artworkEnabled={allowChapterArtwork}
           storyContext={{ source, mode: materialMode, preferences: storyPreferences, onSelectRange, onClearCitation: () => setCitation(undefined) }}
           refinementContext={allowChapterArtwork ? { source, mode: materialMode, theme, onSelectRange } : undefined}>
-        <ChapterPage id="overview"><p className="result-summary">{explanation.summary}</p></ChapterPage>
+        <ChapterPage id="overview"><ReadingParagraphs text={explanation.summary} paragraphClassName="result-summary" /></ChapterPage>
         <ChapterPage id="concepts">
-        {explanation.concepts.length > 0 && <div className="result-section"><div className="section-caption">KEY IDEAS</div><div className="concept-grid">{explanation.concepts.map((concept, index) => <article className="concept-card" key={`${concept.term}-${index}`}><h3>{concept.term}</h3><p>{concept.explanation}</p><SourceRanges ranges={concept.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article>)}</div></div>}
+        {explanation.concepts.length > 0 && <div className="result-section"><div className="section-caption">KEY IDEAS</div><div className="concept-grid">{explanation.concepts.map((concept, index) => <article className="concept-card" key={`${concept.term}-${index}`}><h3>{concept.term}</h3><ReadingParagraphs text={concept.explanation} /><SourceRanges ranges={concept.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article>)}</div></div>}
         </ChapterPage>
-        {explanation.walkthrough.map((step, index) => <ChapterPage id={`step-${index}`} key={`${step.heading}-${index}`}><div className="result-section walkthrough-section"><div className="section-caption">WALKTHROUGH</div><div className="walkthrough-list"><article className="walkthrough-item"><div className="walkthrough-heading"><span className="number-badge">{index + 1}</span><div><h3>{step.heading}</h3></div></div><p className="result-body">{step.explanation}</p><SourceRanges ranges={step.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article></div></div></ChapterPage>)}
+        {explanation.walkthrough.map((step, index) => <ChapterPage id={`step-${index}`} key={`${step.heading}-${index}`}><div className="result-section walkthrough-section"><div className="section-caption">WALKTHROUGH</div><div className="walkthrough-list"><article className="walkthrough-item"><div className="walkthrough-heading"><span className="number-badge">{index + 1}</span><div><h3>{step.heading}</h3></div></div><ReadingParagraphs text={step.explanation} paragraphClassName="result-body" /><SourceRanges ranges={step.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} /></article></div></div></ChapterPage>)}
         <ChapterPage id="visuals">
         {activeVisual && <div className="result-section">
           <div className="section-caption diagram-section-caption">{activeVisual.kind === "control_flow" ? "CONTROL FLOW MAP" : "CONCEPT MAP"}</div>
@@ -159,12 +164,23 @@ function Result({
         <UnderstandingCheck source={source} explanation={explanation} />
         </ChapterPage>
         </ChapterReader>
-        {illustration && <InlineIllustration image={illustration} id={illustrationId} />}
+        {illustration && <InlineIllustration image={illustration} id={illustrationId} onChange={reviewIllustration} />}
+        <ReadingTools targetId={studyToolsId} label={materialMode === "pull_request" ? "PR chapter tools" : "Explanation tools"}
+          scope={materialMode === "pull_request" ? "This PR chapter" : "Whole explanation"} explanation={explanation} source={source} context={exportContext}
+          refine={<a href={`#${refinementTarget}`}>{materialMode === "pull_request" ? "Refine PR chapter" : "Refine explanation"}</a>}
+          visual={<VisualBriefPanel ref={visualDesigner} explanation={explanation} source={source} scope={exportContext.scope}
+            placement={{ id: illustrationId, current: illustration, onRender: setIllustration, onReview: reviewIllustration }} />}
+          collectImages={() => ({ overview: illustration, chapters: reader.current?.snapshot().images })}
+          saveStudy={onSaveStudy ? {
+            action: <button type="button" disabled={savingStudy} aria-describedby={`${illustrationId}-save-note`}
+              onClick={() => onSaveStudy(snapshot())}>Save study locally</button>,
+            note: <p className="saved-study-note" id={`${illustrationId}-save-note`}>Saves variants, stories, accepted images and review history in this browser.</p>,
+          } : undefined} />
       </div>
       <section className="followup-section" aria-label="Ask a follow-up question">
         <div className="section-caption">KEEP EXPLORING</div>
         <h3>Ask a follow-up</h3>
-        <p className="followup-intro">{isRegenerating ? "Follow-up questions are paused while the replacement generates." : "Ask about the source or this explanation. The conversation stays in this page session."}</p>
+        <p className="followup-intro">{isRegenerating ? "Follow-up questions are paused while chapter work is in progress." : "Ask about the source or this explanation. The conversation stays in this page session."}</p>
         {followUpMessages.length > 0 && <div className="followup-thread" aria-live="polite" aria-relevant="additions">{followUpMessages.map((message, index) => <article className={`followup-message ${message.role}`} key={`${message.role}-${index}`}>
           <span className="followup-speaker">{message.role === "learner" ? "YOU" : "ANSWER"}</span>
           <p>{message.role === "assistant" ? formatMathText(message.text) : message.text}</p>

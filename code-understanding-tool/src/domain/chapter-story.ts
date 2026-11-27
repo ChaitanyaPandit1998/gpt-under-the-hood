@@ -3,6 +3,10 @@ import type { ExplanationDepth, LearnerLevel, Mode } from "./explanation-types.t
 
 export type StoryPreferences = { depth: ExplanationDepth; learnerLevel: LearnerLevel };
 export const defaultStoryPreferences: StoryPreferences = { depth: "balanced", learnerLevel: "beginner" };
+export function chapterStoryKey(chapterId: string, preferences: StoryPreferences): string {
+  return JSON.stringify([chapterId, preferences.depth, preferences.learnerLevel]);
+}
+
 export type ChapterStory = {
   title: string;
   setup: string;
@@ -69,5 +73,6 @@ export function parseChapterStoryRequest(value: unknown, maxSourceCharacters: nu
     || (value.learnerLevel !== "beginner" && value.learnerLevel !== "intermediate" && value.learnerLevel !== "advanced")) {
     throw new Error("A valid chapter, source, and reading preferences are required.");
   }
-  return { source: value.source, context: value.context, mode: value.mode as Mode, depth: value.depth, learnerLevel: value.learnerLevel };
+  return { source: value.source, context: value.context, mode: value.mode as Mode,
+    depth: value.depth as ExplanationDepth, learnerLevel: value.learnerLevel as LearnerLevel };
 }
