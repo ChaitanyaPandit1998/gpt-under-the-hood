@@ -55,7 +55,8 @@ export function ChapterReader({ explanation, ...props }: ReaderProps) {
 
 function Reader({ explanation, children, artworkEnabled = true, refinementContext, storyContext, initialReading, ref }: ReaderProps) {
   const chapters = explanationChapters(explanation);
-  const [index, setIndex] = useState(() => Math.max(0, chapters.findIndex((chapter) => chapter.id === initialReading?.chapterId)));
+  const [selectedIndex, setIndex] = useState(() => Math.max(0, chapters.findIndex((chapter) => chapter.id === initialReading?.chapterId)));
+  const index = Math.min(selectedIndex, chapters.length - 1);
   const [covers, setCovers] = useState<Record<string, ChapterArtwork>>(() => initialReading?.covers ?? {});
   const [images, setImages] = useState<Record<string, RenderedIllustration>>(() => initialReading?.images ?? {});
   const [stories, setStories] = useState<Record<string, SavedChapterStory>>(() => initialReading?.stories ?? {});

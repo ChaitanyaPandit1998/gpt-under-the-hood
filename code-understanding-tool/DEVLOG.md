@@ -3,6 +3,20 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-27 - Draft-first PR chapters
+
+- New PR chapter requests return a structurally validated draft without an
+  AI review. The reader and exports label unreviewed material. Manual and
+  opt-in automatic review reuse the current draft and source; canceling
+  review leaves the draft readable. Code and Documentation defaults are
+  unchanged.
+- Live FastAPI browser pilot: 17.5s to readable text, then 37.2s for the
+  optional review, which passed after a repair. See the
+  [PR latency benchmark](docs/pr-latency-benchmark.md) for settings.
+- Larger Vite chapters were readable in 22.9-29.4s. The two completed
+  optional reviews took 43.5s and 48.3s and passed after repair. A separate
+  review was canceled during repair; its draft timing was retained.
+
 ## 2026-11-26 - Live large PR benchmark
 
 - Imported FastAPI #12199 and Vite #16471 through the real GitHub and browser
@@ -61,8 +75,24 @@ dated entry for future work; never record secrets or private source material.
   enables automatic diagrams for that chapter. Saved variants and legacy
   automatic-diagram cache keys are preserved. Story scene images and covers
   remain on demand; opening the scene controls makes no visual requests.
-- Next: review and push the text-first PR changes. Repeat the live timing
-  on more PRs before treating the benchmark results as typical.
+- A focused cross-file Vite #16471 run used the full 37,965-character part 12
+  chapter, Overview depth, and no diagrams. It returned in 76.5s with zero
+  diagrams and passed final prose review after one repair. Approximate
+  stages were 24s draft, 19s initial review, 24s repair, and 10s final
+  review. Compared the request dispatch and reply, fetch option precedence,
+  and Node source-map and HMR defaults against the four cited file patches.
+- Repeated text-only Overview timing twice per input, sequentially, using
+  the same settings and reversing the order for round two. The small Vite
+  excerpt (2,405 chars) took 56.7s / 56.7s; the FastAPI chapter (11,672)
+  took 65.6s / 67.3s; the large Vite chapter (37,965) took 86.9s / 89.5s.
+  Median: 66.5s. All six returned zero diagrams and none timed out, but
+  all required prose repair. Five passed final review; one was incomplete.
+  Drafting took about 18-31s, so most of the wait followed drafting.
+  See the [PR latency benchmark](docs/pr-latency-benchmark.md) for individual
+  runs, phase timings, and the test settings.
+- Next: measure repair causes and investigate a clearly labeled draft
+  preview without skipping final review. Separately, test behavior split
+  across two chapters to check how the reader communicates evidence limits.
 
 ## 2026-11-26 - Reading-first layout and simpler tools
 

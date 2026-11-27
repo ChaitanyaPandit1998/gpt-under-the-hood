@@ -17,10 +17,11 @@ The app loads a task-specific skill and sends generation requests to Codex CLI t
 
 If a request reports that Codex CLI cannot reach its service, check network access for the terminal running `npm run dev`. Restricted or offline development environments may block the CLI connection even when Codex is signed in; start the local server from a terminal with network access and retry.
 
-New PR chapters generate text by default, with a review of the explanation
-and its citations. Select **Include diagrams** beside **Generate this chapter**
-to opt in for that chapter. Saved studies keep the two results separate.
-Story and illustration tools remain available on demand.
+New PR chapters show an **Unreviewed draft** first. Choose **Review this
+chapter** to check the draft against the diff, or enable **Review automatically**
+to start that check as soon as the draft is ready. Select **Include diagrams**
+to opt in to diagrams for that chapter. Saved studies keep results for each
+diagram setting separate. Story and illustration tools remain on demand.
 
 ## Story Mode
 

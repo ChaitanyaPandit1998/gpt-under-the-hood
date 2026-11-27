@@ -27,7 +27,7 @@ function settings(value: unknown) {
 function explanation(value: unknown, source: string) {
   validateExplanation(value, source);
   const item = record(value);
-  if (item.quality_review_status !== undefined) choices(item.quality_review_status, ["passed", "revised", "incomplete"]);
+  if (item.quality_review_status !== undefined) choices(item.quality_review_status, ["passed", "revised", "incomplete", "unreviewed"]);
   if (item.quality_review_note !== undefined) text(item.quality_review_note);
   if (item.incomplete_items !== undefined) {
     if (!Array.isArray(item.incomplete_items) || item.incomplete_items.length > 100) bad();

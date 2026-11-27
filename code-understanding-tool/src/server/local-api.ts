@@ -9,10 +9,10 @@ import { fileURLToPath } from "node:url";
 import { isTrustedLocalApiRequest } from "./local-api-guard.ts";
 import { annotateControlFlowCoverage } from "../domain/control-flow-coverage.ts";
 import { annotateIncompleteCode } from "../domain/incomplete-code.ts";
-import { MAX_FOLLOW_UP_HISTORY_MESSAGES } from "../domain/explanation-types.ts";
+import { MAX_FOLLOW_UP_HISTORY_MESSAGES, type Explanation } from "../domain/explanation-types.ts";
 import type { GenerationPhase } from "../domain/generation-progress.ts";
 import { followUpSchema, quizSchema, transcriptionSchema } from "./response-schemas.ts";
-import { ExplanationValidationError, validateFollowUp, validateQuiz, validateTranscription } from "./response-validation.ts";
+import { ExplanationValidationError, validateCompletedExplanation, validateFollowUp, validateQuiz, validateTranscription } from "./response-validation.ts";
 import { createReviewedExplanation, type CodexRunner } from "./explanation-service.ts";
 import { loadPublicPullRequest, type PullRequestFetch } from "./github-pull-request.ts";
 import { loadPullRequestPlan } from "./pull-request-plan.ts";
@@ -735,6 +735,8 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
             learner_question?: unknown;
             visual_preference?: unknown;
             progress_id?: unknown;
+            review_mode?: unknown;
+            draft?: unknown;
           };
           if (typeof payload.source_text !== "string" || !payload.source_text.trim()) {
             response.statusCode = 400;
@@ -757,6 +759,22 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
             return;
           }
           progressId = typeof payload.progress_id === "string" ? payload.progress_id : undefined;
+
+          if ((payload.review_mode !== undefined && payload.review_mode !== "draft" && payload.review_mode !== "review") ||
+              (payload.review_mode === "review") !== (payload.draft !== undefined)) {
+            sendJson(response, 400, { error: "Choose a valid review mode and supply a draft only when requesting review." });
+            return;
+          }
+          let priorDraft: Explanation | undefined;
+          if (payload.review_mode === "review") {
+            try {
+              const { title, summary, concepts, walkthrough, assumptions, visuals, visual_note } = validateCompletedExplanation(payload.draft, payload.source_text);
+              priorDraft = { title, summary, concepts, walkthrough, assumptions, visuals, visual_note };
+            } catch {
+              sendJson(response, 400, { error: "The draft or its source references are invalid." });
+              return;
+            }
+          }
 
           if ((payload.explanation_tone !== undefined && (typeof payload.explanation_tone !== "string" || !["plain", "technical"].includes(payload.explanation_tone))) ||
               (payload.explanation_focus !== undefined && (typeof payload.explanation_focus !== "string" || !["auto", "concepts", "behaviour", "example"].includes(payload.explanation_focus)))) {
@@ -787,6 +805,8 @@ export function createLocalExplanationApi(options: { runCodex?: CodexRunner; lim
               explanationFocus: typeof payload.explanation_focus === "string" ? payload.explanation_focus : "auto",
               visualPreference: String(payload.visual_preference ?? "auto"),
               learnerQuestion: typeof payload.learner_question === "string" ? payload.learner_question : undefined,
+              draftOnly: payload.review_mode === "draft",
+              priorDraft,
               onProgress: (phase) => {
                 if (progressId) reportProgress(progressId, phase);
                 markPhase(phase);

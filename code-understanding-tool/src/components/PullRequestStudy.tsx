@@ -13,6 +13,7 @@ import type { CachedPrResult, PrReadingState } from "../domain/saved-study";
 import { PullRequestPdfExport, type PrPdfChapter } from "./PullRequestPdfExport";
 
 const initialChapterSettings: ChapterSettings = { ...defaultChapterSettings, depth: "detailed" };
+const automaticReviewKey = "understand-pr-automatic-review";
 
 export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave, saving }: {
   plan: PullRequestPlan; theme: ThemeMode; onClose: () => void;
@@ -24,6 +25,9 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
   const [evidenceProgress, setEvidenceProgress] = useState<PrReadingState["evidenceProgress"]>(() => initialReading?.evidenceProgress ?? {});
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
   const [evidenceError, setEvidenceError] = useState("");
+  const [automaticReview, setAutomaticReview] = useState(() => {
+    try { return localStorage.getItem(automaticReviewKey) === "true"; } catch { return false; }
+  });
   const [covers, setCovers] = useState<Record<string, ChapterArtwork>>(() => initialReading?.covers ?? {});
   const evidenceController = useRef<AbortController | null>(null);
   const evidenceRequestId = useRef(0);
@@ -49,6 +53,11 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
   const session = useExplanationSession({ source, mode: "pull_request", ...settings }, savedResult?.explanation);
   const completedCount = chapters.filter((_, itemIndex) =>
     itemIndex === index ? !!session.explanation : cache.has(cacheKey(itemIndex, settingsFor(itemIndex)))).length;
+
+  function updateAutomaticReview(enabled: boolean) {
+    setAutomaticReview(enabled);
+    try { localStorage.setItem(automaticReviewKey, String(enabled)); } catch { /* Keep the preference for this session. */ }
+  }
 
   function collectPdfChapters(): PrPdfChapter[] {
     return chapters.map((item, itemIndex) => {
@@ -158,10 +167,14 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
           <ChapterControls settings={settings} onChange={(next) => selectChapter(index, next)} disabled={!!loadingFile} />
         </div>
         <div className="chapter-toolbar">
-          <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => void session.explainSource()}>{session.isGenerating ? "Generating chapter…" : session.error ? "Retry chapter generation" : session.explanation ? "Regenerate chapter" : "Generate this chapter"}</button>
+          <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => void session.explainSource(automaticReview ? "draft-and-review" : "draft")}>{session.isReviewing ? "Reviewing chapter…" : session.isGenerating ? "Generating chapter…" : session.explanation ? "Regenerate chapter" : session.error ? "Retry chapter generation" : "Generate this chapter"}</button>
+          {session.explanation && (session.explanation.quality_review_status === "unreviewed" || session.explanation.quality_review_status === "incomplete") &&
+            <button type="button" disabled={session.isGenerating || !!loadingFile} onClick={() => void session.explainSource("review")}>Review this chapter</button>}
           <label className="pr-diagram-option"><input type="checkbox" checked={settings.visualPreference !== "no"} disabled={session.isGenerating || !!loadingFile} aria-describedby={diagramNote}
             onChange={(event) => selectChapter(index, { ...settings, visualPreference: event.target.checked ? "auto" : "no" })} />Include diagrams</label>
-          <small id={diagramNote}>Optional. The explanation is reviewed either way.</small>
+          <small id={diagramNote}>Optional. Diagrams are off by default.</small>
+          <label className="pr-diagram-option"><input type="checkbox" checked={automaticReview} disabled={session.isGenerating || !!loadingFile}
+            onChange={(event) => updateAutomaticReview(event.target.checked)} />Review automatically</label>
           {session.isGenerating && <button type="button" onClick={session.invalidatePendingRequests}>Cancel</button>}
         </div>
         {session.generationPhase && session.isGenerating && <p role="status">{generationPhaseCopy[session.generationPhase].detail}</p>}
@@ -170,7 +183,7 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
           allowChapterArtwork={false} materialMode="pull_request" refinementTarget={refinementTarget} explanation={session.explanation} source={source} theme={theme} lineCount={source.split("\n").length}
           storyPreferences={{ depth: settings.depth, learnerLevel: settings.learnerLevel }}
           exportContext={{ scope: `PR chapter: ${chapter.title}`, provenance: `PR: ${plan.url}\nHead: ${plan.headSha}\nBase: ${plan.baseSha}\nPreferences: ${JSON.stringify(settings)}\nPR coverage limits: ${plan.warnings.join("; ")}` }}
-          isRegenerating={session.isGenerating} isAskingFollowUp={session.isAskingFollowUp} copyStatus={session.copyStatus} followUpQuestion={session.followUpQuestion} selectedTextForQuestion="" followUpMessages={session.followUpMessages} followUpError={session.followUpError} textSelection={null}
+          isRegenerating={session.isGenerating} isReviewing={session.isReviewing} isAskingFollowUp={session.isAskingFollowUp} copyStatus={session.copyStatus} followUpQuestion={session.followUpQuestion} selectedTextForQuestion="" followUpMessages={session.followUpMessages} followUpError={session.followUpError} textSelection={null}
           onCopy={() => void copy()} onFollowUpQuestionChange={session.setFollowUpQuestion} onAskFollowUp={session.askFollowUp} onClearSelectedTextContext={() => session.setSelectedTextForQuestion("")} onAskAboutSelectedText={() => {}} />}
         <nav className="chapter-pagination" aria-label="PR chapter navigation"><button type="button" disabled={index === 0} onClick={() => selectChapter(index - 1)}>Previous chapter</button><span>{index + 1} / {chapters.length}</span><button type="button" disabled={index === chapters.length - 1} onClick={() => selectChapter(index + 1)}>Next chapter</button></nav>
       </div>

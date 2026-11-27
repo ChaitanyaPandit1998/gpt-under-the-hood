@@ -507,6 +507,31 @@ describe("local explanation API integration", () => {
     }
   });
 
+  it("returns an unreviewed draft in one call and reviews that exact draft on request", async () => {
+    const runner = vi.fn<CodexRunner>()
+      .mockResolvedValueOnce(explanation)
+      .mockResolvedValueOnce(passedReview);
+    const api = createApiHarness(runner);
+    const input = { source_text: "const attempts = 3;", visual_preference: "no" };
+    const response = await api("/api/explain", { ...input, review_mode: "draft" });
+    expect(response.status).toBe(200);
+    expect(response.json()).toMatchObject({ title: explanation.title, summary: explanation.summary, quality_review_status: "unreviewed" });
+    expect(runner).toHaveBeenCalledTimes(1);
+
+    const invalid = await api("/api/explain", { ...input, review_mode: "review", draft: { ...explanation, concepts: [
+      { term: "Attempts", explanation: "A limit.", source_ranges: [{ start_line: 2, end_line: 2 }] },
+    ] } });
+    expect(invalid.status).toBe(400);
+    expect(runner).toHaveBeenCalledTimes(1);
+
+    const reviewed = await api("/api/explain", { ...input, review_mode: "review", draft: response.json() });
+    expect(reviewed.status).toBe(200);
+    expect(reviewed.json()).toMatchObject({ title: explanation.title, summary: explanation.summary, quality_review_status: "passed" });
+    expect(runner).toHaveBeenCalledTimes(2);
+    expect(runner.mock.calls[1]?.[0]).toContain(explanation.summary);
+    expect(runner.mock.calls[1]?.[0]).toContain("You are the second-pass quality reviewer");
+  });
+
   it("rejects unsupported chapter preferences before model work", async () => {
     for (const preferences of [{ explanation_tone: "persuasive" }, { explanation_focus: "invented" }, { explanation_tone: ["plain"] }]) {
       const response = await request("/api/explain", { source_text: "const value = 42;", ...preferences });

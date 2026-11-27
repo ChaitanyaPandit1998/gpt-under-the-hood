@@ -15,7 +15,7 @@ export type Explanation = {
   assumptions: { statement: string; reason: string }[];
   visual_note: string;
   incomplete_items?: IncompleteCodeItem[];
-  quality_review_status?: "passed" | "revised" | "incomplete";
+  quality_review_status?: "passed" | "revised" | "incomplete" | "unreviewed";
   quality_review_note?: string;
   visuals: {
     title: string;

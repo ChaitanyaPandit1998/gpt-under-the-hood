@@ -82,7 +82,7 @@ export function validateCompletedExplanation(value: unknown, sourceText: string)
   const { incomplete_items, quality_review_note, quality_review_status } = explanation;
   const lineCount = sourceText.split(/\r\n|\r|\n/).length;
   if ((quality_review_note !== undefined && typeof quality_review_note !== "string") ||
-    (quality_review_status !== undefined && !["passed", "revised", "incomplete"].includes(quality_review_status)) ||
+    (quality_review_status !== undefined && !["passed", "revised", "incomplete", "unreviewed"].includes(quality_review_status)) ||
     (incomplete_items !== undefined && !isArray(incomplete_items, 100, (item) => isRecord(item)
       && (item.kind === "unfinished_marker" || item.kind === "empty_branch")
       && typeof item.title === "string" && typeof item.explanation === "string"

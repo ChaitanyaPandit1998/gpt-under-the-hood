@@ -20,8 +20,8 @@ async function workspace(page: Page) {
   const state = {
     generations: [] as Record<string, unknown>[], evidence: [] as Record<string, unknown>[], imports: 0, visualRequests: 0, stories: 0,
     covers: [] as Record<string, unknown>[], holdCover: false, releaseCover: () => {},
-    holdGeneration: false, holdEvidence: false, evidenceError: "",
-    releaseGeneration: () => {}, releaseEvidence: () => {},
+    holdGeneration: false, holdReview: false, holdEvidence: false, evidenceError: "",
+    releaseGeneration: () => {}, releaseReview: () => {}, releaseEvidence: () => {},
   };
   // No GitHub or model requests leave the browser during these regression tests.
   await page.route("**/api/**", async (route) => {
@@ -62,11 +62,13 @@ async function workspace(page: Page) {
       state.generations.push(body);
       const number = state.generations.length;
       if (state.holdGeneration) await new Promise<void>((resolve) => { state.releaseGeneration = resolve; });
+      if (body.review_mode === "review" && state.holdReview) await new Promise<void>((resolve) => { state.releaseReview = resolve; });
       await route.fulfill({ json: {
         title: `Explanation ${number}`, summary: "This chapter explains only the supplied source.",
-        concepts: [{ term: "Validation", explanation: "Checks the request.", source_ranges: [{ start_line: 2, end_line: 3 }] }],
+        concepts: body.review_mode === "review" ? [] : [{ term: "Validation", explanation: "Checks the request.", source_ranges: [{ start_line: 2, end_line: 3 }] }],
         walkthrough: [], assumptions: [], visuals: [], visual_note: "",
-        quality_review_status: "passed", quality_review_note: "Checked against chapter evidence.",
+        quality_review_status: body.review_mode === "draft" ? "unreviewed" : "passed",
+        quality_review_note: body.review_mode === "draft" ? "Awaiting review." : "Checked against chapter evidence.",
       } }).catch(() => {}); // Cancellation intentionally closes pending requests.
       return;
     }
@@ -170,6 +172,7 @@ test("saves, resumes and exports a pinned PR with cached variants and patch evid
   await pdfButton.click();
   const pdf = page.getByRole("dialog", { name: "PDF preview" });
   const paper = pdf.getByRole("article", { name: "Selected PDF content" });
+  await expect(paper.getByText("Review: unreviewed.", { exact: true }).first()).toBeVisible();
   const overview = pdf.getByRole("checkbox", { name: "Overview and change inventory", exact: true });
   const evidence = pdf.getByRole("checkbox", { name: "Large file section 1", exact: true });
   const illustration = pdf.getByRole("checkbox", { name: "Overview and change inventory illustrations", exact: true });
@@ -247,6 +250,44 @@ test("defaults to text and restores both saved variants when diagrams are opted 
   await diagrams.uncheck();
   await expect(page.getByRole("heading", { name: "Explanation 1", exact: true })).toBeVisible();
   expect(state.generations).toHaveLength(2);
+});
+
+test("shows an unreviewed draft before optional review and keeps it on cancellation", async ({ page }) => {
+  const state = await workspace(page);
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  const draft = page.getByText("Unreviewed draft", { exact: true });
+  await expect(draft).toBeVisible();
+  expect(state.generations.map(request => request.review_mode)).toEqual(["draft"]);
+  state.holdReview = true;
+  const review = page.getByRole("button", { name: "Review this chapter", exact: true });
+  await review.click();
+  await expect.poll(() => state.generations[1]?.review_mode).toBe("review");
+  expect(state.generations[1]?.draft).toMatchObject({ title: "Explanation 1", quality_review_status: "unreviewed" });
+  await expect(draft).toBeVisible();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  state.holdReview = false;
+  state.releaseReview();
+  await expect(draft).toBeVisible();
+  await page.getByRole("navigation", { name: "Explanation chapters", exact: true }).getByRole("button", { name: /Key ideas/ }).click();
+  await review.click();
+  await expect(page.getByText("Second-pass review · passed", { exact: true })).toBeVisible();
+  await expect(draft).not.toBeVisible();
+});
+
+test("automatic review shows the draft before the review returns", async ({ page }) => {
+  const state = await workspace(page);
+  await page.getByRole("checkbox", { name: "Review automatically" }).check();
+  state.holdReview = true;
+  await page.getByRole("button", { name: "Generate this chapter", exact: true }).click();
+  await expect.poll(() => state.generations.map(request => request.review_mode)).toEqual(["draft", "review"]);
+  await expect(page.getByText("Unreviewed draft", { exact: true })).toBeVisible();
+  state.releaseReview();
+  await expect(page.getByText("Second-pass review · passed", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("tab", { name: "Pull request" }).click();
+  await page.getByRole("textbox", { name: "GitHub pull request URL" }).fill(plan.url);
+  await page.getByRole("button", { name: "Load PR", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "Review automatically" })).toBeChecked();
 });
 
 test("generates only selected source and restores cached results by preferences", async ({ page }) => {

@@ -22,7 +22,7 @@ export function parseStudyExport(value: unknown): { snapshot: StudyExportSnapsho
     || typeof body.scope !== "string" || !body.scope.trim() || body.scope.length > 500
     || typeof body.provenance !== "string" || body.provenance.length > 4_000) throw new Error("Invalid export scope, format, or source.");
   const explanation = structuredClone(validateExplanation(body.explanation, body.source));
-  if (explanation.quality_review_status !== undefined && !["passed", "revised", "incomplete"].includes(explanation.quality_review_status)) throw new Error("Invalid review status.");
+  if (explanation.quality_review_status !== undefined && !["passed", "revised", "incomplete", "unreviewed"].includes(explanation.quality_review_status)) throw new Error("Invalid review status.");
   if (explanation.quality_review_note !== undefined && (typeof explanation.quality_review_note !== "string" || explanation.quality_review_note.length > 8_000)) throw new Error("Invalid review note.");
   if (explanation.incomplete_items !== undefined) {
     if (!Array.isArray(explanation.incomplete_items) || explanation.incomplete_items.length > 20) throw new Error("Invalid incomplete-code findings.");

@@ -35,6 +35,7 @@ type Props = {
   lineCount: number;
   isAskingFollowUp: boolean;
   isRegenerating?: boolean;
+  isReviewing?: boolean;
   copyStatus: string;
   followUpQuestion: string;
   selectedTextForQuestion: string;
@@ -58,7 +59,7 @@ function Result({
   exportContext = { scope: "Original explanation only (not adapted section variants)", provenance: "Generation preferences not recorded in this export." },
   allowChapterArtwork = true,
   materialMode = "code", storyPreferences = defaultStoryPreferences, refinementTarget = "explanation-preferences",
-  explanation, source, theme, lineCount, isAskingFollowUp, isRegenerating = false, copyStatus, followUpQuestion,
+  explanation, source, theme, lineCount, isAskingFollowUp, isRegenerating = false, isReviewing = false, copyStatus, followUpQuestion,
   selectedTextForQuestion, followUpMessages, followUpError, textSelection, onCopy,
   onFollowUpQuestionChange, onAskFollowUp, onClearSelectedTextContext, onAskAboutSelectedText,
 }: Props) {
@@ -117,7 +118,7 @@ function Result({
           <h2 id="explanation-title" tabIndex={-1}>{explanation.title}</h2>
           {studyToolsId && <a className="study-tools-jump" href={`#${studyToolsId}`}>Study tools <span aria-hidden="true">↓</span></a>}
         </div>
-        {isRegenerating && <p role="status">Showing the last completed explanation while the new one generates.</p>}
+        {isRegenerating && <p role="status">{isReviewing ? "You can keep reading this chapter while review runs." : "Showing the last completed explanation while the new one generates."}</p>}
         {explanation.incomplete_items && explanation.incomplete_items.length > 0 && <aside className="incomplete-code-note" role="status" aria-labelledby="incomplete-code-heading">
           <div className="section-caption" id="incomplete-code-heading">INCOMPLETE CODE DETECTED</div>
           <p>The source contains unfinished work. Its intended behavior is not specified, so the explanation does not infer it.</p>
@@ -126,7 +127,9 @@ function Result({
             <SourceRanges ranges={item.source_ranges} lineCount={lineCount} onSelectRange={onSelectRange} />
           </li>)}</ul>
         </aside>}
-        {explanation.quality_review_note && <aside className={`quality-review-note ${explanation.quality_review_status ?? "incomplete"}`} role="status" aria-live="polite">
+        {explanation.quality_review_status === "unreviewed" ? <aside className="quality-review-note" role="status">
+          <strong>Unreviewed draft</strong> · Check important details against the source.
+        </aside> : explanation.quality_review_note && <aside className={`quality-review-note ${explanation.quality_review_status ?? "incomplete"}`} role="status" aria-live="polite">
           <details open={explanation.quality_review_status !== "passed" && explanation.quality_review_status !== "revised"}>
             <summary><strong>Second-pass review · {explanation.quality_review_status === "passed" ? "passed" : explanation.quality_review_status === "revised" ? "revised · final check passed" : "not fully verified"}</strong></summary>
             <p>{explanation.quality_review_note}</p>
@@ -177,7 +180,7 @@ function Result({
       <section className="followup-section" aria-label="Ask a follow-up question">
         <div className="section-caption">KEEP EXPLORING</div>
         <h3>Ask a follow-up</h3>
-        <p className="followup-intro">{isRegenerating ? "Follow-up questions are paused while the replacement generates." : "Ask about the source or this explanation. The conversation stays in this page session."}</p>
+        <p className="followup-intro">{isRegenerating ? "Follow-up questions are paused while chapter work is in progress." : "Ask about the source or this explanation. The conversation stays in this page session."}</p>
         {followUpMessages.length > 0 && <div className="followup-thread" aria-live="polite" aria-relevant="additions">{followUpMessages.map((message, index) => <article className={`followup-message ${message.role}`} key={`${message.role}-${index}`}>
           <span className="followup-speaker">{message.role === "learner" ? "YOU" : "ANSWER"}</span>
           <p>{message.role === "assistant" ? formatMathText(message.text) : message.text}</p>
