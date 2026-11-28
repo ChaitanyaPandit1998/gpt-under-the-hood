@@ -35,6 +35,15 @@ and the boundary between analogy and fact. If the brief's composition conflicts
 with its factual guardrails, prioritize accuracy and avoid drawing the conflict
 as an established fact.
 
+For a character scene, make the action clear through the pose and the prop
+contact. Use one connected hand silhouette per visible wrist, aligned with
+the sleeve cuff. Layer the thumb and fingers around the prop as needed without
+creating a second-looking hand or hiding a teaching label. Keep the wrist and
+hand proportionate to the pose; use a simple contour and a short crease
+instead of drawing every finger. A brief that describes an approved face is
+not an exact vector asset. Do not claim exact character reuse when the host
+has not supplied a way to place that asset.
+
 ## Layout and Labels
 
 Reserve most of the canvas for the visual itself. Use intentional spacing,

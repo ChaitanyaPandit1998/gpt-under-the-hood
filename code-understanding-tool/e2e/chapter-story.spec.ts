@@ -132,10 +132,13 @@ test("saves accepted scene images separately and resumes without generating them
       guardrails: [], caption, altText: caption,
     } } });
   });
-  let plans = 0;
-  await page.route("**/api/visual-plan", (route) => route.fulfill({ json: { scene: {
-    background: "#ffffff", items: [{ kind: "text", text: "Limit", x: ++plans === 1 ? 999 : 40, y: 60, size: 24, color: "#202033", align: "left" }],
-  } } }));
+  const plans: string[] = [];
+  await page.route("**/api/visual-plan", (route) => {
+    plans.push(route.request().postDataJSON().purpose);
+    return route.fulfill({ json: { scene: {
+      background: "#ffffff", items: [{ kind: "text", text: "Limit", x: plans.length === 1 ? 999 : 40, y: 60, size: 24, color: "#202033", align: "left" }],
+    } } });
+  });
   await page.route("**/api/visual-render", (route) => {
     renders.push(route.request().postDataJSON());
     return route.fulfill({ contentType: "image/png", body: png });
@@ -172,6 +175,7 @@ test("saves accepted scene images separately and resumes without generating them
   expect(briefs[1]).not.toHaveProperty("source");
   expect(briefs[1].context).toContain(story.scenes[0].meaning);
   expect(briefs[1].context).not.toContain(story.scenes[0].narrative);
+  expect(plans).toEqual(["story-illustration", "story-illustration", "factual-diagram"]);
   expect(renders.map((item) => item.resolution)).toEqual(["full-hd", "standard"]);
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByRole("button", { name: "Previous", exact: true }).click();

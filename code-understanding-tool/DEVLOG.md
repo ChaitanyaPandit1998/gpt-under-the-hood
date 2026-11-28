@@ -3,6 +3,22 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-28 - Reusable heads in Story illustrations
+
+- Fictional Story illustration plans can place and mirror two approved
+  VectorCraft heads. The backend expands placements into validated paths
+  before preview, export, or storage. Factual diagrams keep the original
+  schema; Story scenes without people do not need any assets.
+- The assets preserve face geometry once selected. Hands, poses, and
+  props are planned per scene. Cast selection is not stored across chapters.
+- Three synthetic chapter briefs (dispatch, inspection, pickup) each
+  selected both heads automatically; pickup mirrored both. All HD renders
+  passed label preflight. Planning took 43s, 78s, and 71s respectively;
+  inspection and pickup each used one structural repair. Visual inspection
+  found small neck-to-collar gaps in the latter two renders.
+- Verification: lint, build, 356 unit/integration tests, and six desktop
+  Story browser tests passed.
+
 ## 2026-11-27 - Draft-first PR chapters
 
 - New PR chapter requests return a structurally validated draft without an

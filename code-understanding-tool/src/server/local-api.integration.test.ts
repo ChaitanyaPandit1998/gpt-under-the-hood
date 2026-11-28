@@ -167,6 +167,36 @@ describe("local explanation API integration", () => {
     expect(runner.mock.calls[1][0]).toContain(sceneVisualGuidance["factual-diagram"]);
   });
 
+  it("expands reusable Story heads before returning the plan and keeps factual diagrams on the ordinary schema", async () => {
+    const brief = {
+      disposition: "render", visualType: "conceptual-illustration", takeaway: "Match a supplied token.", composition: "Fictional counter.",
+      caption: "A fictional example.", altText: "A fictional counter.", guardrails: [],
+      content: [{ label: "Token", role: "illustrative", statement: "The guest shows the token.", chapterLines: [] }],
+    };
+    const raw = { background: "#ffffff", items: [
+      { kind: "text", text: "Fictional analogy", x: 60, y: 60, size: 24, color: "#202033", align: "left" },
+      { kind: "story-head", asset: "short-hair", x: 280, y: 220, scale: 1.5, mirror: false },
+    ] };
+    const runner = vi.fn<CodexRunner>().mockResolvedValue(raw);
+    const renderScene = vi.fn().mockResolvedValue(Buffer.from("png"));
+    const request = createApiHarness(runner, undefined, undefined, {
+      diagramExporter: { available: async () => true, export: vi.fn(), renderScene },
+    });
+    expect((await request("/api/visual-plan", { brief, purpose: null })).status).toBe(400);
+    expect(runner).not.toHaveBeenCalled();
+    const plan = await request("/api/visual-plan", { brief, purpose: "story-illustration" });
+    expect(plan.status).toBe(200);
+    const { scene, generation } = plan.json() as { scene: { items: { kind: string }[] }; generation: { instructions: unknown[] } };
+    expect(scene.items.map((item) => item.kind)).toEqual(["text", ...Array(9).fill("path")]);
+    expect(generation.instructions).toContainEqual(expect.objectContaining({ id: "visual-composition-story-cast" }));
+    expect(runner.mock.calls[0][0]).toContain("short-hair");
+    expect((await request("/api/visual-render", { scene: raw })).status).toBe(400);
+    expect((await request("/api/visual-render", { brief, purpose: "story-illustration", resolution: "hd" })).status).toBe(200);
+    expect(renderScene).toHaveBeenCalledWith(scene, expect.any(AbortSignal), "hd");
+    expect((await request("/api/visual-plan", { brief, purpose: "factual-diagram" })).status).toBe(502);
+    expect(runner.mock.calls.at(-1)?.[0]).not.toContain("short-hair");
+  });
+
   const storyInput = { source: "const limit = 3;", context: "Overview of the limit.", mode: "code", depth: "balanced", learnerLevel: "beginner" };
   const story = {
     title: "The final ticket", setup: "A clerk has three tickets.",

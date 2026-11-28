@@ -49,8 +49,9 @@ export function VisualBriefImage({ brief, placement, disabled = false, reviewCon
       let scene = planned.current;
       if (!scene) {
         setPhase("planning");
+        const purpose = reviewContext?.purpose;
         const response = await fetch("/api/visual-plan", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(brief), signal: controller.signal });
+          body: JSON.stringify(purpose ? { brief, purpose } : brief), signal: controller.signal });
         const result = await response.json() as { scene?: unknown; error?: string; generation?: unknown };
         if (!response.ok) throw new Error(result.error || "Could not plan the drawing.");
         if (pending.current !== controller || controller.signal.aborted) return;

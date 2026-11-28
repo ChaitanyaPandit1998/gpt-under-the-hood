@@ -33,6 +33,9 @@ Switch back to **Direct** at any time. Open **Illustrate this scene** to
 choose a fictional **Story illustration** or a **Factual diagram** based on
 the scene's factual mapping. Preview the design prompt, generate a brief, and
 render with the configured VectorCraft CLI. No image is generated automatically.
+Fictional illustrations can reuse built-in faces and hair when the scene calls
+for people. Bodies, gestures, and props are planned per scene; the app does
+not yet lock a character assignment across chapters.
 Saving a local study keeps completed stories and accepted scene images. If
 the saved chapter was showing a completed story, it reopens in Story Mode.
 Stories and their images are not included in document/PDF exports. Individual

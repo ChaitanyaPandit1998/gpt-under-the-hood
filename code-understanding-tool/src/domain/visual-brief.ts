@@ -19,6 +19,10 @@ export const defaultVisualPreferences: VisualPreferences = {
 };
 
 export type SceneVisualPurpose = "story-illustration" | "factual-diagram";
+export function parseSceneVisualPurpose(value: unknown): SceneVisualPurpose | undefined {
+  if (value === undefined || value === "story-illustration" || value === "factual-diagram") return value;
+  throw new Error("Invalid scene visual purpose.");
+}
 export const sceneVisualGuidance: Record<SceneVisualPurpose, string> = {
   "story-illustration": "Depict an explicitly fictional moment from the narrative. Label it as an illustrative analogy, not data, proof, observed behaviour, or a runtime trace. Keep any factual qualifiers in the scene's mapping.",
   "factual-diagram": "Use only the scene's factual mapping and any explicitly attached source. Do not draw fictional story elements. Preserve uncertainty, exact values, and constraints; never invent data, relationships, or outcomes. Explain hypothetical outcomes in text rather than drawing point markers, positions, or values unless explicitly supplied as a schematic example. Prefer text only if the evidence cannot support a useful picture.",
@@ -75,13 +79,12 @@ export function parseVisualBriefRequest(value: unknown): {
   const preferences = record(body?.preferences);
   const additionalContext = preferences?.additionalContext === undefined ? "" : preferences.additionalContext;
   const designPrompt = body?.designPrompt;
-  const purpose = body?.purpose;
+  const purpose = parseSceneVisualPurpose(body?.purpose);
   if (!body || !preferences || typeof body.context !== "string" || !body.context.trim() || body.context.length > visualInputLimits.context ||
       typeof preferences.includeSource !== "boolean" || !["question", "direction"].every((key) =>
         typeof preferences[key] === "string" && preferences[key].length <= visualInputLimits[key as "question" | "direction"]) ||
       typeof additionalContext !== "string" || additionalContext.length > visualInputLimits.additionalContext ||
       (designPrompt !== undefined && (typeof designPrompt !== "string" || !designPrompt.trim() || designPrompt.length > visualInputLimits.prompt)) ||
-      (purpose !== undefined && purpose !== "story-illustration" && purpose !== "factual-diagram") ||
       !Object.entries(visualPreferenceOptions).every(([key, options]) => options.some(([id]) => id === preferences[key])) ||
       (preferences.includeSource
         ? typeof body.source !== "string" || !body.source.trim() || body.source.length > visualInputLimits.source

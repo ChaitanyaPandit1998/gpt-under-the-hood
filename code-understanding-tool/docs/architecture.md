@@ -53,7 +53,10 @@ Cloudflare chapter covers use a separate path.
 - `src/server/chapter-story-api.ts` handles on-demand story variants. Its service validates source ranges, uses a separate fidelity review with at most one repair, and returns no story when review cannot pass. It shares the local model request budget with other routes.
 - Story scene visuals reuse the visual brief and VectorCraft planning/rendering
   routes. The factual mode sends the scene mapping without the story text;
-  the brief service carries mode-specific guidance into the drawing plan.
+  the brief service carries mode-specific guidance into the drawing plan. Only
+  fictional illustration plans can place allowlisted heads; the planner
+  expands them into ordinary paths before returning the scene. The renderer,
+  validation for saved studies, and factual diagram schema stay unchanged.
 - `src/server/visual-api.ts` registers visual brief, scene planning, PNG rendering, and chapter cover routes. It uses the same request concurrency limit, cancellation, and diagnostics as the explanation routes.
 - `src/server/explanation-service.ts` builds explanation prompts and manages the bounded draft, review, repair, and final-review sequence.
 - `src/server/github-pull-request.ts` validates public GitHub PR URLs and fetches bounded metadata and file patches for the PR workspace.

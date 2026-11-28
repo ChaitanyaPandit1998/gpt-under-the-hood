@@ -12,6 +12,7 @@ const instructionFiles = {
   "visual-direction": "skills/design-explanation-visual/SKILL.md",
   "visual-composition": "skills/compose-vectorcraft-visual/SKILL.md",
   "visual-composition-compact": "skills/compose-vectorcraft-visual/references/compact-scenes.md",
+  "visual-composition-story-cast": "skills/compose-vectorcraft-visual/references/story-cast.md",
   "visual-review": "skills/review-explanation-visual/SKILL.md",
   "audience-beginner": "skills/learning-profiles/audience/beginner.md",
   "audience-intermediate": "skills/learning-profiles/audience/intermediate.md",

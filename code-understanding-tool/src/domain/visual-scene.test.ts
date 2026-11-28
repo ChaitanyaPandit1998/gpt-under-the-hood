@@ -1,9 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { expandCompactVisualScene, validateVisualScene } from "./visual-scene";
+import { expandCompactVisualScene, expandStoryVisualScene, validateVisualScene } from "./visual-scene";
 import { sceneCommands } from "../server/vectorcraft-export";
 
 const label = { kind: "text", x: 50, y: 60, text: "Literal label", size: 28, color: "#115577", align: "left" };
 const figure = { background: "#fefefd", items: [label] };
+const head = { kind: "story-head", asset: "short-hair", x: 240, y: 190, scale: 1, mirror: false };
+
+describe("Story character placement", () => {
+  it("reuses the same geometry at a different anchor, direction and scale", () => {
+    const placed = expandStoryVisualScene({ ...figure, items: [label, head] });
+    const mirrored = expandStoryVisualScene({ ...figure, items: [
+      { ...head, x: 620, y: 170, scale: 2, mirror: true }, label,
+    ] });
+    expect(validateVisualScene(placed)).toEqual(placed);
+    expect(placed.items.slice(1)).toHaveLength(9);
+    expect(mirrored.items.at(-1)).toEqual(label);
+    placed.items.slice(1).forEach((path, i) => {
+      if (path.kind !== "path") throw new Error("Expected a head path");
+      expect(mirrored.items[i]).toEqual({ ...path, weight: path.weight * 2,
+        points: path.points.map(({ x, y }) => ({
+          x: expect.closeTo(620 - (x - 240) * 2, 8), y: expect.closeTo(170 + (y - 190) * 2, 8),
+        })) });
+    });
+  });
+
+  it("allows complete scenes with no heads and composes with the compact mode", () => {
+    expect(expandStoryVisualScene(figure)).toEqual(figure);
+    const repeat = { kind: "repeat", count: 2, dx: 40, dy: 0, item: { kind: "rectangle", x: 100, y: 180, width: 20, height: 20, color: "#fafafa" } };
+    const body = { ...figure, items: [label, repeat, { ...head, asset: "long-hair" }] };
+    expect(() => expandStoryVisualScene(body)).toThrow();
+    expect(expandStoryVisualScene(body, true).items.map(item => item.kind)).toEqual([
+      "text", "rectangle", "rectangle", ...Array(10).fill("path"),
+    ]);
+  });
+
+  it("rejects external or invalid assets, clipping, excessive placements and over-budget expansion", () => {
+    for (const badHead of [
+      { ...head, asset: "https://example.test/head" }, { ...head, asset: "__proto__" },
+      { ...head, scale: Infinity }, { ...head, scale: 0.5 }, { ...head, mirror: "false" },
+      { ...head, x: 10 }, { ...head, url: "https://example.test/head" },
+    ]) expect(() => expandStoryVisualScene({ ...figure, items: [label, badHead] })).toThrow("invalid drawing");
+    expect(() => expandStoryVisualScene({ ...figure, items: [label, ...Array(5).fill(head)] })).toThrow("invalid drawing");
+    expect(() => expandStoryVisualScene({ ...figure, items: [...Array(88).fill(label), head] })).toThrow("invalid drawing");
+    const raw = { ...figure, items: [label, head] };
+    expect(() => validateVisualScene(raw)).toThrow();
+    expect(() => expandCompactVisualScene(raw)).toThrow();
+  });
+});
+
 describe("visual scene boundary", () => {
   it("maps valid shapes to fixed VectorCraft operations", () => {
     const path = { kind: "path", points: [{ x: 50, y: 90 }, { x: 150, y: 90 }], color: "#445544", fill: "none", closed: false, arrow: true, weight: 2 };

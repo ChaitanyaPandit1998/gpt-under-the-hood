@@ -1,3 +1,5 @@
+import { storyHeadAssets } from "./story-head-assets.ts";
+
 export const visualCanvas = { width: 1000, height: 700 } as const;
 type Point = { x: number; y: number };
 type SceneItem =
@@ -8,6 +10,7 @@ export type VisualScene = { background: string; items: SceneItem[] };
 
 const maxSceneItems = 96;
 const maxCopies = 24;
+const maxStoryHeads = 4;
 const number = { type: "number" };
 const color = { type: "string", pattern: "^#[0-9a-fA-F]{6}$" };
 function object(properties: Record<string, unknown>) {
@@ -36,6 +39,14 @@ const textRunSchema = object({
   labels: { type: "array", minItems: 2, maxItems: maxCopies, items: { type: "string", minLength: 1, maxLength: 120 } },
 });
 export const compactVisualSceneSchema = sceneSchema([...itemSchemas, repeatSchema, textRunSchema]);
+const headSchema = object({
+  kind: { type: "string", enum: ["story-head"] }, ...point,
+  asset: { type: "string", enum: Object.keys(storyHeadAssets) },
+  scale: { type: "number", minimum: 0.75, maximum: 3 },
+  mirror: { type: "boolean" },
+});
+export const storyVisualSceneSchema = sceneSchema([...itemSchemas, headSchema]);
+export const compactStoryVisualSceneSchema = sceneSchema([...itemSchemas, repeatSchema, textRunSchema, headSchema]);
 
 const objectValue = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 const within = (value: unknown, min: number, max: number): value is number => typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
@@ -101,10 +112,36 @@ function expandItem(item: unknown): unknown[] {
 }
 
 export function expandCompactVisualScene(value: unknown): VisualScene {
+  return expandVisualScene(value, true, false);
+}
+
+export function expandStoryVisualScene(value: unknown, compact = false): VisualScene {
+  return expandVisualScene(value, compact, true);
+}
+
+function expandStoryHead(item: Record<string, unknown>): SceneItem[] {
+  if (!exact(item, headSchema) || !isPoint(item) ||
+    typeof item.asset !== "string" || !Object.hasOwn(storyHeadAssets, item.asset) ||
+    !within(item.scale, 0.75, 3) || typeof item.mirror !== "boolean") invalidDrawing();
+  const { x, y, scale, mirror } = item;
+  return storyHeadAssets[item.asset as keyof typeof storyHeadAssets].map((path) => ({
+    ...path, kind: "path", arrow: false, weight: Math.max(0.5, path.weight * scale),
+    points: path.points.map(([dx, dy]) => ({ x: x + dx * scale * (mirror ? -1 : 1), y: y + dy * scale })),
+  }));
+}
+
+function expandVisualScene(value: unknown, compact: boolean, story: boolean): VisualScene {
   const { background, items } = readScene(value);
   const expanded: unknown[] = [];
+  let heads = 0;
   for (const item of items) {
-    const batch = expandItem(item);
+    let batch: unknown[];
+    if (story && objectValue(item) && item.kind === "story-head") {
+      if (++heads > maxStoryHeads) invalidDrawing();
+      batch = expandStoryHead(item);
+    } else {
+      batch = compact ? expandItem(item) : [item];
+    }
     if (expanded.length + batch.length > maxSceneItems) invalidDrawing();
     expanded.push(...batch);
   }
