@@ -10,6 +10,15 @@ describe("visual brief contract", () => {
     expect(validateVisualBrief(brief)).toEqual(brief);
     expect(validateVisualBrief({ ...brief, disposition: "text-only", visualType: "none", content: [] }).disposition).toBe("text-only");
   });
+  it("accepts bounded exact labels without changing legacy briefs", () => {
+    const requiredLabels = ["Unproved", "x < 1", "Elapsed time (ms)"];
+    const extended = { ...brief, requiredLabels };
+    expect(validateVisualBrief(extended)).toEqual(extended);
+    for (const invalid of [null, [" "], [" line"], ["line\nbreak"], ["x".repeat(61)], ["Caf\u00e9", "Cafe\u0301"], Array(9).fill("x")]) {
+      expect(() => validateVisualBrief({ ...brief, requiredLabels: invalid })).toThrow("Invalid required visual labels");
+    }
+    expect(() => validateVisualBrief({ ...extended, disposition: "text-only", visualType: "none" })).toThrow("text-only brief cannot require");
+  });
   it("rejects invalid shapes, source coordinates and executable markup", () => {
     expect(() => validateVisualBrief({ ...brief, operations: [] })).toThrow();
     expect(() => validateVisualBrief({ ...brief, disposition: "text-only" })).toThrow();

@@ -19,6 +19,13 @@ describe("portable studies", () => {
     const image = restored.reading.chapter?.stories?.story.images?.[0]["story-illustration"];
     expect(await image?.png.arrayBuffer()).toEqual(await png.arrayBuffer());
   });
+  it("round trips an optional story cast and rejects invalid cast assignments", async () => {
+    const locked = { ...study, reading: { ...study.reading, chapter: { ...study.reading.chapter!,
+      storyCast: { "short-hair": "Clerk", "long-hair": "Guide" } } } };
+    expect(await importPortableStudy(await exportPortableStudy(locked))).toEqual(locked);
+    await expect(exportPortableStudy({ ...locked, reading: { chapter: { ...locked.reading.chapter,
+      storyCast: { "short-hair": "Clerk", "long-hair": "clerk" } } } })).rejects.toThrow("distinct");
+  });
   it.each([
     { format: "other", version: 1, study },
     { format: "understand-study", version: 2, study },

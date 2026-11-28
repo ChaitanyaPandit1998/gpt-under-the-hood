@@ -11,6 +11,7 @@ import { ChapterIllustration } from "./ChapterIllustration";
 import type { ChapterArtwork } from "../domain/chapter-illustrations";
 import type { CachedPrResult, PrReadingState } from "../domain/saved-study";
 import { PullRequestPdfExport, type PrPdfChapter } from "./PullRequestPdfExport";
+import type { StoryCast } from "../domain/story-cast";
 
 const initialChapterSettings: ChapterSettings = { ...defaultChapterSettings, depth: "detailed" };
 const automaticReviewKey = "understand-pr-automatic-review";
@@ -29,6 +30,7 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
     try { return localStorage.getItem(automaticReviewKey) === "true"; } catch { return false; }
   });
   const [covers, setCovers] = useState<Record<string, ChapterArtwork>>(() => initialReading?.covers ?? {});
+  const [storyCast, setStoryCast] = useState<StoryCast | undefined>(() => initialReading?.storyCast);
   const evidenceController = useRef<AbortController | null>(null);
   const evidenceRequestId = useRef(0);
   const [cache] = useState(() => new Map<string, CachedPrResult>(Object.entries(initialReading?.results ?? {})));
@@ -75,7 +77,8 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
 
   function save() {
     cacheActiveResult();
-    onSave({ chapterId: chapter.id, settings: chapterSettings, extraChapters, evidenceProgress, results: Object.fromEntries(cache), covers });
+    onSave({ chapterId: chapter.id, settings: chapterSettings, extraChapters, evidenceProgress, results: Object.fromEntries(cache), covers,
+      ...(storyCast ? { storyCast } : {}) });
   }
 
   useEffect(() => () => {
@@ -182,6 +185,7 @@ export function PullRequestStudy({ plan, theme, onClose, initialReading, onSave,
         {session.explanation && <ExplanationResult key={activeKey} ref={resultReader} initialReading={savedResult?.explanation === session.explanation ? savedResult.reading : undefined}
           allowChapterArtwork={false} materialMode="pull_request" refinementTarget={refinementTarget} explanation={session.explanation} source={source} theme={theme} lineCount={source.split("\n").length}
           storyPreferences={{ depth: settings.depth, learnerLevel: settings.learnerLevel }}
+          sharedStoryCast={{ value: storyCast, onChange: setStoryCast }}
           exportContext={{ scope: `PR chapter: ${chapter.title}`, provenance: `PR: ${plan.url}\nHead: ${plan.headSha}\nBase: ${plan.baseSha}\nPreferences: ${JSON.stringify(settings)}\nPR coverage limits: ${plan.warnings.join("; ")}` }}
           isRegenerating={session.isGenerating} isReviewing={session.isReviewing} isAskingFollowUp={session.isAskingFollowUp} copyStatus={session.copyStatus} followUpQuestion={session.followUpQuestion} selectedTextForQuestion="" followUpMessages={session.followUpMessages} followUpError={session.followUpError} textSelection={null}
           onCopy={() => void copy()} onFollowUpQuestionChange={session.setFollowUpQuestion} onAskFollowUp={session.askFollowUp} onClearSelectedTextContext={() => session.setSelectedTextForQuestion("")} onAskAboutSelectedText={() => {}} />}

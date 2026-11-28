@@ -48,11 +48,15 @@ type Content = { label: string; role: typeof evidenceRoles[number]; statement: s
 export type VisualBrief = {
   disposition: "render" | "text-only"; visualType: typeof resultForms[number];
   takeaway: string; content: Content[]; composition: string; guardrails: string[]; caption: string; altText: string;
+  requiredLabels?: string[];
 };
 const text = (maxLength: number) => ({ type: "string", minLength: 1, maxLength });
+const briefFields = ["disposition", "visualType", "takeaway", "content", "composition", "guardrails", "caption", "altText"];
+const maxRequiredLabels = 8;
+const maxRequiredLabelLength = 60;
 export const visualBriefSchema = {
   type: "object", additionalProperties: false,
-  required: ["disposition", "visualType", "takeaway", "content", "composition", "guardrails", "caption", "altText"],
+  required: [...briefFields, "requiredLabels"],
   properties: {
     disposition: { type: "string", enum: ["render", "text-only"] },
     visualType: { type: "string", enum: resultForms },
@@ -65,11 +69,23 @@ export const visualBriefSchema = {
       },
     } },
     composition: text(1_800), guardrails: { type: "array", maxItems: 10, items: text(600) }, caption: text(600), altText: text(1_200),
+    requiredLabels: { type: "array", maxItems: maxRequiredLabels, items: text(maxRequiredLabelLength) },
   },
 };
 
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+export function parseRequiredVisualLabels(value: unknown): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > maxRequiredLabels || !value.every(label =>
+    typeof label === "string" && label.length > 0 && label === label.trim() &&
+    label.length <= maxRequiredLabelLength && !/\p{Cc}/u.test(label)) ||
+    new Set(value.map(label => label.normalize("NFC"))).size !== value.length) {
+    throw new Error("Invalid required visual labels.");
+  }
+  return value;
 }
 
 export function parseVisualBriefRequest(value: unknown): {
@@ -108,7 +124,8 @@ export function validateVisualBrief(value: unknown, lineCount = 0, visibleLines?
         ? item.chapterLines.length > 0 && item.chapterLines.every((line) => Number.isInteger(line) && line >= 1 && line <= lineCount && (!visibleLines || visibleLines.has(line)))
         : item.chapterLines.length === 0);
   };
-  if (!brief || Object.keys(brief).length !== visualBriefSchema.required.length ||
+  if (!brief || !briefFields.every(key => Object.hasOwn(brief, key)) ||
+    Object.keys(brief).length !== briefFields.length + Number(Object.hasOwn(brief, "requiredLabels")) ||
     !resultForms.some((form) => form === brief.visualType) ||
     (brief.disposition === "render" ? brief.visualType === "none" : brief.disposition !== "text-only" || brief.visualType !== "none") ||
     !plain(brief.takeaway, fields.takeaway.maxLength) || !plain(brief.composition, fields.composition.maxLength) ||
@@ -116,5 +133,7 @@ export function validateVisualBrief(value: unknown, lineCount = 0, visibleLines?
     !Array.isArray(brief.guardrails) || brief.guardrails.length > 10 || !brief.guardrails.every((item) => plain(item, 600)) ||
     !Array.isArray(brief.content) || brief.content.length > 16 || (brief.disposition === "render" && !brief.content.length) ||
     !brief.content.every(validContent)) throw new Error("The model returned an invalid visual brief. Try again with a narrower question.");
+  const labels = parseRequiredVisualLabels(brief.requiredLabels);
+  if (brief.disposition === "text-only" && labels.length) throw new Error("A text-only brief cannot require image labels.");
   return brief as VisualBrief;
 }

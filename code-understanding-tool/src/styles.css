@@ -396,6 +396,9 @@ html[data-theme="dark"] .chapter-reader{--line:#45485a}
 .story-scene-options{border-block-start:1px solid var(--line);padding-block:10px}
 .story-scene-options>summary{cursor:pointer;font-weight:600;width:fit-content}
 .story-scene-options .chapter-toolbar{margin-block:8px}
+.story-cast-settings{margin-block:12px}
+.story-cast-settings label{display:block;margin-block:8px}
+.story-cast-settings input{display:block;margin-block-start:4px;max-width:100%}
 .story-scene-visual .scene-visual-builder{margin-block:8px}
 .pull-request-import{display:grid;gap:7px;padding:13px 15px;border-bottom:1px solid #ececf2;background:#fff}
 .pull-request-import label{font-size:11px;font-weight:600;color:#55566b}

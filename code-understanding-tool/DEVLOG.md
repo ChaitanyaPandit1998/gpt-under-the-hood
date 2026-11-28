@@ -3,6 +3,63 @@
 Track meaningful changes, validation, limitations, and the next action here. Add a
 dated entry for future work; never record secrets or private source material.
 
+## 2026-11-29 - Keep Story work when a PR review passes
+
+- A review-only status or note update keeps the selected chapter, Story,
+  and accepted scene images mounted. A review that changes the explanation
+  still resets the reader so it does not reuse stale Story material.
+- Added desktop/mobile PR regression coverage for both outcomes.
+
+## 2026-11-29 - Story visual release validation
+
+- Lint, the production build, 365 unit/integration tests, and 112 mocked
+  desktop/mobile browser tests passed. The existing ResizeObserver warning
+  still appeared in diagram-export tests and did not fail the suite.
+- A live Riemann Hypothesis pilot used public math facts and a fictional
+  workshop scene as external inputs, not app fixtures. Both generated briefs
+  and plans passed label preflight and rendered at 1280 x 720 in about 60s
+  each (about 22s for the brief, 37-38s for planning, and under 1s for PNG).
+  Neither plan needed repair.
+- Manual inspection confirmed that the factual diagram placed `Unproved`
+  beside the conjecture and plotted no zeros. The Story image included
+  `Fictional analogy`, used both locked faces, and showed joined collars and
+  hand contact on both ends of the ruler. These checks describe the two
+  sampled renders, not a guarantee for other generated images.
+
+## 2026-11-28 - Required visual labels
+
+- Visual briefs can list exact labels that must appear in the drawing;
+  Story illustrations also require the fictional qualifier. The app checks
+  expanded plans, including compact text runs, and rechecks at rendering.
+  The planner gets one repair attempt; persistent omissions are reported
+  before a PNG is rendered. Existing briefs remain readable.
+- The check verifies text presence, not the accuracy of the visual,
+  its label-to-object relationships, or a character's grip.
+
+## 2026-11-28 - Optional Story cast lock
+
+- Readers can assign fictional names or roles to either approved face.
+  Assignments are shared across chapters in a source or PR study and
+  persist on explicit save. Source study transfers also retain them.
+  Existing images and factual diagrams are unchanged.
+- Two fresh synthetic flower-market chapter briefs used the same locked
+  cast. The second scene switched sides and mirrored both heads. Both
+  HD renders passed label preflight and had visible neck-to-shirt
+  contacts. Each took about 58s to plan, with one model call and no retry.
+- The lock preserves the face mapped to a role, not clothing or gestures.
+  The planner still decides which roles are depicted in each image.
+
+## 2026-11-28 - Story character collar anchors
+
+- Reusable head placements now reference a torso and the horizontal center
+  of its collar. Scene expansion computes the neck overlap from the filled
+  shirt edge before rendering; the approved face and hair vectors are
+  unchanged. Saved drawings already contain ordinary paths and remain valid.
+- Replayed the inspection and mirrored pickup pilots without model calls.
+  Both 1280 x 720 PNGs passed label preflight, and visual inspection confirmed
+  that the collar gaps closed. Build and 71 focused tests passed. A fresh
+  live-planner run is still pending.
+
 ## 2026-11-28 - Reusable heads in Story illustrations
 
 - Fictional Story illustration plans can place and mirror two approved

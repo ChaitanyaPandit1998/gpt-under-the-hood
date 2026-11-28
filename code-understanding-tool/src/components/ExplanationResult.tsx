@@ -1,5 +1,5 @@
 import { useId, useImperativeHandle, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type Ref } from "react";
-import type { Explanation, FollowUpMessage, Mode } from "../domain/explanation-types";
+import { explanationContentKey, type Explanation, type FollowUpMessage, type Mode } from "../domain/explanation-types";
 import { isValidRange, type SourceRange } from "../domain/source-ranges";
 import type { ThemeMode } from "../domain/theme";
 import { formatMathText } from "../domain/format-math-text";
@@ -11,6 +11,7 @@ import { SourceRanges } from "./SourceRanges";
 import { SourceEvidence } from "./SourceEvidence";
 import { UnderstandingCheck } from "./UnderstandingCheck";
 import { ChapterPage, ChapterReader, type ChapterReaderHandle } from "./ChapterReader";
+import type { StoryCastControl } from "./StoryCastSettings";
 import type { ExportContext } from "./DocumentExport";
 import { VisualBriefPanel, type VisualBriefPanelHandle } from "./VisualBriefPanel";
 import { InlineIllustration } from "./InlineIllustration";
@@ -28,6 +29,7 @@ type Props = {
   allowChapterArtwork?: boolean;
   materialMode?: Mode;
   storyPreferences?: StoryPreferences;
+  sharedStoryCast?: StoryCastControl;
   refinementTarget?: string;
   explanation: Explanation;
   source: string;
@@ -51,14 +53,14 @@ type Props = {
 export type ExplanationResultHandle = { snapshot: () => ResultReadingState; activeChapterId: () => string | undefined };
 
 export function ExplanationResult(props: Props) {
-  return <Result key={JSON.stringify([props.explanation, props.source, props.exportContext?.scope])} {...props} />;
+  return <Result key={JSON.stringify([explanationContentKey(props.explanation), props.source, props.exportContext?.scope])} {...props} />;
 }
 
 function Result({
   initialReading, onSaveStudy, savingStudy, ref,
   exportContext = { scope: "Original explanation only (not adapted section variants)", provenance: "Generation preferences not recorded in this export." },
   allowChapterArtwork = true,
-  materialMode = "code", storyPreferences = defaultStoryPreferences, refinementTarget = "explanation-preferences",
+  materialMode = "code", storyPreferences = defaultStoryPreferences, sharedStoryCast, refinementTarget = "explanation-preferences",
   explanation, source, theme, lineCount, isAskingFollowUp, isRegenerating = false, isReviewing = false, copyStatus, followUpQuestion,
   selectedTextForQuestion, followUpMessages, followUpError, textSelection, onCopy,
   onFollowUpQuestionChange, onAskFollowUp, onClearSelectedTextContext, onAskAboutSelectedText,
@@ -136,6 +138,7 @@ function Result({
           </details>
         </aside>}
         <ChapterReader ref={reader} initialReading={initialReading?.chapter} explanation={explanation} artworkEnabled={allowChapterArtwork}
+          sharedStoryCast={sharedStoryCast}
           storyContext={{ source, mode: materialMode, preferences: storyPreferences, onSelectRange, onClearCitation: () => setCitation(undefined) }}
           refinementContext={allowChapterArtwork ? { source, mode: materialMode, theme, onSelectRange } : undefined}>
         <ChapterPage id="overview"><ReadingParagraphs text={explanation.summary} paragraphClassName="result-summary" /></ChapterPage>

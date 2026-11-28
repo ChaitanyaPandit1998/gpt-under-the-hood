@@ -1,5 +1,5 @@
 import { createContext, useContext, useId, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
-import type { Explanation } from "../domain/explanation-types";
+import { explanationContentKey, type Explanation } from "../domain/explanation-types";
 import { explanationChapters, type ExplanationChapter } from "../domain/explanation-chapters";
 import { ChapterIllustration } from "./ChapterIllustration";
 import { ChapterOutline } from "./ChapterOutline";
@@ -12,6 +12,8 @@ import type { ReadingState, RenderedIllustration, SavedChapterStory } from "../d
 import { chapterStoryKey } from "../domain/chapter-story";
 import { ChapterStory, type ChapterStoryContext } from "./ChapterStory";
 import { mergeVisualReviewHistory } from "../domain/visual-provenance";
+import type { StoryCast } from "../domain/story-cast";
+import type { StoryCastControl } from "./StoryCastSettings";
 
 const ChapterContext = createContext<{
   active: string | null; imagePrefix: string; images: Record<string, RenderedIllustration>;
@@ -46,14 +48,14 @@ function chapterMaterial(explanation: Explanation, chapter: ExplanationChapter):
 }
 
 export type ChapterReaderHandle = { snapshot: () => ReadingState; activeChapterId: () => string };
-type ReaderProps = { explanation: Explanation; children: ReactNode; artworkEnabled?: boolean; refinementContext?: ChapterRefinementContext; storyContext?: ChapterStoryContext; initialReading?: ReadingState; ref?: Ref<ChapterReaderHandle> };
+type ReaderProps = { explanation: Explanation; children: ReactNode; artworkEnabled?: boolean; refinementContext?: ChapterRefinementContext; storyContext?: ChapterStoryContext; sharedStoryCast?: StoryCastControl; initialReading?: ReadingState; ref?: Ref<ChapterReaderHandle> };
 
 export function ChapterReader({ explanation, ...props }: ReaderProps) {
   // A new result starts a new reading session, even when the result component stays mounted.
-  return <Reader key={JSON.stringify(explanation)} explanation={explanation} {...props} />;
+  return <Reader key={explanationContentKey(explanation)} explanation={explanation} {...props} />;
 }
 
-function Reader({ explanation, children, artworkEnabled = true, refinementContext, storyContext, initialReading, ref }: ReaderProps) {
+function Reader({ explanation, children, artworkEnabled = true, refinementContext, storyContext, sharedStoryCast, initialReading, ref }: ReaderProps) {
   const chapters = explanationChapters(explanation);
   const [selectedIndex, setIndex] = useState(() => Math.max(0, chapters.findIndex((chapter) => chapter.id === initialReading?.chapterId)));
   const index = Math.min(selectedIndex, chapters.length - 1);
@@ -61,6 +63,7 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
   const [images, setImages] = useState<Record<string, RenderedIllustration>>(() => initialReading?.images ?? {});
   const [stories, setStories] = useState<Record<string, SavedChapterStory>>(() => initialReading?.stories ?? {});
   const [selectedStory, setSelectedStory] = useState(() => initialReading?.activeStoryKey);
+  const [storyCast, setStoryCast] = useState<StoryCast | undefined>(() => initialReading?.storyCast);
   const heading = useRef<HTMLHeadingElement>(null);
   const refinementReaders = useRef(new Map<string, ChapterRefinementHandle>());
   const headingId = useId();
@@ -77,7 +80,8 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
     adapted: Object.fromEntries([...refinementReaders.current].map(([id, refinement]) => [id, refinement.snapshot()])),
     ...(Object.keys(stories).length > 0 ? { stories } : {}),
     ...(storyVisible ? { activeStoryKey: storyKey } : {}),
-  }) }), [chapter.id, images, covers, stories, storyVisible, storyKey]);
+    ...(!sharedStoryCast && storyCast ? { storyCast } : {}),
+  }) }), [chapter.id, images, covers, stories, storyVisible, storyKey, sharedStoryCast, storyCast]);
 
   function navigate(next: number) {
     if (next !== index && storySelected) {
@@ -105,6 +109,7 @@ function Reader({ explanation, children, artworkEnabled = true, refinementContex
           <h3 id={headingId} ref={heading} tabIndex={-1}>{chapter.title}</h3>
         </header>
         {chapterContext && storyKey && storyContext?.source.trim() && <ChapterStory key={storyKey} context={storyContext} chapter={JSON.stringify(chapterContext)}
+          cast={sharedStoryCast ?? { value: storyCast, onChange: setStoryCast }}
           selected={storySelected} story={activeStory?.story} images={activeStory?.images} onSelect={(selected) => {
             if (!selected && storyVisible) storyContext.onClearCitation();
             setSelectedStory(selected ? storyKey : undefined);

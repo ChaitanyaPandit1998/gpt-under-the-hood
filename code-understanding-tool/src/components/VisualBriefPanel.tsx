@@ -7,16 +7,18 @@ import { combineVisualPresets, type VisualPresetSelection } from "../domain/visu
 import { VisualDesignerStep } from "./VisualDesignerStep";
 import type { VisualReviewContext } from "./VisualReviewPanel";
 import { validateGenerationStage, type GenerationStage } from "../domain/visual-provenance";
+import type { StoryCast } from "../domain/story-cast";
+import { requiredVisualLabels } from "../domain/visual-required-labels";
 
 export type VisualBriefPanelHandle = { openForDiagram: (index: number) => void };
 type Props = { explanation: Explanation; source: string; scope: string; label?: string; placement?: IllustrationPlacement; ref?: Ref<VisualBriefPanelHandle>;
-  purpose?: SceneVisualPurpose; initialPreferences?: VisualPreferences; embedded?: boolean };
+  purpose?: SceneVisualPurpose; initialPreferences?: VisualPreferences; embedded?: boolean; cast?: StoryCast };
 
 export function VisualBriefPanel(props: Props) {
   return <BriefForm key={JSON.stringify([props.explanation, props.source, props.scope, props.purpose, props.initialPreferences])} {...props} />;
 }
 
-function BriefForm({ explanation, source, scope, label = "Design a visual", placement, ref, purpose, initialPreferences = defaultVisualPreferences, embedded }: Props) {
+function BriefForm({ explanation, source, scope, label = "Design a visual", placement, ref, purpose, initialPreferences = defaultVisualPreferences, embedded, cast }: Props) {
   const [preferences, setPreferences] = useState(initialPreferences);
   const [presets, setPresets] = useState<VisualPresetSelection>({ direction: [], additionalContext: [] });
   const [brief, setBrief] = useState<VisualBrief | null>(null);
@@ -177,7 +179,7 @@ function BriefForm({ explanation, source, scope, label = "Design a visual", plac
         {error && <p role="alert">{error}</p>}
         {brief && <section className="visual-generation-result" aria-label="Render the image" id={renderId} tabIndex={-1}>
           <h5>{brief.disposition === "render" ? "Render the image" : "Text-only recommendation"}</h5>
-          <BriefResult key={briefRevision} brief={brief} placement={placement} disabled={busy} generation={briefGeneration}
+          <BriefResult key={briefRevision} brief={brief} placement={placement} disabled={busy} generation={briefGeneration} cast={cast}
             reviewContext={{ explanation: context, scope: diagram ? `${scope}: ${diagram.title}` : scope, audience: preferences.audience, purpose }} />
         </section>}
       </VisualDesignerStep>
@@ -190,14 +192,16 @@ function BriefForm({ explanation, source, scope, label = "Design a visual", plac
   </details>;
 }
 
-function BriefResult({ brief, placement, disabled, reviewContext, generation }: { brief: VisualBrief; placement?: IllustrationPlacement; disabled: boolean; reviewContext: VisualReviewContext; generation?: GenerationStage }) {
+function BriefResult({ brief, placement, disabled, reviewContext, generation, cast }: { brief: VisualBrief; placement?: IllustrationPlacement; disabled: boolean; reviewContext: VisualReviewContext; generation?: GenerationStage; cast?: StoryCast }) {
   const form = visualForms.find(([id]) => id === brief.visualType)?.[1] ?? "Text only";
+  const required = brief.disposition === "render" ? requiredVisualLabels(brief.requiredLabels, reviewContext.purpose) : [];
   return <section aria-label="Visual design brief">
     <h5>{form}</h5>
     <p><strong>Takeaway:</strong> {brief.takeaway}</p>
     <details className="visual-builder-options">
       <summary>Read the full brief</summary>
       <p><strong>Composition:</strong> {brief.composition}</p>
+      {required.length > 0 && <p><strong>Required image labels:</strong> {required.join("; ")}</p>}
       {brief.content.length > 0 && <ul>{brief.content.map((item, index) => <li key={index}>
         <strong>{item.label}</strong> ({item.role}): {item.statement}{item.chapterLines.length > 0 && ` (lines ${item.chapterLines.join(", ")})`}
       </li>)}</ul>}
@@ -205,6 +209,6 @@ function BriefResult({ brief, placement, disabled, reviewContext, generation }: 
       <p><strong>Caption:</strong> {brief.caption}</p>
       <p><strong>Text alternative:</strong> {brief.altText}</p>
     </details>
-    {brief.disposition === "render" ? <VisualBriefImage brief={brief} placement={placement} disabled={disabled} reviewContext={reviewContext} briefGeneration={generation} /> : <p>This brief recommends text instead of an image. To try another approach, adjust your selections and generate a new brief.</p>}
+    {brief.disposition === "render" ? <VisualBriefImage key={JSON.stringify(cast)} cast={cast} brief={brief} placement={placement} disabled={disabled} reviewContext={reviewContext} briefGeneration={generation} /> : <p>This brief recommends text instead of an image. To try another approach, adjust your selections and generate a new brief.</p>}
   </section>;
 }

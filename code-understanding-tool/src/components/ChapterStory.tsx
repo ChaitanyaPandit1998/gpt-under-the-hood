@@ -9,6 +9,7 @@ import { InlineEmphasis } from "./InlineEmphasis";
 import { StorySceneVisual } from "./StorySceneVisual";
 import type { RenderedIllustration, StorySceneImages } from "../domain/saved-study";
 import type { SceneVisualPurpose } from "../domain/visual-brief";
+import { StoryCastSettings, type StoryCastControl } from "./StoryCastSettings";
 
 export type ChapterStoryContext = {
   source: string;
@@ -18,9 +19,10 @@ export type ChapterStoryContext = {
   onClearCitation: () => void;
 };
 
-export function ChapterStory({ context, chapter, selected, story, images, onSelect, onReady, onRender }: {
+export function ChapterStory({ context, chapter, selected, story, images, cast, onSelect, onReady, onRender }: {
   context: ChapterStoryContext; chapter: string; selected: boolean; story?: Story;
   images?: Record<number, StorySceneImages>;
+  cast: StoryCastControl;
   onSelect: (selected: boolean) => void; onReady: (story: Story) => void;
   onRender: (sceneIndex: number, purpose: SceneVisualPurpose, image: RenderedIllustration, reviewOnly?: boolean) => void;
 }) {
@@ -90,6 +92,7 @@ export function ChapterStory({ context, chapter, selected, story, images, onSele
         <div className="section-caption">Story mode · Illustrative analogy</div>
         <h4 id={headingId}>{story.title}</h4>
         <ReadingParagraphs text={formatMathText(story.setup)} />
+        <StoryCastSettings {...cast} />
         <ol className="chapter-story-scenes">{story.scenes.map((scene, index) => <li key={index}>
           <h5>{scene.heading}</h5>
           <ReadingParagraphs text={formatMathText(scene.narrative)} />
@@ -99,6 +102,7 @@ export function ChapterStory({ context, chapter, selected, story, images, onSele
             <SourceRanges ranges={scene.source_ranges} lineCount={lineCount} onSelectRange={context.onSelectRange} />
           </div>
           <StorySceneVisual scene={scene} sceneNumber={index + 1} source={context.source} audience={context.preferences.learnerLevel}
+            cast={cast.value}
             images={images?.[index]} onRender={(purpose, image, reviewOnly) => onRender(index, purpose, image, reviewOnly)} />
         </li>)}</ol>
         <p><strong>Takeaway: </strong><InlineEmphasis text={formatMathText(story.takeaway)} /></p>

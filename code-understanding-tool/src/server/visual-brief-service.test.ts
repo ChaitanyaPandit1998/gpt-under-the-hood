@@ -37,6 +37,16 @@ describe("drawing plan recovery", () => {
     expect(run).toHaveBeenCalledTimes(2);
   });
 
+  it("repairs a missing required qualifier and checks labels after compact expansion", async () => {
+    const packed = { ...scene, items: [...scene.items, { kind: "text-run", labels: ["Unproved", "x < 1"], x: 60, y: 120,
+      dx: 0, dy: 40, size: 20, color: "#202020", align: "left" }] };
+    const run = vi.fn().mockResolvedValueOnce(scene).mockResolvedValueOnce(packed);
+    const result = await createVisualScene({ ...brief, requiredLabels: ["Unproved", "x < 1"] }, root, run, new AbortController().signal, true);
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(run.mock.calls[1][0]).toContain('Missing labels (literal data): ["Unproved","x < 1"]');
+    expect(result.items.slice(1)).toMatchObject([{ text: "Unproved" }, { text: "x < 1" }]);
+  });
+
   it("does not retry provider failures", async () => {
     const run = vi.fn().mockRejectedValue(new Error("Provider unavailable"));
     await expect(createVisualScene(brief, root, run, new AbortController().signal)).rejects.toThrow("Provider unavailable");

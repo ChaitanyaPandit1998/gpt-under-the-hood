@@ -1,4 +1,9 @@
 // Approved editorial head geometry in local coordinates; no scene or pose data.
+export const storyHeadCollars = {
+  "short-hair": { x: -3, y: 36 },
+  "long-hair": { x: 2, y: 34 },
+} as const;
+
 export const storyHeadAssets = {
   "short-hair": [
     { color: "#A75F49", fill: "#A75F49", weight: 0.6, closed: true, points: [

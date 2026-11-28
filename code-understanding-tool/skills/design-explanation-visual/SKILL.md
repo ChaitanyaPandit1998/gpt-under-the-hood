@@ -28,6 +28,7 @@ Keep the chapter's evidence and qualifications available even when moving detail
 3. **Composition:** Reading order, focal point, suggested primitives, and any deliberate decorative elements. Include target surface and how to handle overflow.
 4. **Guardrails and accessibility:** Must-not-invent items, omitted scope, concise caption, and a text alternative that conveys the same takeaway.
 5. **Disposition:** `render` if the design is supportable, or `text-only` with a reason. Do not claim generation or visual inspection unless performed.
+6. **Required labels:** Use `requiredLabels` for exact, short, on-image wording that cannot be dropped without misleading the learner. Include essential axis units, values, branch outcomes, or qualifiers only when they are supported and relevant. Keep this list small. Do not include caption-only text, optional annotations, or commands. Use an empty list when no exact labels are needed or the disposition is `text-only`.
 
 The app should translate the brief into validated scene data and approved renderer operations. Do not output executable code, raw SVG, arbitrary file paths, or renderer commands for direct execution. When a separate renderer is available, inspect its output at the target size for misleading geometry, wrong labels, clipping, and missing qualifiers before delivering it.
 

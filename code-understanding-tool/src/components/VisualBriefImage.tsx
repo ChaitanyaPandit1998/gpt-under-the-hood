@@ -8,6 +8,8 @@ import { validateVisualScene, type VisualScene } from "../domain/visual-scene";
 import { checkVisualLabels } from "../domain/visual-label-layout";
 import { VisualReviewPanel, type VisualReviewContext } from "./VisualReviewPanel";
 import { appendVisualReview, validateGenerationStage, type GenerationStage } from "../domain/visual-provenance";
+import type { StoryCast } from "../domain/story-cast";
+import { assertRequiredVisualLabels, requiredVisualLabels } from "../domain/visual-required-labels";
 
 const sizes = (Object.keys(visualResolutions) as VisualResolution[]).map((value) => {
   const { title, width, height } = visualResolutions[value];
@@ -22,7 +24,7 @@ export type IllustrationPlacement = {
   location?: "scene";
 };
 
-export function VisualBriefImage({ brief, placement, disabled = false, reviewContext, briefGeneration }: { brief: VisualBrief; placement?: IllustrationPlacement; disabled?: boolean; reviewContext?: VisualReviewContext; briefGeneration?: GenerationStage }) {
+export function VisualBriefImage({ brief, placement, disabled = false, reviewContext, briefGeneration, cast }: { brief: VisualBrief; placement?: IllustrationPlacement; disabled?: boolean; reviewContext?: VisualReviewContext; briefGeneration?: GenerationStage; cast?: StoryCast }) {
   const [preview, setPreview] = useState<RenderedIllustration>();
   const [previewScene, setPreviewScene] = useState<VisualScene>();
   const [renderRevision, setRenderRevision] = useState(0);
@@ -46,16 +48,17 @@ export function VisualBriefImage({ brief, placement, disabled = false, reviewCon
     pending.current = controller;
     setError("");
     try {
+      const purpose = reviewContext?.purpose;
       let scene = planned.current;
       if (!scene) {
         setPhase("planning");
-        const purpose = reviewContext?.purpose;
         const response = await fetch("/api/visual-plan", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(purpose ? { brief, purpose } : brief), signal: controller.signal });
+          body: JSON.stringify(purpose ? { brief, purpose, cast } : brief), signal: controller.signal });
         const result = await response.json() as { scene?: unknown; error?: string; generation?: unknown };
         if (!response.ok) throw new Error(result.error || "Could not plan the drawing.");
         if (pending.current !== controller || controller.signal.aborted) return;
         scene = validateVisualScene(result.scene);
+        assertRequiredVisualLabels(scene, requiredVisualLabels(brief.requiredLabels, purpose));
         const lineage = result.generation === undefined ? undefined : await validateGenerationStage(result.generation, JSON.stringify(scene));
         const canvas = document.createElement("canvas").getContext("2d");
         if (!canvas) throw new Error("Text layout checking is unavailable in this browser.");
@@ -74,7 +77,7 @@ export function VisualBriefImage({ brief, placement, disabled = false, reviewCon
       }
       setPhase("rendering");
       const response = await fetch("/api/visual-render", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scene, resolution }), signal: controller.signal });
+        body: JSON.stringify({ scene, resolution, purpose, requiredLabels: brief.requiredLabels }), signal: controller.signal });
       if (!response.ok) {
         const result = await response.json() as { error?: string };
         throw new Error(result.error || "Could not render the image.");
@@ -108,9 +111,10 @@ export function VisualBriefImage({ brief, placement, disabled = false, reviewCon
     <details className="visual-builder-options">
       <summary>Rendering details</summary>
       <p>The first render plans the drawing; retries and other sizes reuse that plan without another model call.</p>
-      <p>Preflight checks label clipping and overlap, not factual correctness. Font substitution and shapes can affect readability; inspect the PNG. Captions appear below it.</p>
+      <p>Preflight checks required labels, clipping, and text overlap, not factual correctness. Font substitution and shapes can affect readability; inspect the PNG. Captions appear below it.</p>
     </details>
     <ChoiceCards label="Image resolution" choices={sizes} value={resolution} onChange={setResolution} disabled={busy || disabled} />
+    {cast && <p>Rendering sends your locked fictional roles to the model with the visual brief.</p>}
     <div className="chapter-toolbar">
       <button ref={renderButton} className="visual-primary-action" type="button" disabled={busy || disabled} onClick={() => void render()}>{error ? (planned.current ? "Retry PNG render" : "Retry drawing plan") : preview ? "Render image again" : "Render image"}</button>
       {busy && <button type="button" onClick={() => { pending.current?.abort(); pending.current = null; setPhase(null); }}>Cancel image render</button>}

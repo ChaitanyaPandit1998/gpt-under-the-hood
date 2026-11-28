@@ -1,6 +1,6 @@
 import type { ViteDevServer } from "vite";
 import { chapterArtworkPrompt, parseArtworkRequest } from "../domain/chapter-illustrations.ts";
-import { parseSceneVisualPurpose, parseVisualBriefRequest, validateVisualBrief, type SceneVisualPurpose } from "../domain/visual-brief.ts";
+import { parseRequiredVisualLabels, parseSceneVisualPurpose, parseVisualBriefRequest, validateVisualBrief, type SceneVisualPurpose } from "../domain/visual-brief.ts";
 import { parseVisualResolution, type VisualResolution } from "../domain/visual-resolution.ts";
 import { validateVisualScene, type VisualScene } from "../domain/visual-scene.ts";
 import { generateCloudflareImage, CLOUDFLARE_IMAGE_MODEL, type CloudflareImageCredentials } from "./cloudflare-image-client.ts";
@@ -12,6 +12,15 @@ import { createVisualBrief, createVisualScene } from "./visual-brief-service.ts"
 import { parseVisualReviewRequest, visualReviewRequestLimit } from "./visual-review-request.ts";
 import { reviewVisualImage } from "./visual-review-service.ts";
 import { generationStage, type ApplicationInstruction } from "./application-instructions.ts";
+import { parseStoryCast, type StoryCast } from "../domain/story-cast.ts";
+import { assertRequiredVisualLabels, MissingVisualLabelsError, requiredVisualLabels } from "../domain/visual-required-labels.ts";
+
+function reportVisualFailure(response: Parameters<typeof sendJson>[0], error: unknown, status: number, fallback: string) {
+  if (!response.destroyed && !response.headersSent) {
+    if (error instanceof MissingVisualLabelsError) sendJson(response, 422, { error: error.message });
+    else sendJson(response, status, { error: fallback });
+  }
+}
 
 type VisualApiOptions = {
   root: string;
@@ -30,9 +39,12 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
   let chapterCoverRequests = 0;
   const parsePlan = (data: unknown) => {
     const request = data && typeof data === "object" && "brief" in data ? data : undefined;
+    const purpose = parseSceneVisualPurpose(request && "purpose" in request ? request.purpose : undefined);
+    const cast = parseStoryCast(request && "cast" in request ? request.cast : undefined);
+    if (cast && purpose !== "story-illustration") throw new Error("Cast locks apply only to Story illustrations.");
     return {
       brief: validateVisualBrief(request ? request.brief : data, maxSourceLines),
-      purpose: parseSceneVisualPurpose(request && "purpose" in request ? request.purpose : undefined),
+      purpose, cast,
     };
   };
 
@@ -96,11 +108,11 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
       const result = await runModelRequest(request, response, "visual-plan", (signal, markPhase) => {
         markPhase("planning_scene");
         return createVisualScene(input.brief, root, executeCodex, signal, options.compactVisualPlanning,
-          loaded => { instructions = loaded; }, input.purpose);
+          loaded => { instructions = loaded; }, input.purpose, input.cast);
       });
       if (result.status === "completed") sendJson(response, 200, { scene: result.value, generation: generationStage(result.value, instructions) });
-    } catch {
-      if (!response.destroyed && !response.headersSent) sendJson(response, 502, { error: "Could not plan the drawing. Try again or simplify the brief." });
+    } catch (error) {
+      reportVisualFailure(response, error, 502, "Could not plan the drawing. Try again or simplify the brief.");
     }
   });
   middlewares.use("/api/visual-render", async (request, response) => {
@@ -108,21 +120,28 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
     if (request.method !== "POST") { response.setHeader("Allow", "POST"); sendJson(response, 405, { error: "Method not allowed." }); return; }
     let brief: ReturnType<typeof validateVisualBrief> | undefined;
     let purpose: SceneVisualPurpose | undefined;
+    let cast: StoryCast | undefined;
     let scene: VisualScene | undefined;
     let resolution: VisualResolution = "standard";
     try {
       const data = await readJsonRequest(request, 500_000);
       if (data && typeof data === "object" && "scene" in data) {
         scene = validateVisualScene(data.scene);
+        const requestedLabels = parseRequiredVisualLabels("requiredLabels" in data ? data.requiredLabels : undefined);
+        const scenePurpose = parseSceneVisualPurpose("purpose" in data ? data.purpose : undefined);
+        assertRequiredVisualLabels(scene, requiredVisualLabels(requestedLabels, scenePurpose));
         resolution = parseVisualResolution("resolution" in data ? data.resolution : undefined);
       } else {
-        ({ brief, purpose } = parsePlan(data));
+        ({ brief, purpose, cast } = parsePlan(data));
         if (data && typeof data === "object" && "brief" in data) {
           resolution = parseVisualResolution("resolution" in data ? data.resolution : undefined);
         }
       }
       if (brief && brief.disposition !== "render") throw new Error("Text-only brief.");
-    } catch { sendJson(response, 400, { error: "A valid drawing or renderable brief and a supported image size are required." }); return; }
+    } catch (error) {
+      reportVisualFailure(response, error, 400, "A valid drawing or renderable brief and a supported image size are required.");
+      return;
+    }
     const renderScene = diagrams.renderScene;
     if (!renderScene || !await diagrams.available()) {
       sendJson(response, 503, { error: "VectorCraft is unavailable. Enable the approved local CLI to render the image." });
@@ -132,7 +151,7 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
       const result = await runModelRequest(request, response, "visual-render", async (signal, markPhase) => {
         if (brief) {
           markPhase("planning_scene");
-          scene = await createVisualScene(brief, root, executeCodex, signal, options.compactVisualPlanning, undefined, purpose);
+          scene = await createVisualScene(brief, root, executeCodex, signal, options.compactVisualPlanning, undefined, purpose, cast);
         }
         if (!scene) throw new Error("Missing validated drawing.");
         markPhase("rendering_scene");
@@ -143,8 +162,8 @@ export function registerVisualApi(middlewares: ViteDevServer["middlewares"], opt
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.end(result.value);
       }
-    } catch {
-      if (!response.destroyed && !response.headersSent) sendJson(response, 502, { error: "Could not render a complete image. Try again or simplify the brief." });
+    } catch (error) {
+      reportVisualFailure(response, error, 502, "Could not render a complete image. Try again or simplify the brief.");
     }
   });
 

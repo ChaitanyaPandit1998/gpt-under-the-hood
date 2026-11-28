@@ -136,7 +136,7 @@ test("saves accepted scene images separately and resumes without generating them
   await page.route("**/api/visual-plan", (route) => {
     plans.push(route.request().postDataJSON().purpose);
     return route.fulfill({ json: { scene: {
-      background: "#ffffff", items: [{ kind: "text", text: "Limit", x: plans.length === 1 ? 999 : 40, y: 60, size: 24, color: "#202033", align: "left" }],
+      background: "#ffffff", items: [{ kind: "text", text: plans.length > 1 && plans.at(-1) === "story-illustration" ? "Fictional analogy" : "Limit", x: plans.length === 2 ? 999 : 40, y: 60, size: 24, color: "#202033", align: "left" }],
     } } });
   });
   await page.route("**/api/visual-render", (route) => {
@@ -156,6 +156,9 @@ test("saves accepted scene images separately and resumes without generating them
   await generate.click();
   await first.getByRole("radio", { name: "Full HD", exact: true }).check();
   await render.click();
+  await expect(first.getByRole("alert")).toContainText('missing required labels: "Fictional analogy"');
+  expect(renders).toHaveLength(0);
+  await first.getByRole("button", { name: "Retry drawing plan", exact: true }).click();
   await expect(first.getByRole("alert")).toContainText("may be clipped");
   expect(renders).toHaveLength(0);
   await first.getByRole("button", { name: "Retry drawing plan", exact: true }).click();
@@ -175,7 +178,7 @@ test("saves accepted scene images separately and resumes without generating them
   expect(briefs[1]).not.toHaveProperty("source");
   expect(briefs[1].context).toContain(story.scenes[0].meaning);
   expect(briefs[1].context).not.toContain(story.scenes[0].narrative);
-  expect(plans).toEqual(["story-illustration", "story-illustration", "factual-diagram"]);
+  expect(plans).toEqual(["story-illustration", "story-illustration", "story-illustration", "factual-diagram"]);
   expect(renders.map((item) => item.resolution)).toEqual(["full-hd", "standard"]);
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByRole("button", { name: "Previous", exact: true }).click();
@@ -204,6 +207,55 @@ test("saves accepted scene images separately and resumes without generating them
   expect(renders).toHaveLength(3);
 });
 
+test("keeps a cast across chapters and save/restore without sharing it with factual diagrams", async ({ page }) => {
+  const plans: { cast?: unknown; purpose?: string }[] = [];
+  await page.route("**/api/chapter-story", route => route.fulfill({ json: { story } }));
+  await page.route("**/api/visual-brief", route => route.fulfill({ json: { brief: {
+    disposition: "render", visualType: "concept-map", takeaway: "A fixed limit.", composition: "Show the limit.",
+    content: [{ label: "Limit", role: "background", statement: "The limit is three.", chapterLines: [] }],
+    guardrails: [], caption: "Example.", altText: "Example.",
+  } } }));
+  await page.route("**/api/visual-plan", route => {
+    plans.push(route.request().postDataJSON());
+    return route.fulfill({ json: { scene: { background: "#ffffff", items: [
+      { kind: "text", text: plans.at(-1)?.purpose === "story-illustration" ? "Fictional analogy" : "Limit", x: 40, y: 60, size: 24, color: "#202033", align: "left" },
+    ] } } });
+  });
+  await page.route("**/api/visual-render", route => route.fulfill({ contentType: "image/png", body: png }));
+  await openChapters(page);
+  const showStory = () => page.getByRole("button", { name: "Story", exact: true }).click();
+  await showStory();
+  await page.getByText("Lock character appearances", { exact: true }).click();
+  await page.getByRole("textbox", { name: "Short dark hair" }).fill("Clerk");
+  await page.getByRole("button", { name: "Apply cast" }).click();
+  await expect(page.getByText("Story cast: locked", { exact: true })).toBeVisible();
+  expect(plans).toHaveLength(0);
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await showStory();
+  await page.getByText("Story cast: locked", { exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Short dark hair" })).toHaveValue("Clerk");
+  await page.getByText("Illustrate this scene", { exact: true }).click();
+  for (const kind of ["Story illustration", "Factual diagram"]) {
+    await page.getByRole("button", { name: kind, exact: true }).click();
+    await page.getByRole("button", { name: "Generate visual brief", exact: true }).click();
+    await page.getByRole("button", { name: "Render image", exact: true }).click();
+    await expect(page.getByRole("figure", { name: new RegExp(`^${kind}:`) })).toBeVisible();
+  }
+  expect(plans[0]).toMatchObject({ purpose: "story-illustration", cast: { "short-hair": "Clerk" } });
+  expect(plans[1]).toMatchObject({ purpose: "factual-diagram" });
+  expect(plans[1]).not.toHaveProperty("cast");
+  await (await openStudyActions(page)).getByRole("button", { name: "Save study locally", exact: true }).click();
+  await expect(page.getByText("Study saved in this browser.", { exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Keep source and completed explanation after refresh in this tab" }).uncheck();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume saved study", exact: true }).click();
+  await page.getByText("Story cast: locked", { exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Short dark hair" })).toHaveValue("Clerk");
+  await page.getByRole("button", { name: "Unlock cast" }).click();
+  await expect(page.getByText("Automatic casting", { exact: true })).toBeVisible();
+  expect(plans).toHaveLength(2);
+});
+
 test("does not publish an image that finishes after leaving its scene", async ({ page }) => {
   await page.route("**/api/chapter-story", (route) => route.fulfill({ json: { story } }));
   await page.route("**/api/visual-brief", (route) => route.fulfill({ json: { brief: {
@@ -212,7 +264,7 @@ test("does not publish an image that finishes after leaving its scene", async ({
     guardrails: [], caption: "A fictional supply.", altText: "Three tickets.",
   } } }));
   await page.route("**/api/visual-plan", (route) => route.fulfill({ json: { scene: {
-    background: "#ffffff", items: [{ kind: "text", text: "Tickets", x: 40, y: 60, size: 24, color: "#202033", align: "left" }],
+    background: "#ffffff", items: [{ kind: "text", text: "Fictional analogy", x: 40, y: 60, size: 24, color: "#202033", align: "left" }],
   } } }));
   let finish!: () => void;
   const hold = new Promise<void>((resolve) => { finish = resolve; });

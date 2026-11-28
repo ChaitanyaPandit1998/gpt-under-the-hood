@@ -4,45 +4,69 @@ import { sceneCommands } from "../server/vectorcraft-export";
 
 const label = { kind: "text", x: 50, y: 60, text: "Literal label", size: 28, color: "#115577", align: "left" };
 const figure = { background: "#fefefd", items: [label] };
-const head = { kind: "story-head", asset: "short-hair", x: 240, y: 190, scale: 1, mirror: false };
+const torso = { kind: "rectangle", x: 190, y: 190, width: 100, height: 150, color: "#445544" };
+const head = { kind: "story-head", asset: "short-hair", torsoIndex: 0, collarX: 240, scale: 1, mirror: false };
 
 describe("Story character placement", () => {
   it("reuses the same geometry at a different anchor, direction and scale", () => {
-    const placed = expandStoryVisualScene({ ...figure, items: [label, head] });
+    const placed = expandStoryVisualScene({ ...figure, items: [torso, head, label] });
     const mirrored = expandStoryVisualScene({ ...figure, items: [
-      { ...head, x: 620, y: 170, scale: 2, mirror: true }, label,
+      { ...torso, x: 550, y: 170 }, { ...head, collarX: 620, scale: 2, mirror: true }, label,
     ] });
     expect(validateVisualScene(placed)).toEqual(placed);
-    expect(placed.items.slice(1)).toHaveLength(9);
+    expect(placed.items.slice(1, -1)).toHaveLength(9);
     expect(mirrored.items.at(-1)).toEqual(label);
-    placed.items.slice(1).forEach((path, i) => {
+    placed.items.slice(1, -1).forEach((path, i) => {
       if (path.kind !== "path") throw new Error("Expected a head path");
-      expect(mirrored.items[i]).toEqual({ ...path, weight: path.weight * 2,
+      expect(mirrored.items[i + 1]).toEqual({ ...path, weight: path.weight * 2,
         points: path.points.map(({ x, y }) => ({
-          x: expect.closeTo(620 - (x - 240) * 2, 8), y: expect.closeTo(170 + (y - 190) * 2, 8),
+          x: expect.closeTo(620 - (x - 240) * 2, 8), y: expect.closeTo(174 + (y - 192) * 2, 8),
         })) });
     });
+  });
+
+  it.each([false, true])("joins the neck to a sloped shirt opening (mirrored: %s)", (mirror) => {
+    const shirt = { kind: "path", color: "#445544", fill: "#445544", closed: true, arrow: false, weight: 1,
+      points: [{ x: 200, y: 200 }, { x: 300, y: 250 }, { x: 300, y: 370 }, { x: 200, y: 370 }] };
+    const [,,neck] = expandStoryVisualScene({ ...figure, items: [shirt, { ...head, asset: "long-hair", scale: 2, mirror }, label] }).items;
+    if (neck.kind !== "path") throw new Error("Expected a neck path");
+    expect(Math.max(...neck.points.map(point => point.y))).toBe(237);
+    expect(neck.points.some(({ x, y }) => Math.abs(x - 240) <= 6 && y > 200 + (x - 200) / 2)).toBe(true);
   });
 
   it("allows complete scenes with no heads and composes with the compact mode", () => {
     expect(expandStoryVisualScene(figure)).toEqual(figure);
     const repeat = { kind: "repeat", count: 2, dx: 40, dy: 0, item: { kind: "rectangle", x: 100, y: 180, width: 20, height: 20, color: "#fafafa" } };
-    const body = { ...figure, items: [label, repeat, { ...head, asset: "long-hair" }] };
+    const body = { ...figure, items: [label, repeat, torso, { ...head, torsoIndex: 2, asset: "long-hair" }] };
     expect(() => expandStoryVisualScene(body)).toThrow();
     expect(expandStoryVisualScene(body, true).items.map(item => item.kind)).toEqual([
-      "text", "rectangle", "rectangle", ...Array(10).fill("path"),
+      "text", "rectangle", "rectangle", "rectangle", ...Array(10).fill("path"),
     ]);
+  });
+
+  it("resolves only locked slots to their assigned face and does not require any people", () => {
+    const cast = { "long-hair": "A guide" };
+    const raw = (asset: string) => ({ ...figure, items: [torso, { ...head, asset }, label] });
+    const locked = expandStoryVisualScene(raw("cast-2"), false, cast);
+    expect(locked).toEqual(expandStoryVisualScene(raw("long-hair")));
+    for (const asset of ["cast-1", "long-hair", "short-hair"]) {
+      expect(() => expandStoryVisualScene(raw(asset), false, cast)).toThrow();
+    }
+    expect(expandStoryVisualScene(figure, false, cast)).toEqual(figure);
   });
 
   it("rejects external or invalid assets, clipping, excessive placements and over-budget expansion", () => {
     for (const badHead of [
       { ...head, asset: "https://example.test/head" }, { ...head, asset: "__proto__" },
       { ...head, scale: Infinity }, { ...head, scale: 0.5 }, { ...head, mirror: "false" },
-      { ...head, x: 10 }, { ...head, url: "https://example.test/head" },
-    ]) expect(() => expandStoryVisualScene({ ...figure, items: [label, badHead] })).toThrow("invalid drawing");
-    expect(() => expandStoryVisualScene({ ...figure, items: [label, ...Array(5).fill(head)] })).toThrow("invalid drawing");
-    expect(() => expandStoryVisualScene({ ...figure, items: [...Array(88).fill(label), head] })).toThrow("invalid drawing");
-    const raw = { ...figure, items: [label, head] };
+      { ...head, collarX: 10 }, { ...head, torsoIndex: 2 }, { ...head, torsoIndex: 0.5 }, { ...head, url: "https://example.test/head" },
+    ]) expect(() => expandStoryVisualScene({ ...figure, items: [torso, badHead, label] })).toThrow("invalid drawing");
+    for (const unsupported of [label, { ...torso, y: 30 }, { ...torso, height: 3 }]) {
+      expect(() => expandStoryVisualScene({ ...figure, items: [unsupported, head, label] })).toThrow("invalid drawing");
+    }
+    expect(() => expandStoryVisualScene({ ...figure, items: [torso, label, ...Array(5).fill(head)] })).toThrow("invalid drawing");
+    expect(() => expandStoryVisualScene({ ...figure, items: [torso, ...Array(87).fill(label), head] })).toThrow("invalid drawing");
+    const raw = { ...figure, items: [torso, head, label] };
     expect(() => validateVisualScene(raw)).toThrow();
     expect(() => expandCompactVisualScene(raw)).toThrow();
   });

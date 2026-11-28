@@ -1,4 +1,5 @@
-import { storyHeadAssets } from "./story-head-assets.ts";
+import { storyHeadAssets, storyHeadCollars } from "./story-head-assets.ts";
+import { lockedStorySlots, type StoryCast } from "./story-cast.ts";
 
 export const visualCanvas = { width: 1000, height: 700 } as const;
 type Point = { x: number; y: number };
@@ -39,14 +40,21 @@ const textRunSchema = object({
   labels: { type: "array", minItems: 2, maxItems: maxCopies, items: { type: "string", minLength: 1, maxLength: 120 } },
 });
 export const compactVisualSceneSchema = sceneSchema([...itemSchemas, repeatSchema, textRunSchema]);
-const headSchema = object({
-  kind: { type: "string", enum: ["story-head"] }, ...point,
-  asset: { type: "string", enum: Object.keys(storyHeadAssets) },
+const headSchema = (assets: string[]) => object({
+  kind: { type: "string", enum: ["story-head"] },
+  asset: { type: "string", enum: assets },
+  torsoIndex: { type: "integer", minimum: 0, maximum: maxSceneItems - 1 },
+  collarX: number,
   scale: { type: "number", minimum: 0.75, maximum: 3 },
   mirror: { type: "boolean" },
 });
-export const storyVisualSceneSchema = sceneSchema([...itemSchemas, headSchema]);
-export const compactStoryVisualSceneSchema = sceneSchema([...itemSchemas, repeatSchema, textRunSchema, headSchema]);
+function storyHeadLookup(cast?: StoryCast) {
+  return cast ? new Map(lockedStorySlots(cast).map(({ slot, asset }) => [slot, asset])) :
+    new Map(Object.keys(storyHeadAssets).map(asset => [asset, asset as keyof typeof storyHeadAssets]));
+}
+export function storyVisualSceneSchema(compact: boolean, cast?: StoryCast) {
+  return sceneSchema([...itemSchemas, ...(compact ? [repeatSchema, textRunSchema] : []), headSchema([...storyHeadLookup(cast).keys()])]);
+}
 
 const objectValue = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 const within = (value: unknown, min: number, max: number): value is number => typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
@@ -112,33 +120,56 @@ function expandItem(item: unknown): unknown[] {
 }
 
 export function expandCompactVisualScene(value: unknown): VisualScene {
-  return expandVisualScene(value, true, false);
+  return expandVisualScene(value, true);
 }
 
-export function expandStoryVisualScene(value: unknown, compact = false): VisualScene {
-  return expandVisualScene(value, compact, true);
+export function expandStoryVisualScene(value: unknown, compact = false, cast?: StoryCast): VisualScene {
+  return expandVisualScene(value, compact, storyHeadLookup(cast));
 }
 
-function expandStoryHead(item: Record<string, unknown>): SceneItem[] {
-  if (!exact(item, headSchema) || !isPoint(item) ||
-    typeof item.asset !== "string" || !Object.hasOwn(storyHeadAssets, item.asset) ||
+// Take the first filled span from the top along the collar's vertical line.
+function torsoSpan(torso: SceneItem, x: number): [number, number] | undefined {
+  if (torso.kind === "rectangle") {
+    if (x > torso.x && x < torso.x + torso.width) return [torso.y, torso.y + torso.height];
+  } else if (torso.kind === "path" && torso.closed && torso.fill !== "none") {
+    const crossings = torso.points.flatMap((a, i) => {
+      const b = torso.points[(i + 1) % torso.points.length];
+      return (a.x <= x && x < b.x) || (b.x <= x && x < a.x)
+        ? [a.y + (x - a.x) / (b.x - a.x) * (b.y - a.y)] : [];
+    }).sort((a, b) => a - b);
+    if (crossings.length >= 2) return [crossings[0], crossings[1]];
+  }
+}
+
+function expandStoryHead(item: Record<string, unknown>, items: unknown[], index: number, lookup: ReturnType<typeof storyHeadLookup>): SceneItem[] {
+  const asset = typeof item.asset === "string" ? lookup.get(item.asset) : undefined;
+  if (!asset || !exact(item, headSchema([])) || !within(item.collarX, 0, visualCanvas.width) ||
+    !within(item.torsoIndex, 0, index - 1) || !Number.isInteger(item.torsoIndex) ||
     !within(item.scale, 0.75, 3) || typeof item.mirror !== "boolean") invalidDrawing();
-  const { x, y, scale, mirror } = item;
-  return storyHeadAssets[item.asset as keyof typeof storyHeadAssets].map((path) => ({
+  const { collarX, scale, mirror } = item;
+  const torso = items[item.torsoIndex];
+  if (!isItem(torso)) invalidDrawing();
+  const spans = [-3, 0, 3].map(offset => torsoSpan(torso, collarX + offset * scale));
+  if (!spans.every(span => span !== undefined)) invalidDrawing();
+  const collarY = Math.max(...spans.map(span => span[0])) + 2 * scale;
+  if (spans.some(span => span[1] < collarY + 2 * scale)) invalidDrawing();
+  const anchor = storyHeadCollars[asset];
+  const dx = scale * (mirror ? -1 : 1);
+  return storyHeadAssets[asset].map((path) => ({
     ...path, kind: "path", arrow: false, weight: Math.max(0.5, path.weight * scale),
-    points: path.points.map(([dx, dy]) => ({ x: x + dx * scale * (mirror ? -1 : 1), y: y + dy * scale })),
+    points: path.points.map(([x, y]) => ({ x: collarX + (x - anchor.x) * dx, y: collarY + (y - anchor.y) * scale })),
   }));
 }
 
-function expandVisualScene(value: unknown, compact: boolean, story: boolean): VisualScene {
+function expandVisualScene(value: unknown, compact: boolean, lookup?: ReturnType<typeof storyHeadLookup>): VisualScene {
   const { background, items } = readScene(value);
   const expanded: unknown[] = [];
   let heads = 0;
-  for (const item of items) {
+  for (const [index, item] of items.entries()) {
     let batch: unknown[];
-    if (story && objectValue(item) && item.kind === "story-head") {
+    if (lookup && objectValue(item) && item.kind === "story-head") {
       if (++heads > maxStoryHeads) invalidDrawing();
-      batch = expandStoryHead(item);
+      batch = expandStoryHead(item, items, index, lookup);
     } else {
       batch = compact ? expandItem(item) : [item];
     }

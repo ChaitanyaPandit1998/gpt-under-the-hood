@@ -5,6 +5,7 @@ import type { RenderedIllustration, StorySceneImages } from "../domain/saved-stu
 import { defaultVisualPreferences, type SceneVisualPurpose } from "../domain/visual-brief";
 import { InlineIllustration } from "./InlineIllustration";
 import { VisualBriefPanel } from "./VisualBriefPanel";
+import type { StoryCast } from "../domain/story-cast";
 
 const purposes = ["story-illustration", "factual-diagram"] as const;
 const labels = { "story-illustration": "Story illustration", "factual-diagram": "Factual diagram" };
@@ -20,9 +21,9 @@ function visualMaterial(scene: ChapterStory["scenes"][number], purpose: SceneVis
   };
 }
 
-export function StorySceneVisual({ scene, sceneNumber, source, audience, images, onRender }: {
+export function StorySceneVisual({ scene, sceneNumber, source, audience, images, cast, onRender }: {
   scene: ChapterStory["scenes"][number]; sceneNumber: number; source: string;
-  audience: LearnerLevel; images?: StorySceneImages;
+  audience: LearnerLevel; images?: StorySceneImages; cast?: StoryCast;
   onRender: (purpose: SceneVisualPurpose, image: RenderedIllustration, reviewOnly?: boolean) => void;
 }) {
   const id = useId();
@@ -37,6 +38,7 @@ export function StorySceneVisual({ scene, sceneNumber, source, audience, images,
       </div>
       {!purpose && <p>Choose a fictional illustration for the narrative or a diagram of the factual mapping.</p>}
       {open && purpose && <VisualBriefPanel key={purpose} embedded label={labels[purpose]} purpose={purpose}
+        cast={purpose === "story-illustration" ? cast : undefined}
         initialPreferences={{
           ...defaultVisualPreferences, audience, target: "screen",
           form: purpose === "story-illustration" ? "conceptual-illustration" : "auto",

@@ -2,6 +2,7 @@ import type { SavedStudy, ResultReadingState } from "./saved-study";
 import { validateChapterStory } from "./chapter-story";
 import { validateExplanation } from "../server/response-validation";
 import { validateSavedVisualArtifacts } from "./visual-provenance";
+import { parseStoryCast } from "./story-cast";
 
 export const portableStudyLimit = 40 * 1024 * 1024;
 const bad = () => { throw new Error("Invalid or unsupported study file."); };
@@ -44,6 +45,7 @@ function reading(value: unknown, source: string): asserts value is ResultReading
   if (item.illustration !== undefined) image(item.illustration);
   if (item.chapter === undefined) return;
   const chapter = record(item.chapter);
+  parseStoryCast(chapter.storyCast);
   text(chapter.chapterId);
   if (typeof chapter.chapterMode !== "boolean") bad();
   Object.values(record(chapter.images)).forEach(image);

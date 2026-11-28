@@ -34,8 +34,13 @@ choose a fictional **Story illustration** or a **Factual diagram** based on
 the scene's factual mapping. Preview the design prompt, generate a brief, and
 render with the configured VectorCraft CLI. No image is generated automatically.
 Fictional illustrations can reuse built-in faces and hair when the scene calls
-for people. Bodies, gestures, and props are planned per scene; the app does
-not yet lock a character assignment across chapters.
+for people. Open **Lock character appearances** in Story Mode to assign a
+fictional name or role to either face across chapters. The lock applies to
+future illustration renders; it does not replace existing images. Save the
+study to keep these assignments across sessions.
+Before rendering, the app checks for required labels listed in the visual
+brief and the fictional qualifier on Story images. The check does not verify
+that a label is attached to the right object or that the image is factually correct.
 Saving a local study keeps completed stories and accepted scene images. If
 the saved chapter was showing a completed story, it reopens in Story Mode.
 Stories and their images are not included in document/PDF exports. Individual

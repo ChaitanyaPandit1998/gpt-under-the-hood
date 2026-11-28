@@ -25,6 +25,11 @@ export type Explanation = {
   }[];
 };
 
+export function explanationContentKey(explanation: Explanation): string {
+  // Review annotations can change without changing what the learner is reading.
+  return JSON.stringify({ ...explanation, quality_review_status: undefined, quality_review_note: undefined });
+}
+
 export type Transcription = { transcription: string; uncertainties: { text: string; reason: string }[] };
 export type FollowUpMessage =
   | { role: "learner"; text: string; selected_text?: string }

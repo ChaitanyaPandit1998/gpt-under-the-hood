@@ -175,7 +175,8 @@ describe("local explanation API integration", () => {
     };
     const raw = { background: "#ffffff", items: [
       { kind: "text", text: "Fictional analogy", x: 60, y: 60, size: 24, color: "#202033", align: "left" },
-      { kind: "story-head", asset: "short-hair", x: 280, y: 220, scale: 1.5, mirror: false },
+      { kind: "rectangle", x: 240, y: 260, width: 80, height: 100, color: "#443333" },
+      { kind: "story-head", asset: "short-hair", torsoIndex: 1, collarX: 280, scale: 1.5, mirror: false },
     ] };
     const runner = vi.fn<CodexRunner>().mockResolvedValue(raw);
     const renderScene = vi.fn().mockResolvedValue(Buffer.from("png"));
@@ -187,7 +188,7 @@ describe("local explanation API integration", () => {
     const plan = await request("/api/visual-plan", { brief, purpose: "story-illustration" });
     expect(plan.status).toBe(200);
     const { scene, generation } = plan.json() as { scene: { items: { kind: string }[] }; generation: { instructions: unknown[] } };
-    expect(scene.items.map((item) => item.kind)).toEqual(["text", ...Array(9).fill("path")]);
+    expect(scene.items.map((item) => item.kind)).toEqual(["text", "rectangle", ...Array(9).fill("path")]);
     expect(generation.instructions).toContainEqual(expect.objectContaining({ id: "visual-composition-story-cast" }));
     expect(runner.mock.calls[0][0]).toContain("short-hair");
     expect((await request("/api/visual-render", { scene: raw })).status).toBe(400);
@@ -195,6 +196,41 @@ describe("local explanation API integration", () => {
     expect(renderScene).toHaveBeenCalledWith(scene, expect.any(AbortSignal), "hd");
     expect((await request("/api/visual-plan", { brief, purpose: "factual-diagram" })).status).toBe(502);
     expect(runner.mock.calls.at(-1)?.[0]).not.toContain("short-hair");
+    const cast = { "short-hair": "Clerk" };
+    const before = runner.mock.calls.length;
+    expect((await request("/api/visual-plan", { brief, purpose: "factual-diagram", cast })).status).toBe(400);
+    expect((await request("/api/visual-plan", { brief, purpose: "story-illustration", cast: { ...cast, "long-hair": "clerk" } })).status).toBe(400);
+    expect(runner).toHaveBeenCalledTimes(before);
+    runner.mockResolvedValueOnce({ ...raw, items: [...raw.items.slice(0, 2), { ...raw.items[2], asset: "cast-1" }] });
+    const locked = await request("/api/visual-plan", { brief, purpose: "story-illustration", cast });
+    expect(locked.status).toBe(200);
+    expect(locked.json()).toMatchObject({ scene });
+    expect(runner.mock.calls.at(-1)?.[0]).toContain('"role":"Clerk"');
+  });
+
+  it("blocks missing teaching labels and Story qualifiers before rendering", async () => {
+    const brief = {
+      disposition: "render", visualType: "conceptual-illustration", takeaway: "A teaching assumption.", composition: "Illustrate the assumption.",
+      caption: "An analogy.", altText: "A fictional example.", guardrails: [], requiredLabels: ["Specified limit"],
+      content: [{ label: "Limit", role: "illustrative", statement: "A toy limit.", chapterLines: [] }],
+    };
+    const scene = { background: "#ffffff", items: [{ kind: "text", text: "Specified limit", x: 60, y: 60, size: 24, color: "#202033", align: "left" }] };
+    const runner = vi.fn<CodexRunner>().mockResolvedValue(scene);
+    const renderScene = vi.fn().mockResolvedValue(Buffer.from("png"));
+    const request = createApiHarness(runner, undefined, undefined, {
+      diagramExporter: { available: async () => true, export: vi.fn(), renderScene },
+    });
+    const input = { brief, purpose: "story-illustration" };
+    const planned = await request("/api/visual-plan", input);
+    expect(planned.status).toBe(422);
+    expect(planned.json()).toMatchObject({ error: expect.stringContaining("Fictional analogy") });
+    expect(runner).toHaveBeenCalledTimes(2);
+    expect((await request("/api/visual-render", { ...input, resolution: "standard" })).status).toBe(422);
+    expect((await request("/api/visual-render", { scene, resolution: "standard", requiredLabels: ["Unproved"] })).status).toBe(422);
+    expect((await request("/api/visual-render", { scene, resolution: "standard", purpose: "story-illustration" })).status).toBe(422);
+    expect(renderScene).not.toHaveBeenCalled();
+    expect((await request("/api/visual-render", { scene, resolution: "standard", purpose: "factual-diagram", requiredLabels: ["Specified limit"] })).status).toBe(200);
+    expect(renderScene).toHaveBeenCalledTimes(1);
   });
 
   const storyInput = { source: "const limit = 3;", context: "Overview of the limit.", mode: "code", depth: "balanced", learnerLevel: "beginner" };
